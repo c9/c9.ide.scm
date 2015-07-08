@@ -1,0 +1,5 @@
+.filetree .filetree-icon.clickable {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
