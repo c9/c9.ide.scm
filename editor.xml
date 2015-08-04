@@ -1,45 +1,21 @@
 <a:application xmlns:a="http://ajax.org/2005/aml">
     <a:vsplitbox id="parent" anchors="0 0 0 0">
         <a:hbox class="imgtoolbar fakehbox aligncenter padding3" id="barTools" height="30" align="center">
+            <a:label id="labelLeft"></a:label>
+            
+            <a:hbox flex="1"></a:hbox>
+            <a:divider skin="c9-divider" />
             <a:button skin="c9-toolbarbutton-glossy" id="next">Next</a:button>
             <a:button skin="c9-toolbarbutton-glossy" id="prev">Previous</a:button>
             <a:divider skin="c9-divider" />
-            
-            <a:label id="labelLeft"></a:label>
             <a:hbox flex="1"></a:hbox>
+            
             <a:label id="labelRight"></a:label>
             
             <a:button skin="c9-toolbarbutton-glossy" id="fold">Fold</a:button>
-            <div style="padding: 20px"></div>
-            <a:button id="btnSettings" skin="header-btn" class="panel-settings" />
-
-            <a:menu id="options">
-                <a:item value="fluid">Fluid</a:item>
-                <a:item value="aligned">Aligned</a:item>
-                <a:item value="unified">Unified</a:item>
-            </a:menu>
         </a:hbox>
         
         <a:bar id="main" flex="1" visible="true" class='flex-container'>
         </a:bar>
     </a:vsplitbox>
-    
-    <a:menu id="resize-menu" class="menu-resize">
-        <div class="menu-resize-row-height">
-            <a:label class="resize-label">Width:</a:label>
-            <a:spinner width="50" min="0" max="10000" id="width" />
-        </div>
-        <div class="menu-resize-row-height">
-            <a:label class="resize-label">Height:</a:label>
-            <a:spinner width="50" min="0" max="10000" id="height" />
-        </div>
-        <a:divider />
-        <div class="menu-resize-row-height">
-            <a:checkbox value="true" label="Maintain Aspect Ratio" skin="checkbox_black" id="aspectratio" />
-        </div>
-        <a:divider />
-        <div class="menu-resize-row-height center">
-            <a:button skin="btn-default-css3" margin="2 10 0 10" style="width:50%" caption="Resize" default="1" id="resize-button" />
-        </div>
-    </a:menu>
 </a:application>
