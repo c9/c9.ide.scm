@@ -36,7 +36,7 @@ define(function(require, exports, module) {
         var mnuAce;
         
         
-        var handle = editors.register("diffview", "Diff viewer", DiffViewer, extensions);
+        var handle = editors.register("diffview", "Compare", DiffViewer, extensions);
         function createMenu() {
             mnuAce = new Menu({ 
                 id: "menu",
@@ -126,8 +126,13 @@ define(function(require, exports, module) {
             /***** Method *****/
             function loadDiff(opts) {
                 var session = diffview.c9session;
+                
                 labelLeft.setAttribute("caption", opts.oldPath);
                 labelRight.setAttribute("caption", opts.newPath);
+                
+                var newFilename = (opts.newPath + "").split("/").pop();
+                this.activeDocument.title = "Compare " + newFilename;
+                
                 session.request = status.loadDiff(opts, function(e, diff) {
                     // :)
                     if (e) return console.log(e);
@@ -161,7 +166,8 @@ define(function(require, exports, module) {
             plugin.on("documentLoad", function(e) {
                 var doc = e.doc;
                 var session = e.doc.getSession();
-                doc.title = "DiffView";
+                
+                doc.title = "Compare Files...";
                 
                 diffview.c9session = session;
                 diffview.orig.session.c9session = session;
