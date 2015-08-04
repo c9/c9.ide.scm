@@ -33,12 +33,14 @@ define(function(require, exports, module) {
             "dark": "#3D3D3D",
             "dark-gray": "#3D3D3D" 
         };
-        var mnuAce;
         
+        var menuAce;
+        var menuGutter;
         
         var handle = editors.register("diffview", "Compare", DiffViewer, extensions);
+        
         function createMenu() {
-            mnuAce = new Menu({ 
+            menuAce = new Menu({ 
                 id: "menu",
                 items: [
                     new MenuItem({ position: 10, command: "cut", caption: "Cut"}, handle),
@@ -47,6 +49,12 @@ define(function(require, exports, module) {
                     new Divider({ position: 40 }, handle),
                     new MenuItem({ position: 50, command: "selectall", caption: "Select All" }, handle),
                     new Divider({ position: 60 }, handle)
+                ]
+            }, handle);
+            
+            menuGutter = new Menu({ 
+                id: "menu-gutter",
+                items: [
                 ]
             }, handle);
         }
@@ -115,8 +123,20 @@ define(function(require, exports, module) {
                 var tab = e.tab;
                 
                 tab.on("contextmenu", function(e) { 
-                    if (!mnuAce) createMenu();
-                    mnuAce.show(e.x, e.y);
+                    if (!menuAce) createMenu();
+                    
+                    var target = e.htmlEvent.target;
+                    var gutter = plugin.diffview.gutterEl;
+                    
+                    // Set Gutter Context Menu
+                    if (ui.isChildOf(gutter, target, true)) {
+                        menuGutter.show(e.x, e.y);
+                    }
+                    // Set main Ace Context Menu
+                    else {
+                        menuAce.show(e.x, e.y);
+                    }
+
                     return false;
                 });
                 

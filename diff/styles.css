@@ -1,11 +1,11 @@
 .flex-container {
-    display: -webkit-flex!important;
-    display: flex!important;
+    display: -webkit-flex !important;
+    display: flex !important;
     flex-direction: row;
     position: absolute;
     overflow: hidden;
 }
-.flex-container>.ace_editor {
+.flex-container > .ace_editor {
     -webkit-flex-grow: 1;
     flex-grow: 1;
 }
@@ -23,7 +23,6 @@
     border-left: 1px solid rgba(255, 255, 255, 0.15);
     border-right: 1px solid rgba(255, 255, 255, 0.15);
     background-color: rgba(255, 255, 255, 0.10);
-    
 }
 
 .ace_diff {
@@ -80,5 +79,3 @@
     border-left-width:  2px;
     border-left-style: solid;
 }
-
-
