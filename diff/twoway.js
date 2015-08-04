@@ -45,6 +45,10 @@ function DiffView(element, options) {
     this.right.setOption("scrollPastEnd", 0.5);
     this.left.setOption("highlightActiveLine", false);
     this.right.setOption("highlightActiveLine", false);
+    this.left.setOption("highlightGutterLine", false);
+    this.right.setOption("highlightGutterLine", false);
+    this.left.setOption("readOnly", true);
+    this.right.setOption("readOnly", true);
     this.left.setOption("animatedScroll", true);
     this.right.setOption("animatedScroll", true);
 
@@ -515,6 +519,8 @@ function DiffView(element, options) {
             ace.selection.setRange(new Range(chunk.editStart, 0, chunk.editEnd, 0));
         ace.renderer.scrollSelectionIntoView(ace.selection.lead, ace.selection.anchor, 0.5);
         ace.renderer.animateScrolling(scrollTop);
+        
+        ace.clearSelection();
     };
     
     this.transformPosition = function(pos, orig) {
@@ -699,10 +705,10 @@ function DiffView(element, options) {
             var tag = lines[i][0];
             var line = lines[i].substr(1);
             if (tag === "@") {
-                var chnukHeader = /@@ -(\d+)(?:,(\d*))? \+(\d+)(?:,(\d*)) @@/.exec(line);
+                var chunkHeader = /@@ -(\d+)(?:,(\d*))? \+(\d+)(?:,(\d*)) @@/.exec(line);
                 hunks.unshift({
-                    start: +chnukHeader[1],
-                    oldlength: +chnukHeader[2] || 1,
+                    start: +chunkHeader[1],
+                    oldlength: +chunkHeader[2] || 1,
                     removed: [],
                     added: []
                 });
@@ -812,17 +818,22 @@ var Connector = function(diffView) {
 };
 (function() {
     this.addConnector = function(diffView, origStart, origEnd, editStart, editEnd, type) {
+        origStart = Math.ceil(origStart);
+        origEnd = Math.ceil(origEnd);
+        editStart = Math.ceil(editStart);
+        editEnd = Math.ceil(editEnd);
+        
         //  p1   p2
         //
         //  p3   p4
         var p1_x = -1;
-        var p1_y = origStart + 1;
+        var p1_y = origStart + 0.5;
         var p2_x = diffView.gutterWidth + 1;
-        var p2_y = editStart + 1;
+        var p2_y = editStart + 0.5;
         var p3_x = -1;
-        var p3_y = origEnd + 2;
+        var p3_y = (origEnd === origStart) ? origEnd + 0.5 : origEnd + 1.5;
         var p4_x = diffView.gutterWidth + 1;
-        var p4_y = editEnd + 2;
+        var p4_y = (editEnd === editStart) ? editEnd + 0.5 : editEnd + 1.5;
         var curve1 = this.getCurve(p1_x, p1_y, p2_x, p2_y);
         var curve2 = this.getCurve(p4_x, p4_y, p3_x, p3_y);
     
