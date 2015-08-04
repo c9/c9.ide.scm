@@ -757,7 +757,7 @@ function DiffView(element, options) {
                 if (val)
                     this.align();
             },
-            initialValue: false
+            initialValue: true
         },
     });
 }).call(DiffView.prototype);
