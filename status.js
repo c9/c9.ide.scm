@@ -318,6 +318,9 @@ define(function(require, exports, module) {
                     }
                 }, 800);
             }
+            
+            plugin.getElement("btnCommit").hide();
+            plugin.getElement("btnSettings").hide();
         }
         
         /***** Methods *****/
