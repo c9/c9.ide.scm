@@ -763,7 +763,7 @@ function DiffView(element, options) {
                 if (val)
                     this.align();
             },
-            initialValue: true
+            initialValue: false
         },
     });
 }).call(DiffView.prototype);
