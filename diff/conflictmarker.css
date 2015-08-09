@@ -1,0 +1,83 @@
+.conflict-widget-1 {
+    background: rgb(178, 228, 145);
+    box-sizing: border-box;
+    border-radius: 4px 4px 0 0;
+    border-color: rgb(107, 220, 82);
+    padding: 1px 1.2em;
+}
+
+.conflict-widget-2 {
+    background: rgb(130, 188, 239); 
+    box-sizing: border-box;      
+    border-radius: 0 0 4px 4px;
+    padding: 1px 1.2em;
+}
+
+.conflict-widget-split {
+    background: inherit;
+    box-sizing: border-box;
+    padding: 1px 1.2em;
+}
+
+
+.conflict-marker-1 {
+    position: absolute;
+    background: rgb(221, 236, 217);
+    border-left: 3px solid #AEE0AE ;
+    border-right: 3px solid #AEE0AE ;
+}
+
+.conflict-marker-2 {
+    position: absolute;
+    background: rgb(215, 225, 255);
+    border-left: 3px solid rgb(130, 188, 239);
+    border-right: 3px solid rgb(130, 188, 239);
+}
+.conflict-marker-1.edited, .conflict-marker-2.edited {
+    background: rgb(243, 240, 199);
+}
+
+
+.ace_button {
+    margin-left: 2px;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -o-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    overflow: hidden;
+    /*opacity: 0.7;*/
+    border: 1px solid rgba(100,100,100,0.23);
+    padding: 2px 4px;
+    box-sizing: border-box;
+    color: #545454;
+    background: white;
+    pointer-events: auto;
+    border-radius: 4px;
+}
+
+.ace_button:hover {
+    background-color: #eee;
+    opacity:1;
+}
+.ace_button:active {
+    background-color: #ddd;
+}
+
+.ace_button.checked {
+    border-color: #3399ff;
+    opacity:1;
+}
+.conflict-button-top {
+    position: absolute;
+    top: 0;
+    right: 1.4em;
+    transform: translateY(-50%);
+}
+.conflict-button-bottom {
+    position: absolute;
+    bottom: 0;
+    right: 1.4em;
+    transform: translateY(50%);
+}

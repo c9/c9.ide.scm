@@ -7,7 +7,7 @@
     <script src="/configs/require_config.js"></script>
     
     <style type="text/css">
-        .flex-container {
+        .ace_diff-container {
             top: 0;
             left: 0;
             bottom: 0;
@@ -17,12 +17,12 @@
 </head>
 <body>
 
-<div class="flex-container"></div>
+<div class="ace_diff-container"></div>
 
 <script>
     require(["plugins/c9.ide.scm/diff/twoway"], function() {
         var DiffView = require("plugins/c9.ide.scm/diff/twoway").DiffView;
-        var diffView = new DiffView(document.querySelector(".flex-container"), {});
+        var diffView = new DiffView(document.querySelector(".ace_diff-container"), {});
         window.diffView = diffView;
         
         require("ace/lib/net").get("./diff/0.html", function(v) {

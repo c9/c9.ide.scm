@@ -15,7 +15,7 @@
             <a:button skin="c9-toolbarbutton-glossy" id="fold">Fold</a:button>
         </a:hbox>
         
-        <a:bar id="main" flex="1" visible="true" class='flex-container'>
+        <a:bar id="main" flex="1" visible="true" class='ace_diff-container'>
         </a:bar>
     </a:vsplitbox>
 </a:application>

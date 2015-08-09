@@ -11,11 +11,23 @@
                 <a:bar id="toolbar" skin="toolbar-top" class="fakehbox basic" align="center">
                     <a:hbox>
                         <a:button
+                            id       = "btnLog"
+                            skin     = "c9-toolbarbutton-glossy"
+                            caption  = "Log"
+                            visible  = "true"
+                            style    = "min-width:14px;" />
+                        <a:button
                             id       = "btnCommit"
                             skin     = "c9-toolbarbutton-glossy"
                             caption  = "Commit"
                             visible  = "true"
-                            style    = "min-width:54px;" />
+                            style    = "min-width:14px;" />
+                        <a:button
+                            id       = "btnBranches"
+                            skin     = "c9-toolbarbutton-glossy"
+                            caption  = "Branches"
+                            visible  = "true"
+                            style    = "min-width:14px;" />
                         <a:hbox flex="1"></a:hbox>
                         <a:button
                             id       = "btnReload"
@@ -30,10 +42,13 @@
             </a:vbox>
         </a:vsplitbox>
         <a:bar>
-            <a:bar id="log" anchors="0 0 0 0">
+            <a:bar id="log"  visible="false" anchors="0 0 0 0">
             
             </a:bar>
             <a:bar id="commit" visible="false" anchors="0 0 0 0">
+            
+            </a:bar>
+            <a:bar id="branches" visible="false" anchors="0 0 0 0">
             
             </a:bar>
         </a:bar>

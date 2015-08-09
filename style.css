@@ -1,5 +1,12 @@
-.filetree .filetree-icon.clickable {
+.filetree .status-icon.clickable {
     pointer-events: auto;
     cursor: pointer;
 }
 
+.filetree .status-icon {
+    color: #8DCA57;
+    margin: 0 4px;
+}
+.filetree .status-icon-conflict {
+    color: #E466C7;
+}

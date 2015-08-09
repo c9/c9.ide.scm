@@ -20,7 +20,7 @@ require("ace/theme/textmate");
 function createEditor() {
     var editor = new Editor(new Renderer(), null);
     editor.session.setUndoManager(new UndoManager());
-    return editor
+    return editor;
 }
 
 function DiffView(element, options) {
@@ -47,8 +47,6 @@ function DiffView(element, options) {
     this.right.setOption("highlightActiveLine", false);
     this.left.setOption("highlightGutterLine", false);
     this.right.setOption("highlightGutterLine", false);
-    this.left.setOption("readOnly", true);
-    this.right.setOption("readOnly", true);
     this.left.setOption("animatedScroll", true);
     this.right.setOption("animatedScroll", true);
 
@@ -69,6 +67,8 @@ function DiffView(element, options) {
     this.onChangeTheme = this.onChangeTheme.bind(this);
     
     this.onChangeTheme();
+    
+    this.$initArrow();
     
     this.chunks = [];
     this.$attachEventHandlers();
@@ -292,7 +292,7 @@ function DiffView(element, options) {
             var midY = halfScreen + r.scrollTop;
             var mid = r.session.screenToDocumentRow(midY / lc.lineHeight, 0);
     
-            var i = findChunk(chunks, mid, isOrig);
+            var i = findChunkIndex(chunks, mid, isOrig);
             var ch = chunks[i];
     
             if (!ch) {
@@ -372,7 +372,7 @@ function DiffView(element, options) {
         var isOrig = r == r1;
         var midY = halfScreen + r.scrollTop;
         var mid = r.session.screenToDocumentRow(midY / lc.lineHeight, 0);
-        var i = findChunk(chunks, mid, isOrig);
+        var i = findChunkIndex(chunks, mid, isOrig);
         var ch = chunks[i];
 
         if (dir < 0) {
@@ -473,7 +473,99 @@ function DiffView(element, options) {
         this.left.on("input", this.onInput);
         this.right.on("input", this.onInput);
         
+        
         this.$attachSessionEventHandlers();
+    };
+    
+    this.$initArrow = function() {
+        var arrow = document.createElement("div");
+        this.gutterEl.appendChild(arrow);
+        
+        var region = 0;
+        var diffView = this;
+        arrow.addEventListener("click", function(e) {
+            if (region && region.chunk) {
+                var range = diffView.useChunk(region.chunk, region.side == 1);
+                var editor = region.side == 1 ? diffView.orig : diffView.edit;
+                editor.selection.moveToPosition(range.start);
+                editor.focus();
+            }
+            hide();
+        });
+        this.gutterEl.addEventListener("mousemove", function(e) {
+            var rect = e.currentTarget.getBoundingClientRect();
+            var x = e.clientX - rect.left;
+            var y = e.clientY; // - rect.top;
+            
+            if (!region) {
+                arrow.style.display = "";
+                region = {};
+            }
+            
+            if (x < rect.width / 2) {
+                if (region.side != -1)
+                    arrow.className = "diff-arrow diff-arrow-left";
+                region.side = -1;
+            } else {
+                if (region.side != 1)
+                    arrow.className = "diff-arrow diff-arrow-right";
+                region.side = 1;
+            }
+            var editor = region.side == 1 ? diffView.edit : diffView.orig;
+            var other = editor == diffView.edit ? diffView.orig : diffView.edit;
+            var renderer = editor.renderer;
+            
+            if (other.getReadOnly())
+                return hide();
+            
+            var p = renderer.screenToTextCoordinates(x, y);
+            var row = p.row;
+            if (row == renderer.session.getLength() - 1)
+                row++;
+            var chunks = diffView.chunks;
+            var i = findChunkIndex(chunks, row, region.side == -1);
+            if (i == -1) i = 0;
+            var ch = chunks[i] || chunks[chunks.length - 1];
+            var next = chunks[i + 1];
+            
+            var side = region.side == -1 ? "orig" : "edit";
+            if (next && ch) {
+                if (ch[side + "End"] + next[side + "Start"] < 2 * row)
+                    ch = next;
+            }
+            region.chunk = ch;
+            if (!ch)
+                return hide();
+            if (renderer.layerConfig.firstRow > ch[side + "End"])
+                return hide();
+            if (renderer.layerConfig.lastRow < ch[side + "Start"] - 1)
+                return hide();
+            
+            var screenPos = renderer.$cursorLayer.getPixelPosition({
+                row: ch[side + "Start"],
+                column: 0
+            }, true).top;
+            if (screenPos < renderer.layerConfig.offset)
+                screenPos = renderer.layerConfig.offset;
+            arrow.style.top = screenPos - renderer.layerConfig.offset + "px";
+            if (region.side == -1) {
+                arrow.style.left = "2px";
+                arrow.style.right = "";
+            } else {
+                arrow.style.left = "";
+                arrow.style.right = "2px";
+            }
+        }.bind(this));
+        this.gutterEl.addEventListener("mouseout", function(e) {
+            hide();
+        });
+        event.addMouseWheelListener(this.gutterEl, hide);
+        function hide() {
+            if (region) {
+                region = null;
+                arrow.style.display = "none";
+            }
+        }
     };
     
     /*** other ***/
@@ -511,21 +603,22 @@ function DiffView(element, options) {
         var orig = false;
         var ace = orig ? this.orig : this.edit;
         var row = ace.selection.lead.row;
-        var i = findChunk(this.chunks, row, orig);
+        var i = findChunkIndex(this.chunks, row, orig);
         var chunk = this.chunks[i + dir] || this.chunks[i];
         
         var scrollTop = ace.session.getScrollTop();
-        if (chunk)
-            ace.selection.setRange(new Range(chunk.editStart, 0, chunk.editEnd, 0));
+        if (chunk) {
+            var line = Math.max(chunk.editStart, chunk.editEnd - 1);
+            ace.selection.setRange(new Range(line, 0, line, 0));
+        }
         ace.renderer.scrollSelectionIntoView(ace.selection.lead, ace.selection.anchor, 0.5);
         ace.renderer.animateScrolling(scrollTop);
-        
-        ace.clearSelection();
     };
     
     this.transformPosition = function(pos, orig) {
-        var chunkIndex = findChunk(this.chunks, pos.row, orig);
+        var chunkIndex = findChunkIndex(this.chunks, pos.row, orig);
         var chunk = this.chunks[chunkIndex];
+        
         
         return {
             row: pos.row,
@@ -533,11 +626,40 @@ function DiffView(element, options) {
         };
     };
     
+    this.useChunk = function(chunk, toOrig) {
+        var origRange = new Range(chunk.origStart, 0, chunk.origEnd, 0);
+        var editRange = new Range(chunk.editStart, 0, chunk.editEnd, 0);
+        
+        var srcEditor = toOrig ? this.edit : this.orig;
+        var destEditor = toOrig ? this.orig : this.edit;
+        var destRange = toOrig ? origRange : editRange;
+        var srcRange = toOrig ? editRange : origRange;
+        
+        var value = srcEditor.session.getTextRange(srcRange);
+        // missing eol at the end of document
+        if (srcRange.isEmpty() && !destRange.isEmpty()) {
+            if (destRange.end.row == destEditor.session.getLength()) {
+                destRange.start.row--;
+                destRange.start.column = Number.MAX_VALUE;
+            }
+        } else if (destRange.isEmpty() && !srcRange.isEmpty()) {
+            if (srcRange.end.row == srcEditor.session.getLength()) {
+                value = "\n" + value;
+            }
+        }
+        destRange.end = destEditor.session.replace(destRange, value);
+        return destRange;
+    };
+    
     this.transformRange = function(range, orig) {
         return Range.fromPoints(
             this.transformPosition(range.start, orig),
             this.transformPosition(range.end, orig)
-        );
+        ); 
+    };
+    
+    this.findChunkIndex = function(row, orig) {
+        return findChunkIndex(this.chunks, row, orig);
     };
     
     /*** patch ***/
@@ -795,7 +917,7 @@ var diff_linesToChars_ = function(text1, text2) {
     };
 };
 
-function findChunk(chunks, row, orig) {
+function findChunkIndex(chunks, row, orig) {
     if (orig) {
         for (var i = 0; i < chunks.length; i++) {
             var ch = chunks[i];
@@ -955,19 +1077,21 @@ var DiffHighlight = function(diffView, type) {
         var chunks = diffView.chunks;
         var isOrig = this.type == -1;
         var type = this.type;
-        var index = findChunk(chunks, start, isOrig);
+        var index = findChunkIndex(chunks, start, isOrig);
         if (index == -1 && chunks.length && (isOrig ? chunks[0].origStart : chunks[0].editStart) > start)
             index = 0;
         var chunk = chunks[index];
         while (chunk) {
-            if (chunk.startRow > end)
-                return;
             if (isOrig) {
+                if (chunk.origStart > end && chunk.origStart != chunk.origEnd)
+                    return;
                 var range = new Range(chunk.origStart, 0, chunk.origEnd - 1, 1);
                 var l1 = chunk.origEnd - chunk.origStart;
                 var l2 = chunk.editEnd - chunk.editStart;
             }
             else {
+                if (chunk.editStart > end && chunk.editStart != chunk.editEnd)
+                    return;
                 range = new Range(chunk.editStart, 0, chunk.editEnd - 1, 1);
                 l1 = chunk.origEnd - chunk.origStart;
                 l2 = chunk.editEnd - chunk.editStart;
@@ -981,8 +1105,8 @@ var DiffHighlight = function(diffView, type) {
             markerLayer.drawFullLineMarker(html, range.toScreenRange(session),
                 "ace_diff " + className, config);
             var inlineChanges = chunk.inlineChanges;
-            var row = range.start.row,
-                column = 0;
+            var row = range.start.row;
+            var column = 0;
             for (var j = 0; j < inlineChanges.length; j++) {
                 var diff = inlineChanges[j];
                 if (diff[0] == 0) {

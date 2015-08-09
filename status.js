@@ -31,10 +31,19 @@ define(function(require, exports, module) {
         var ListData = require("./dataprovider");
         var basename = require("path").basename;
         var dirname = require("path").dirname;
+        var escapeHTML = require("ace/lib/lang").escapeHTML;
+        var GitGraph = require("./log/log");
+
         
         var Tooltip = require("ace_tree/tooltip");
         
         /***** Initialization *****/
+        
+        if (c9.hosted && c9.location.indexOf("git=1") == -1 || c9.location.indexOf("git=0") != -1) {
+            return register(null, {
+                "git.status": {}
+            });
+        }
         
         var plugin = new Panel("Ajax.org", main.consumes, {
             index: options.index || 350,
@@ -48,13 +57,13 @@ define(function(require, exports, module) {
         var winStatus, txtGoToFile, tree, model;
         var lastSearch, lastPreviewed, cleaning, intoOutline;
         var isReloadScheduled;
-        var logTree
-        var logModel
+        var logTree, logModel, branchesTree;
         
         var dirty = true;
         var arrayCache = [];
         var loadListAtInit = options.loadListAtInit;
         var timer;
+        var workspaceDir = c9.workspaceDir + "/plugins/c9.ide.scm/mock/git";
         
         var loaded = false;
         function load(){
@@ -71,8 +80,10 @@ define(function(require, exports, module) {
             });
             
             panels.on("afterAnimate", function(){
-                if (panels.isActive("navigate"))
+                if (panels.isActive("changes")) {
                     tree && tree.resize();
+                    logTree && logTree.resize();
+                }
             });
             
             
@@ -145,11 +156,26 @@ define(function(require, exports, module) {
             tree.renderer.setTheme({cssClass: "filetree"});
             tree.setDataProvider(model);
             model.getIconHTML = function(node) {
-                var icon = node.isFolder ? "folder" : util.getFileIcon(node.label);
+                var icon = node.isFolder ? "folder" : "status-icon-" + node.type;
+                if (node.parent == conflicts)
+                    icon = "status-icon-conflict";
                 if (node.status === "loading") icon = "loading";
                 if (model.twoWay && !node.isFolder)
                     icon += " clickable";
-                return "<span class='filetree-icon " + icon + "'></span>";
+                return "<span class='status-icon " + icon + "'>"
+                    + (node.type || "") + "</span>";
+            };
+            model.getCaptionHTML = function(node) {
+                if (node.path) {
+                    var path = node.labelPath || node.path;
+                    return basename(path) 
+                        + "<span class='extrainfo'> - " 
+                        + dirname(path) + "</span>";
+                }
+                return escapeHTML(node.label || node.name);
+            };
+            model.getRowIndent = function(node) {
+                return node.$depth ? node.$depth - 2 : 0;
             };
             
             logTree = new Tree(plugin.getElement("log").$int);
@@ -157,9 +183,10 @@ define(function(require, exports, module) {
             logTree.renderer.setScrollMargin(0, 10);
             logTree.renderer.setTheme({cssClass: "filetree"});
             logTree.setDataProvider(logModel);
+            new GitGraph().attachToTree(logTree);
             
-            tree.tooltip = new Tooltip(tree);
-            logTree.tooltip = new Tooltip(logTree);
+            // tree.tooltip = new Tooltip(tree);
+            // logTree.tooltip = new Tooltip(logTree);
             
             layout.on("eachTheme", function(e){
                 var height = parseInt(ui.getStyleRule(".filetree .tree-row", "height"), 10) || 22;
@@ -167,9 +194,14 @@ define(function(require, exports, module) {
                 model.rowHeight = height + 1;
                 logModel.rowHeightInner = height;
                 logModel.rowHeight = height + 1;
+                if (branchesTree) {
+                    branchesTree.model.rowHeightInner = height;
+                    branchesTree.model.rowHeight = height + 1;
+                }
                 if (e.changed) {
                     tree && tree.resize();
                     logTree && logTree.resize();
+                    branchesTree && branchesTree.resize();
                 }
             });
             
@@ -205,20 +237,22 @@ define(function(require, exports, module) {
             tree.on("drop", function(e) {
                 if (e.target && e.selectedNodes) {
                     var nodes = e.selectedNodes;
-                    if (e.target.isStaging) {
+                    if (e.target == staged) {
                         addFileToStaging(nodes);
-                    } else {
+                    } else if (e.target == changed) {
                         unstage(nodes);
                     }
                 }   
             });
             
             tree.on("click", function(e) {
-                if (e.domEvent.target.classList.contains("filetree-icon")) {
+                if (e.domEvent.target.classList.contains("status-icon")) {
                     var node = e.getNode();
-                    if (node.parent.isStaging) {
+                    if (node.parent == staged) {
                         unstage(node);
-                    } else {
+                    } else if (node.parent == changed || node.parent == ignored) {
+                        addFileToStaging(node);
+                    } else if (node.parent == conflicts) {
                         addFileToStaging(node);
                     }
                 }
@@ -240,7 +274,7 @@ define(function(require, exports, module) {
             var c = 0;
             ui.insertByIndex(mnuSettings, new ui.item({
                 caption: "Commit",
-                onclick: function(){ toggleCommitView(); }
+                onclick: function(){ switchMainPanel({panel: "commit"}); }
             }), c+=100, plugin);
             ui.insertByIndex(mnuSettings, new ui.item({
                 caption: "Add All",
@@ -271,7 +305,8 @@ define(function(require, exports, module) {
             var mnuCtxStatus = plugin.getElement("mnuCtxStatus");
             menus.decorate(mnuCtxStatus);
             plugin.addElement(mnuCtxStatus);
-            plugin.getElement("log").setAttribute("contextmenu", mnuCtxStatus);
+            var mnuCtxLog = plugin.getElement("mnuCtxLog");
+            
 
             menus.addItemToMenu(mnuCtxStatus, new ui.item({
                 match: "file",
@@ -290,11 +325,19 @@ define(function(require, exports, module) {
                 onclick: reveal
             }), 100, plugin);
             
-            
-            plugin.getElement("log").setAttribute("contextmenu", mnuCtxStatus);
+            plugin.getElement("log").setAttribute("contextmenu", mnuCtxLog);
             plugin.getElement("status").setAttribute("contextmenu", mnuCtxStatus);
             
-            plugin.getElement("btnCommit").onclick = toggleCommitView;
+            plugin.getElement("btnLog").onclick = switchMainPanel;
+            plugin.getElement("btnCommit").onclick = switchMainPanel;
+            plugin.getElement("btnBranches").onclick = switchMainPanel;
+            
+            plugin.getElement("btnLog").panel = "log";
+            plugin.getElement("btnCommit").panel = "commit";
+            plugin.getElement("btnBranches").panel = "branches";
+            
+            switchMainPanel({panel: "log"});
+            
             plugin.getElement("btnReload").onclick = function() {
                 getLog({}, function() {});
             };
@@ -308,8 +351,11 @@ define(function(require, exports, module) {
                 save.off("afterSave", markDirty);
                 watcher.off("change", markDirty);
             });
+            
+            watcher.watch(util.normalizePath(workspaceDir) + "/.git");
+            
             var timer = null;
-            function markDirty() {
+            function markDirty(e) {
                 clearTimeout(timer);
                 timer = setTimeout(function() {
                     if (model.options && !model.options.hash) {
@@ -318,9 +364,6 @@ define(function(require, exports, module) {
                     }
                 }, 800);
             }
-            
-            plugin.getElement("btnCommit").hide();
-            plugin.getElement("btnSettings").hide();
         }
         
         /***** Methods *****/
@@ -328,9 +371,10 @@ define(function(require, exports, module) {
         function reveal() {
             var node = tree.selection.getCursor();
             var path = node.path;
-            if (node.path) {
-                var path = node.path;
+            if (path) {
                 if (path[0] != "/") path = "/" + path;
+                path = workspaceDir + path;
+                path = util.normalizePath(path);
                 tabbehavior.revealtab({path: path});
             }
         }
@@ -377,6 +421,10 @@ define(function(require, exports, module) {
             var node = tree.selection.getCursor();
             if (!node || node.isFolder)
                 return;
+            
+            if (node.parent == conflicts)
+                return openConflictView(node);
+            
             options = tree.model.options;
             findOpenDiffview(done) || tabs.open({
                 editorType: "diffview",
@@ -395,13 +443,13 @@ define(function(require, exports, module) {
                 if (hash) {
                     hash = hash + ":";
                 } else {
-                    hash = "";
+                    hash = node.parent == staged ? ":" : "";
                 }
                 
                 var base = options.base;
                 if (!base)
-                    base = "HEAD";
-                if (base)
+                    base = node.parent == staged ? "HEAD" : ":";
+                if (base && base != ":")
                     base = base + ":";
                 
                 tab.editor.loadDiff({
@@ -409,6 +457,14 @@ define(function(require, exports, module) {
                     newPath: hash + newPath
                 });
             }
+        }
+        
+        function openConflictView(node) {
+            var addConflictMarker = require("./diff/conflictmarker");
+            var path = workspaceDir + "/" + node.path;
+            tabs.open({path: path, focus: true}, function(e, tab) {
+                addConflictMarker(tab.editor.ace);
+            });
         }
         
         function openSelectedFiles(opts) {
@@ -428,7 +484,7 @@ define(function(require, exports, module) {
                     pane = null;
     
                 tabs.open({
-                    path: node.path,
+                    path: workspaceDir + "/" + node.path,
                     pane: pane,
                     noanim: sel.length > 1,
                     active: node === main,
@@ -441,7 +497,8 @@ define(function(require, exports, module) {
             if (typeof args == "string")
                 args = args.split(/\s+/);
             vfs.execFile("git", {
-                args: args
+                args: args,
+                cwd: workspaceDir
             }, function(e, r) {
                 console.log(e, r && r.stdout);
                 reload({hash: 0, force: true}, function(e, status) {
@@ -472,7 +529,7 @@ define(function(require, exports, module) {
                 }
             } else {
                 args.push("status", "--porcelain", "-b", "-z");
-                if (!ignored.isOpen)
+                // if (!ignored.isOpen)
                     args.push("--untracked-files=no");
                 if (options.untracked == "all")
                     args.push("--untracked-files=all");
@@ -480,12 +537,25 @@ define(function(require, exports, module) {
                     args.push("--ignored");
             }
             
+            args.push("--");
+            
             if (options.path)
-                args.push("--", options.path);
+                args.push(options.path);
                 
             vfs.execFile("git", {
-                args: args
+                args: args,
+                cwd: workspaceDir
             }, function(e, r) {
+                if (e)  {
+                    if (/fatal: bad revision/.test(e.message)) {
+                        var EMPTY = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
+                        if (options.base != EMPTY) {
+                            options.base = EMPTY;
+                            return getStatus(options, cb);
+                        }
+                    }
+                    console.error(e);
+                }
                 console.log(e, r && r.stdout);
                 console.log(t-Date.now(), r && r.stdout.length);
                 cb(e, r && r.stdout);
@@ -493,25 +563,42 @@ define(function(require, exports, module) {
         }
         
         var changed = {
-            label: "Modified Files",
+            label: "modified files",
+            className: "heading",
             items: [],
             isOpen: true,
             isFolder: true
         };
         var staged = {
-            label: "Files staged for commit",
+            label: "files staged for commit",
+            className: "heading",
             items: [],
             isOpen: true,
-            isFolder: true,
-            isStaging: true
-        };
-        var ignored = {
-            label: "Ignored Files",
-            items: [],
-            isOpen: false,
             isFolder: true
         };
-        
+        var ignored = {
+            label: "ignored files",
+            className: "heading",
+            items: [],
+            isOpen: false,
+            isFolder: true,
+            map: {}
+        };
+        var untracked = {
+            label: "untracked files",
+            className: "heading",
+            items: [],
+            isOpen: false,
+            isFolder: true,
+            map: {}
+        };
+        var conflicts = {
+            label: "conflicts",
+            className: "heading",
+            items: [],
+            isOpen: true,
+            isFolder: true
+        };
         function reload(options, cb) {
             if (!options) options = {hash: 0};
             if (!model.options) model.options = {};
@@ -528,8 +615,10 @@ define(function(require, exports, module) {
                     changed.items = changed.children = [];
                     staged.items = staged.children = [];
                     ignored.items = ignored.children = [];
+                    conflicts.items = conflicts.children = [];
+                    untracked.items = untracked.children = [];
                     root = {
-                        items: [changed, staged, ignored],
+                        items: [changed, staged, untracked, ignored],
                         $sorted: true,
                         isFolder: true
                     };
@@ -537,6 +626,14 @@ define(function(require, exports, module) {
                         var x = status[i];
                         var name = x.substr(twoWay ? 3 : 2);
                         if (!name) continue;
+                        if (x[0] == "U" || x[1] == "U") {
+                            conflicts.items.push({
+                                label: name,
+                                path: name,
+                                type: x[0] + x[1]
+                            });
+                            continue;
+                        }
                         if (x[0] == "R") {
                             i++;
                             staged.items.push({
@@ -554,10 +651,18 @@ define(function(require, exports, module) {
                             });
                         }
                         if (x[1] == "?") {
+                            untracked.items.push({
+                                label: name,
+                                path: name,
+                                type: x[1],
+                                isFolder: name.slice(-1) == "/"
+                            });
+                        }
+                        if (x[1] == "!") {
                             ignored.items.push({
                                 label: name,
                                 path: name,
-                                type: x[0],
+                                type: x[1],
                                 isFolder: name.slice(-1) == "/"
                             });
                         }
@@ -565,10 +670,12 @@ define(function(require, exports, module) {
                             changed.items.push({
                                 label: name,
                                 path: name,
-                                type: x[0]
+                                type: x[1]
                             });
                         }
                     }
+                    if (conflicts.items.length)
+                        root.items.unshift(conflicts);
                 } else {
                     for (var i = 0; i < status.length; i += 2) {
                         var x = status[i];
@@ -600,7 +707,8 @@ define(function(require, exports, module) {
         function getLog(options, cb) {
             var t = Date.now();
             vfs.execFile("git", {
-                args: ["rev-list", "HEAD", "--count"]
+                args: ["rev-list", "HEAD", "--count"],
+                cwd: workspaceDir
             }, function(e, r) {
                 console.log(e, r.stdout);
                 console.log(t-Date.now(), r.stdout.length);
@@ -608,14 +716,19 @@ define(function(require, exports, module) {
                 var args = ["log", "--topo-order", "--date=raw"];
                 if (options.boundary != false) args.push("--boundary");
                 if (options.logOptions) args.push.apply(args, options.logOptions);
-                args.push('--pretty=format:' + (options.format || "%h %p %B ").replace(/ /g, "%x00"));
-                // args.push("--all");
+                args.push('--pretty=format:' + (options.format || "%h %p %d %B ").replace(/ /g, "%x00"));
+                args.push("--all");
                 args.push("HEAD");
                 args.push("-n", options.count || 1000);
                 if (options.from)
                     args.push("--skip=" + options.from);
+                    
+                args.push("--");
+                if (options.path)
+                    args.push(options.path);
                 vfs.execFile("git", {
-                    args: args
+                    args: args,
+                    cwd: workspaceDir
                 }, function(e, r) {
                     var x = r.stdout.trim().split("\x00\n");
                     var root = [];
@@ -624,18 +737,18 @@ define(function(require, exports, module) {
                         root.push({
                             hash: line[0],
                             parents: line[1],
-                            message: line[2],
-                            label: line[2].substring(0, line[2].indexOf("\n") + 1 || undefined)
+                            branches: line[2],
+                            message: line[3],
+                            label: line[3].substring(0, line[3].indexOf("\n") + 1 || undefined)
                         });
                     }
                     console.log(e, x);
                     console.log(t-Date.now(), r.stdout.length);
                     root.unshift({
-                        label: "working tree",
+                        label: "// WIP",
                         hash: 0
                     });
-                    logModel.visibleItems = root;
-                    logModel._signal("change");
+                    logModel.loadData(root);
                 });
                 
             });
@@ -653,7 +766,8 @@ define(function(require, exports, module) {
                 path = path.substr(1);
             vfs.execFile("git", {
                 args: ["show", hash + ":" + path],
-                maxBuffer: 1000 * 1024
+                maxBuffer: 1000 * 1024,
+                cwd: workspaceDir
             }, function(e, r) {
                 cb(e, r);
             });
@@ -663,13 +777,15 @@ define(function(require, exports, module) {
             var req = {};
             var args = ["diff",  "-U20000", options.oldPath, options.newPath];
             vfs.execFile("git", {
-                args: args
+                args: args,
+                cwd: workspaceDir
             }, function(e, r) {
                 if (e) return callback(e);
                 if (!r.stdout) {
                     vfs.execFile("git", {
                         args: ["show", options.oldPath],
-                        maxBuffer: 1000 * 1024
+                        maxBuffer: 1000 * 1024,
+                        cwd: workspaceDir
                     }, function(e, r) {
                         if (e) return callback(e);
                         callback(e, {
@@ -693,7 +809,8 @@ define(function(require, exports, module) {
                 args: ["apply", "--cached", "--unidiff-zero", "--whitespace=nowarn", "-"], // "--recount",
                 stdoutEncoding : "utf8",
                 stderrEncoding : "utf8",
-                stdinEncoding : "utf8"
+                stdinEncoding : "utf8",
+                cwd: workspaceDir
             }, function(e, p) {
                 process = p.process;
                 var stderr = "";
@@ -715,42 +832,124 @@ define(function(require, exports, module) {
         
         /***** Commit *****/
         
-        function toggleCommitView() {
-            if (!options) options = {};
+        function switchMainPanel(options) {
+            var btnLog = plugin.getElement("btnLog");
             var btnCommit = plugin.getElement("btnCommit");
+            var btnBranches = plugin.getElement("btnBranches");
+            
             var logEl = plugin.getElement("log");
             var commitEl = plugin.getElement("commit");
-            if (commitEl.visible && options.hide !== true) {
-                commitEl.setAttribute("visible", false);
-                logEl.setAttribute("visible", true);
-                btnCommit.$ext.classList.remove("c9-toolbarbutton-glossyActive");
-            } else {
+            var branchesEl = plugin.getElement("branches");
+            
+            if (!options) options = {};
+            if (options.currentTarget && options.currentTarget.panel) {
+                options = { panel: options.currentTarget.panel };
+                if (options.panel == "commit" && commitEl.visible)
+                    options.panel = null;
+                if (options.panel == "branches" && branchesEl.visible)
+                    options.panel = null;
+            }
+            
+            if (options.panel == "commit") {
                 commitEl.setAttribute("visible", true);
-                logEl.setAttribute("visible", false);
                 btnCommit.$ext.classList.add("c9-toolbarbutton-glossyActive");
                 if (!commitEl.codeBox) {
-                    commitEl.codeBox = commitEl.appendChild(new apf.codebox({
-                        
+                    commitEl.codeBox = commitEl.appendChild(new apf.codebox({}));
+                    commitEl.codeBox.ace.setOption("minLines", 2);
+                    commitEl.appendChild(new ui.hbox({
+                        childNodes: [
+                            new ui.label({ caption: "amend" }),
+                            commitEl.ammendCb = new ui.checkbox({}),
+                            new ui.hbox({ flex: 1 }),
+                            commitEl.doneBtn = new ui.button({
+                                caption: "Done",
+                                skin: "c9-toolbarbutton-glossy",
+                                onclick: function() {
+                                    commitEl.codeBox.ace.execCommand("commit");
+                                }
+                            })
+                        ]
                     }));
+                    
                     commitEl.codeBox.ace.commands.addCommand({
                         bindKey: "Esc",
-                        exec: toggleCommitView
+                        exec: function() {
+                            switchMainPanel({panel: "log"});
+                        }
                     });
                     commitEl.codeBox.ace.commands.addCommand({
                         bindKey: "Ctrl-Enter|Cmd-Enter",
+                        name: "commit",
                         exec: function(editor) {
                             commit({
-                                message: editor.getValue(),
-                                
+                                message: commitEl.codeBox.ace.getValue(),
+                                ammend: commitEl.ammendCb.checked
                             });
                         }
                     });
-                    // commitEl.appendChild(new apf.checkbox)
                 }
                 if (typeof options.message == "string")
                     commitEl.codeBox.setValue(options.message);
+                
+                
+                
                 commitEl.codeBox.focus();
+            } else {
+                commitEl.setAttribute("visible", false);
+                btnCommit.$ext.classList.remove("c9-toolbarbutton-glossyActive");
             }
+            
+            if (options.panel == "branches") {
+                if (!branchesTree) {
+                    branchesTree = new Tree(branchesEl.$ext);
+                    branchesTree.renderer.setTheme({cssClass: "filetree"});
+                    var model = new ListData();
+                    branchesTree.setDataProvider(model);
+                }
+                listAllRefs(function(e, data) {
+                    var root = {};
+                    data.forEach(function(x) {
+                        x.fullName = x.name;
+                        var parts = x.name.split("/");
+                        x.name = parts.pop();
+                        var node = root;
+                        parts.forEach(function(p, i) {
+                            var map = node.map || (node.map = {});
+                            node = map[p] || (map[p] = {label: p, isOpen: true});
+                        });
+                        var map = node.map || (node.map = {});
+                        map[x.name] = x;
+                    });
+                    
+                    branchesTree.model.rowHeightInner = tree.model.rowHeightInner;
+                    branchesTree.model.rowHeight = tree.model.rowHeight;
+                    branchesTree.model.setRoot(root.map.refs);
+                });
+                branchesEl.setAttribute("visible", true);
+                btnBranches.$ext.classList.add("c9-toolbarbutton-glossyActive");
+            } else {
+                branchesEl.setAttribute("visible", false);
+                btnBranches.$ext.classList.remove("c9-toolbarbutton-glossyActive");
+            }
+            
+            
+            if (options.panel == "log" || !options.panel) {
+                logEl.setAttribute("visible", true);
+                btnLog.$ext.classList.add("c9-toolbarbutton-glossyActive");
+                if (logTree) logTree.resize();
+            } else {
+                logEl.setAttribute("visible", false);
+                btnLog.$ext.classList.remove("c9-toolbarbutton-glossyActive");
+            }
+        }
+        
+        function updateCommitStatus() {
+            var args = ["commit", "--dry-run", "--porcelain", "--branch", "-z"];
+            if (commitEl.ammendCb.checked)
+                args.push("--amend")
+            git(args, function() {
+                
+            });
         }
         
         function commit(options) {
@@ -759,10 +958,63 @@ define(function(require, exports, module) {
                 if (e) {
                     
                 }
-                toggleCommitView({hide: true});
+                switchMainPanel({panel: "log"});
                 reload();
+                getLog({}, function() {});
             });
         }
+        
+        function listAllRefs(cb) {
+            var args = ["for-each-ref", "--count=3000", "--sort=*objecttype", "--sort=-committerdate"];
+            args.push(
+                '--format=%(objectname:short) %(refname) %(upstream:trackshort) %(objecttype) %(subject) %(authorname) %(authoremail) %(committerdate:raw)'.replace(/ /g, "%00")
+            );
+            git(args, function(e, stdout) {
+                var data = stdout.trim().split("\n").map(function(x) {
+                    var parts = x.split("\x00");
+                    return {
+                        hash: parts[0],
+                        name: parts[1],
+                        upstream: parts[2],
+                        type: parts[3],
+                        subject: parts[4],
+                        authorname: parts[5],
+                        authoremail: parts[6],
+                        committerdate: parts[7],
+                    };
+                });
+                cb && cb(null, data);
+            });
+        }
+        
+        
+        /***** GIT Repository *****/
+        var EventEmitter = require("ace/lib/event_emitter");
+        var oop = require("ace/lib/oop");
+        var Path = require("path");
+        function GitRepository(path) {
+            this.path = path;
+            this.absPath = Path.join(c9.workspaceDir, this.path);
+            
+        }
+        (function() {
+            oop.implement(this, EventEmitter);
+            
+            this.open = function() {
+                
+            };
+            
+            this.toGitPath = function(c9path) {
+                
+            };
+            
+            this.toC9Path = function(gitPath) {
+                
+            };
+            
+            // this.
+            
+        }).call(GitRepository.prototype);
         
         /***** Lifecycle *****/
         
@@ -794,33 +1046,18 @@ define(function(require, exports, module) {
         
         /***** Register and define API *****/
         
-        /**
-         * Navigation panel. Allows a user to navigate to files by searching
-         * for a fuzzy string that matches the path of the file.
-         * @singleton
-         * @extends Panel
-         **/
-        /**
-         * @command navigate
-         */
-        /**
-         * Fires when the navigate panel shows
-         * @event showPanelNavigate
-         * @member panels
-         */
-        /**
-         * Fires when the navigate panel hides
-         * @event hidePanelNavigate
-         * @member panels
-         */
         plugin.freezePublicAPI({
             /**
              * @property {Object}  The tree implementation
              * @private
              */
             get tree() { return tree; },
+            get logTree() { return logTree; },
             getFileAtHash: getFileAtHash,
-            loadDiff: loadDiff
+            loadDiff: loadDiff,
+            get changed() { return changed },
+            get ignored() { return ignored },
+            get staged() { return staged },
         });
         
         register(null, {

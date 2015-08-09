@@ -154,7 +154,6 @@ define(function(require, exports, module) {
                 this.activeDocument.title = "Compare " + newFilename;
                 
                 session.request = status.loadDiff(opts, function(e, diff) {
-                    // :)
                     if (e) return console.log(e);
                     if (session.request == diff.request) {
                         if (typeof diff.patch == "string") {
@@ -163,6 +162,8 @@ define(function(require, exports, module) {
                             diffview.orig.session.setValue(diff.orig);
                             diffview.edit.session.setValue(diff.edit);
                         }
+                        diffview.orig.setReadOnly(true);
+                        diffview.edit.setReadOnly(true);
                          
                         var syntax = ace.getSyntaxForPath(opts.newPath);
                         if (syntax && syntax.indexOf("/") == -1) syntax = "ace/mode/" + syntax;
