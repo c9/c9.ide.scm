@@ -122,7 +122,7 @@ define(function(require, exports, module) {
         var scms = {};
         var scm;
         
-        var mnuCommit, btnCommit, mnuExecute, btnExecute, mnuSettings;
+        var mnuCommit, btnCommit, mnuExecute, barCommit, mnuSettings;
         var btnSettings, container;
         
         var workspaceDir = c9.workspaceDir; // + "/plugins/c9.ide.scm/mock/git";
@@ -245,9 +245,10 @@ define(function(require, exports, module) {
             }));
             plugin.addElement(toolbar);
             
-            mnuCommit = new ui.menu({
+            barCommit = vbox.appendChild(new ui.bar({
                 width: 300,
                 style: "padding:10px;",
+                visible: false,
                 childNodes: [
                     commitBox = new apf.codebox({}),
                     new ui.hbox({
@@ -271,15 +272,7 @@ define(function(require, exports, module) {
                         ]
                     })
                 ]
-            });
-            mnuCommit.on("prop.visible", function(e){
-                if (e.value) {
-                    // if (typeof options.message == "string")
-                    //     commitBox.setValue(options.message);
-                    
-                    commitBox.focus();
-                }
-            })
+            }));
             
             commitBox.on("DOMNodeInsertedIntoDocument", function(){
                 commitBox.ace.setOption("minLines", 2);
@@ -300,12 +293,21 @@ define(function(require, exports, module) {
                     }
                 });
             });
+            
+            mnuCommit = new Menu({ childNodes: [
+                new MenuItem({ caption: "Add All", command: "addall", tooltip: "git add -u" }, plugin),
+                new MenuItem({ caption: "Unstage All", command: "unstageall", tooltip: "git add -u" }, plugin)
+            ]});
 
-            btnCommit = ui.insertByIndex(toolbar, new ui.button({
+            btnCommit = ui.insertByIndex(toolbar, new ui.splitbutton({
                 caption: "Commit",
                 skinset: "default",
                 skin: "c9-menu-btn",
-                submenu: mnuCommit
+                submenu: mnuCommit.aml,
+                onclick: function(){
+                    barCommit.show();
+                    commitBox.focus();
+                }
             }), 100, plugin);
             
             mnuBranches = new ui.menu({ width: 300, height: 100, style: "padding:0" });
@@ -376,9 +378,6 @@ define(function(require, exports, module) {
             
             mnuExecute = new Menu({ items: [
                 new MenuItem({ caption: "Refresh", onclick: refresh }, plugin),
-                new Divider(),
-                new MenuItem({ caption: "Add All", command: "addall", tooltip: "git add -u" }, plugin),
-                new MenuItem({ caption: "Unstage All", command: "unstageall", tooltip: "git add -u" }, plugin),
                 new Divider(),
                 new MenuItem({ caption: "Fetch", command: "fetch" }, plugin),
                 new MenuItem({ caption: "Pull", command: "pull" }, plugin),
