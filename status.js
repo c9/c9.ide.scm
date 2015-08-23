@@ -7,6 +7,58 @@ define(function(require, exports, module) {
     main.provides = ["git.status"];
     return main;
     
+    /*
+        # LOW HANGING FRUIT 
+            - conflicts
+                - save
+            - tree
+                - add watcher to .git/HEAD
+            - update overview panel style 
+            - git commit 
+                - do dry-run 
+                    - add status message for ammend 
+                    - display branch to commit to 
+            - fix errors with added/removed files
+        
+        # TODO
+            - tree
+                - solve edge line cases
+            - branches
+                - make a datagrid?
+            - pull
+                pull --rebase
+            - conflicts
+                - add commands? detect, next, prev, use 1/ 2 
+                - automatically add to staging on save
+                - dialog for one deleted and one saved file 
+                - undo
+            - Compare view
+                - save the right file (use ace session clone)
+                - git add the left file 
+                - restore compare view after reload/ when moving tab
+                - undo doesn't work 
+        
+        # RUBEN
+            - add push dialog (Ruben)
+                dropdown for remotes/branches
+                checkbox for --force
+                output
+            - add fetch dialog (Ruben)
+                dropdown for remotes
+                checkbox for --prune
+                output
+            - Compare view
+                - proper integtation with cloud9 api  (Ruben)
+            - Choose Git Path - use file dialog
+            - Add setting to collapse tree to only see roots
+            - conflicts
+                - dark theme (Ruben)
+        
+        # LATER
+            - split status.js into git and general parts
+            - support multiple git roots
+    */
+    
     function main(options, imports, register) {
         var Panel = imports.Panel;
         var settings = imports.settings;
@@ -63,7 +115,7 @@ define(function(require, exports, module) {
         var arrayCache = [];
         var loadListAtInit = options.loadListAtInit;
         var timer;
-        var workspaceDir = c9.workspaceDir + "/plugins/c9.ide.scm/mock/git";
+        var workspaceDir = c9.workspaceDir; // + "/plugins/c9.ide.scm/mock/git";
         
         var loaded = false;
         function load(){
@@ -541,7 +593,7 @@ define(function(require, exports, module) {
             
             if (options.path)
                 args.push(options.path);
-                
+            
             vfs.execFile("git", {
                 args: args,
                 cwd: workspaceDir
