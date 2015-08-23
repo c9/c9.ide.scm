@@ -2,7 +2,7 @@ define(function(require, exports, module) {
     main.consumes = [
         "Panel", "settings", "ui", "watcher", "menus", "tabManager", "save", 
         "fs", "panels", "preferences", "c9", "tree", "commands",
-        "layout", "util", "vfs", "tabbehavior"
+        "layout", "util", "proc", "tabbehavior"
     ];
     main.provides = ["git.status"];
     return main;
@@ -65,7 +65,7 @@ define(function(require, exports, module) {
         var ui = imports.ui;
         var c9 = imports.c9;
         var fs = imports.fs;
-        var vfs = imports.vfs;
+        var proc = imports.proc;
         var tabs = imports.tabManager;
         var menus = imports.menus;
         var layout = imports.layout;
@@ -86,7 +86,6 @@ define(function(require, exports, module) {
         var escapeHTML = require("ace/lib/lang").escapeHTML;
         var GitGraph = require("./log/log");
 
-        
         var Tooltip = require("ace_tree/tooltip");
         
         /***** Initialization *****/
@@ -104,17 +103,12 @@ define(function(require, exports, module) {
             autohide: false,
             where: options.where || "left"
         });
-        var emit = plugin.getEmitter();
+        // var emit = plugin.getEmitter();
         
-        var winStatus, txtGoToFile, tree, model;
-        var lastSearch, lastPreviewed, cleaning, intoOutline;
-        var isReloadScheduled;
+        var tree, model, commitEl;
         var logTree, logModel, branchesTree;
         
-        var dirty = true;
         var arrayCache = [];
-        var loadListAtInit = options.loadListAtInit;
-        var timer;
         var workspaceDir = c9.workspaceDir; // + "/plugins/c9.ide.scm/mock/git";
         
         var loaded = false;
@@ -122,7 +116,7 @@ define(function(require, exports, module) {
             if (loaded) return false;
             loaded = true;
             
-            var command = plugin.setCommand({
+            plugin.setCommand({
                 name: "changes",
                 hint: "Changed Files",
                 bindKey: { mac: "", win: "" },
@@ -155,11 +149,8 @@ define(function(require, exports, module) {
                         done();
                     });
                     var path = tab.path;
-                    vfs.spawn("git", {
+                    proc.spawn("git", {
                         args: ["blame", "-wp", "--", basename(path)],
-                        stdoutEncoding: "utf8",
-                        stderrEncoding: "utf8",
-                        stdinEncoding: "utf8",
                         cwd: c9.workspaceDir + "/" + dirname(path)
                     }, function(e, result) {
                         var stdout = "";
@@ -180,7 +171,7 @@ define(function(require, exports, module) {
                     function done(e) {
                         if (e) err = e;
                         if (!blameAnnotation) return;
-                        if (!err && data == null) return;
+                        if (!err && data === null) return;
                         
                         blameAnnotation.setData(data);
                     }
@@ -548,15 +539,35 @@ define(function(require, exports, module) {
         function git(args, cb) {
             if (typeof args == "string")
                 args = args.split(/\s+/);
-            vfs.execFile("git", {
+                
+            proc.spawn("git", {
                 args: args,
                 cwd: workspaceDir
-            }, function(e, r) {
-                console.log(e, r && r.stdout);
-                reload({hash: 0, force: true}, function(e, status) {
+            }, function(e, p) {
+                // if (e) console.error(e);
+                
+                buffer(p, function(stdout, stderr){
+                    console.log(e, stdout);
                     
+                    reload({hash: 0, force: true}, function(e, status) {
+                        
+                    });
+                    
+                    cb && cb(e, stdout);
                 });
-                cb && cb(e, r && r.stdout);
+            });
+        }
+        
+        function buffer(process, callback){
+            var stdout = "", stderr = "";
+            process.stdout.on("data", function(c){
+                stdout += c;
+            });
+            process.stderr.on("data", function(c){
+                stdout += c;
+            });
+            process.on("exit", function(c){
+                callback(stdout, stderr);
             });
         }
         
@@ -574,7 +585,7 @@ define(function(require, exports, module) {
                     hash = "--cached";
                 if (base == "staging")
                     base = "--cached";
-                if (hash == 0 || base == 0) {
+                if (hash === 0 || base === 0) {
                     args.push(base || hash);
                 } else {
                     args.push(base || hash + "^1", hash);
@@ -594,23 +605,23 @@ define(function(require, exports, module) {
             if (options.path)
                 args.push(options.path);
             
-            vfs.execFile("git", {
+            proc.execFile("git", {
                 args: args,
                 cwd: workspaceDir
-            }, function(e, r) {
-                if (e)  {
-                    if (/fatal: bad revision/.test(e.message)) {
+            }, function(err, stdout, stderr) {
+                if (err)  {
+                    if (/fatal: bad revision/.test(err.message)) {
                         var EMPTY = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
                         if (options.base != EMPTY) {
                             options.base = EMPTY;
                             return getStatus(options, cb);
                         }
                     }
-                    console.error(e);
+                    console.error(err);
                 }
-                console.log(e, r && r.stdout);
-                console.log(t-Date.now(), r && r.stdout.length);
-                cb(e, r && r.stdout);
+                console.log(err, stdout);
+                console.log(t-Date.now(), stdout.length);
+                cb(err, stdout);
             });
         }
         
@@ -758,15 +769,15 @@ define(function(require, exports, module) {
         
         function getLog(options, cb) {
             var t = Date.now();
-            vfs.execFile("git", {
+            proc.execFile("git", {
                 args: ["rev-list", "HEAD", "--count"],
                 cwd: workspaceDir
-            }, function(e, r) {
-                console.log(e, r.stdout);
-                console.log(t-Date.now(), r.stdout.length);
+            }, function(err, stdout, stderr) {
+                console.log(err, stdout);
+                console.log(t-Date.now(), stdout.length);
                 
                 var args = ["log", "--topo-order", "--date=raw"];
-                if (options.boundary != false) args.push("--boundary");
+                if (options.boundary !== false) args.push("--boundary");
                 if (options.logOptions) args.push.apply(args, options.logOptions);
                 args.push('--pretty=format:' + (options.format || "%h %p %d %B ").replace(/ /g, "%x00"));
                 args.push("--all");
@@ -778,11 +789,11 @@ define(function(require, exports, module) {
                 args.push("--");
                 if (options.path)
                     args.push(options.path);
-                vfs.execFile("git", {
+                proc.execFile("git", {
                     args: args,
                     cwd: workspaceDir
-                }, function(e, r) {
-                    var x = r.stdout.trim().split("\x00\n");
+                }, function(err, stdout, stderr) {
+                    var x = stdout.trim().split("\x00\n");
                     var root = [];
                     for (var i = 0; i < x.length; i++) {
                         var line = x[i].split("\x00");
@@ -794,8 +805,8 @@ define(function(require, exports, module) {
                             label: line[3].substring(0, line[3].indexOf("\n") + 1 || undefined)
                         });
                     }
-                    console.log(e, x);
-                    console.log(t-Date.now(), r.stdout.length);
+                    console.log(err, x);
+                    console.log(t-Date.now(), stdout.length);
                     root.unshift({
                         label: "// WIP",
                         hash: 0
@@ -810,58 +821,55 @@ define(function(require, exports, module) {
             if (!hash) {
                 if (path[0] != "/")
                     path = "/" + path;
-                return vfs.readfile(path, {}, cb);
+                return proc.readfile(path, {}, cb);
             }
             if (hash == "staging")
                 hash = "";
             if (path[0] == "/")
                 path = path.substr(1);
-            vfs.execFile("git", {
+            proc.execFile("git", {
                 args: ["show", hash + ":" + path],
                 maxBuffer: 1000 * 1024,
                 cwd: workspaceDir
-            }, function(e, r) {
-                cb(e, r);
+            }, function(err, stdout, stderr) {
+                cb(err, stdout, stderr);
             });
         }
         
         function loadDiff(options, callback) {
             var req = {};
             var args = ["diff",  "-U20000", options.oldPath, options.newPath];
-            vfs.execFile("git", {
+            proc.execFile("git", {
                 args: args,
                 cwd: workspaceDir
-            }, function(e, r) {
-                if (e) return callback(e);
-                if (!r.stdout) {
-                    vfs.execFile("git", {
+            }, function(err, stdout, stderr) {
+                if (err) return callback(err);
+                if (!stdout) {
+                    proc.execFile("git", {
                         args: ["show", options.oldPath],
                         maxBuffer: 1000 * 1024,
                         cwd: workspaceDir
-                    }, function(e, r) {
-                        if (e) return callback(e);
-                        callback(e, {
+                    }, function(err, stdout, stderr) {
+                        if (err) return callback(err);
+                        callback(err, {
                             request: req,
-                            orig: r.stdout,
-                            edit: r.stdout
+                            orig: stdout,
+                            edit: stdout
                         });
                     });
                     return;
                 }
                 callback(null, {
                     request: req,
-                    patch: r.stdout
+                    patch: stdout
                 });
             });
             return req;
         }
         
         function addLinesToStaging(patch, cb) {
-            vfs.spawn("git", {
+            proc.spawn("git", {
                 args: ["apply", "--cached", "--unidiff-zero", "--whitespace=nowarn", "-"], // "--recount",
-                stdoutEncoding : "utf8",
-                stderrEncoding : "utf8",
-                stdinEncoding : "utf8",
                 cwd: workspaceDir
             }, function(e, p) {
                 process = p.process;
@@ -890,7 +898,7 @@ define(function(require, exports, module) {
             var btnBranches = plugin.getElement("btnBranches");
             
             var logEl = plugin.getElement("log");
-            var commitEl = plugin.getElement("commit");
+            commitEl = plugin.getElement("commit");
             var branchesEl = plugin.getElement("branches");
             
             if (!options) options = {};
