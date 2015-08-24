@@ -19,6 +19,8 @@ define(function(require, exports, module) {
         var ace = imports.ace;
         var ui = imports.ui;
         
+        var dirname = require("path").dirname;
+        var basename = require("path").basename;
         var DiffView = require("./diff/twoway").DiffView;
         
         /***** Initialization *****/
@@ -70,52 +72,72 @@ define(function(require, exports, module) {
             var currentSession;
             var diffview;
             var lastAce;
-            var labelLeft, labelRight;
+            var lblLeft, lblRight, btnNext, btnPrev, btnFold, container;
+            var toolbar;
             
             plugin.on("draw", function(e) {
-                ui.insertMarkup(e.tab, require("text!./editor.xml"), plugin);
+                var tab = e.tab;
                 
+                lblLeft = new ui.label({ flex:1 });
+                lblRight = new ui.label({ flex:1, class:"right" });
+                btnNext = new ui.button({ 
+                    caption: ">", 
+                    height: 23,
+                    skin: "c9-toolbarbutton-glossy",
+                    onclick: function() {
+                        diffview.gotoNext(1);
+                    }
+                }); 
+                btnPrev = new ui.button({ 
+                    caption: "<",
+                    height: 23,
+                    skin: "c9-toolbarbutton-glossy",
+                    onclick: function() {
+                        diffview.gotoNext(-1);
+                    }
+                });
+                btnFold = new ui.button({ 
+                    caption: "Fold",
+                    height: 23,
+                    skin: "c9-toolbarbutton-glossy",
+                    onclick: function() {
+                        diffview.foldUnchanged();
+                    }
+                });
+                container = new ui.bar({ flex: 1, class: "ace_diff-container" });
                 
+                tab.appendChild(new ui.vsplitbox({ 
+                    anchors: "0 0 0 0",
+                    childNodes: [
+                        toolbar = new ui.hbox({
+                            class: "difftoolbar",
+                            height: 36,
+                            align: "center",
+                            edge: "0 5 0 3",
+                            padding: 3,
+                            childNodes: [
+                                lblLeft,
+                                new ui.hbox({
+                                    padding: 3,
+                                    edge: 3,
+                                    margin: "0 7 0 7",
+                                    align: "center",
+                                    class: "buttons",
+                                    childNodes: [ btnPrev, btnFold, btnNext ]
+                                }),
+                                lblRight
+                            ]
+                        }),
+                        container
+                    ]
+                }));
                 
-                // <a:vsplitbox id="parent" anchors="0 0 0 0">
-                //     <a:hbox class="imgtoolbar fakehbox aligncenter padding3" id="barTools" height="30" align="center">
-                //         <a:label id="labelLeft"></a:label>
-                        
-                //         <a:hbox flex="1"></a:hbox>
-                //         <a:divider skin="c9-divider" />
-                //         <a:button skin="c9-toolbarbutton-glossy" id="next">Next</a:button>
-                //         <a:button skin="c9-toolbarbutton-glossy" id="prev">Previous</a:button>
-                //         <a:divider skin="c9-divider" />
-                //         <a:hbox flex="1"></a:hbox>
-                        
-                //         <a:label id="labelRight"></a:label>
-                        
-                //         <a:button skin="c9-toolbarbutton-glossy" id="fold">Fold</a:button>
-                //     </a:hbox>
-                    
-                //     <a:bar id="main" flex="1" visible="true" class='ace_diff-container'>
-                //     </a:bar>
-                // </a:vsplitbox>
-                
-                diffview = new DiffView(plugin.getElement("main").$ext, {});
-                
-                labelLeft = plugin.getElement("labelLeft");
-                labelRight = plugin.getElement("labelRight");
-                
-                plugin.getElement("next").onclick = function() {
-                    diffview.gotoNext(1);
-                };
-                plugin.getElement("prev").onclick = function() {
-                    diffview.gotoNext(-1);
-                };
-                plugin.getElement("fold").onclick = function() {
-                    diffview.foldUnchanged();
-                };
+                diffview = new DiffView(container.$ext, {});
                 
                 // temporary workaround for apf focus bugs
                 // only blur is needed sinse the rest is handled by tabManager
                 // todo remove this when there is proper focus manager
-                e.tab.$blur = function(e) {
+                tab.$blur = function(e) {
                     var ace = plugin.ace; // can be null when called for destroyed tab
                     if (!ace || !e || !e.toElement || e.toElement.tagName == "menu") 
                         return;
@@ -144,8 +166,6 @@ define(function(require, exports, module) {
                 
                 // createProgressIndicator(e.htmlNode);
                 
-                var tab = e.tab;
-                
                 tab.on("contextmenu", function(e) { 
                     if (!menuAce) createMenu();
                     
@@ -167,11 +187,25 @@ define(function(require, exports, module) {
             
             /***** Method *****/
             
+            function getLabelValue(path){
+                var hash;
+                
+                if (path.indexOf(":") > -1) {
+                    hash = path.split(":");
+                    path = hash[1], hash = hash[0];
+                }
+                
+                var dirpath = dirname(path);
+                return (hash ? "<span class='hash'>" + hash + "</span>" : "") 
+                    + basename(dirpath) + "/" + basename(path) 
+                    + "<span class='dirname'> - " + dirname(dirpath) + "</span>";
+            }
+            
             function loadDiff(opts) {
                 var session = diffview.c9session;
                 
-                labelLeft.setAttribute("caption", opts.oldPath);
-                labelRight.setAttribute("caption", opts.newPath);
+                lblLeft.setAttribute("caption", getLabelValue(opts.oldPath));
+                lblRight.setAttribute("caption", getLabelValue(opts.newPath));
                 
                 var newFilename = (opts.newPath + "").split("/").pop();
                 this.activeDocument.title = "Compare " + newFilename;
@@ -226,6 +260,7 @@ define(function(require, exports, module) {
                     if (e.theme && BGCOLOR[e.theme]) {
                         var isDark = e.theme == "dark";
                         
+                        toolbar.$ext.style.backgroundColor = 
                         tab.backgroundColor = BGCOLOR[e.theme];
                         
                         if (isDark) tab.classList.add("dark");

@@ -427,7 +427,7 @@ define(function(require, exports, module) {
             function markDirty(e) {
                 clearTimeout(timer);
                 timer = setTimeout(function() {
-                    if (tree.meta.options && !tree.meta.options.hash) {
+                    if (tree && tree.meta.options && !tree.meta.options.hash) {
                         tree.meta.options.force = true;
                         emit("reload", tree.meta.options);
                     }
