@@ -113,6 +113,9 @@ define(function(require, exports, module) {
                 if (nodes[1])
                     options.base = nodes[1].hash;
                 
+                if (!nodes[1] && !options.hash)
+                    options.twoWay = true;
+                
                 emit("select", options);
             });
             

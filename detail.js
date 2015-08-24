@@ -84,7 +84,7 @@ define(function(require, exports, module) {
                     if (node.parent == conflicts)
                         icon = "status-icon-conflict";
                     if (node.status === "loading") icon = "loading";
-                    if (tree.twoWay && !node.isFolder)
+                    if (tree.model.twoWay && !node.isFolder)
                         icon += " clickable";
                     return "<span class='status-icon " + icon + "'>"
                         + (node.type || "") + "</span>";
@@ -272,10 +272,11 @@ define(function(require, exports, module) {
             if (!options.force)
             if (tree.meta.options.hash == options.hash && tree.meta.options.base == options.base)
                 return;
-            var twoWay = !options.hash || options.hash == "staging";
-            scm.getStatus(options || {hash: 0}, function(e, status) {
+            
+            scm.getStatus(options, function(e, status) {
                 var root = [];
                 var i, name, x;
+                var twoWay = options.twoWay;
                 
                 status = status.split("\x00");
                 console.log(status);
@@ -287,7 +288,7 @@ define(function(require, exports, module) {
                     conflicts.items = conflicts.children = [];
                     untracked.items = untracked.children = [];
                     root = {
-                        items: [changed, staged, untracked, ignored],
+                        items: [changed, staged, untracked],
                         $sorted: true,
                         isFolder: true
                     };
@@ -344,6 +345,8 @@ define(function(require, exports, module) {
                             });
                         }
                     }
+                    if (ignored.items.length)
+                        root.items.push(ignored);
                     if (conflicts.items.length)
                         root.items.unshift(conflicts);
                 } else {
@@ -371,7 +374,7 @@ define(function(require, exports, module) {
                 }
                 tree.setRoot(root);
                 tree.meta.options = options;
-                tree.twoWay = twoWay;
+                tree.model.twoWay = twoWay;
             });
         }
         

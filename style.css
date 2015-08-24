@@ -15,6 +15,20 @@
     display: none;
 }
 
+
+.filetree .tree-row.merge {
+    color: lightgray
+}
+.tree-row {
+    white-space: nowrap;
+}
+.branch {
+    background: #E0E827;
+    color: black;
+    border-radius: 5px;
+}
+
+
 .difftoolbar{
     height: 40px;
     padding: 3px 5px 5px;

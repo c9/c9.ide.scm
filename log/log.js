@@ -264,7 +264,7 @@ function GitGraph(editor) {
             }
         });
         
-        svg.style.left = (columnWidth / 2) + "px"
+        svg.style.left = (columnWidth / 2) + "px";
         container.appendChild(svg);
         
         svg.setAttribute("width", 1000);
@@ -294,16 +294,6 @@ function GitGraph(editor) {
         var row, html = [], view = config.view, datarow;
         var firstRow = config.firstRow, lastRow = config.lastRow + 1;
         var vsize = provider.rowHeightInner || provider.rowHeight;
-        
-        // for (row = firstRow; row < lastRow; row++) {
-        //     datarow = view[row - firstRow];
-        //     if (provider.getItemHeight)
-        //         vsize = provider.getItemHeight(datarow, row);
-        //     html.push("<div style='height:" + vsize + "px;"
-        //     + "' class='"
-        //     + this.getRowClass(datarow, row)
-        //     + "'><span style='white-space:pre-line'>" +  datarow.label + "</span></div>");
-        // }
         
         if (firstRow === 0 && lastRow === 0) {
             this.renderPlaceHolder(provider, html, config);
@@ -371,14 +361,6 @@ function lineTo(from, to, curv, path, offset, columnWidth, lineHeight) {
 }
 
 
-dom.importCssString("\
-    .merge {color: lightgray}\
-    // svg { pointer-events:none }\
-    gitGraph path, gitGraph circle { pointer-events:auto }\
-    path:hover { stroke: bisque; stroke-width: 3; }\
-    .tree-row{    white-space: nowrap; }\
-    *{cursor: default}\
-    .branch {    background: #E0E827; color: black; border-radius: 15px;}", "s");
 
 module.exports = GitGraph;
 

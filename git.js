@@ -94,7 +94,7 @@ define(function(require, exports, module) {
             var args = [];
             var hash = options.hash;
             var base = options.base;
-            if (hash || base) {
+            if ((hash || base) && !options.twoWay) {
                 args.push("diff", "--name-status", "-b", "-z", 
                     "--no-textconv", "--no-ext-diff", "--no-color",
                     "--find-renames"
@@ -109,6 +109,7 @@ define(function(require, exports, module) {
                     args.push(base || hash + "^1", hash);
                 }
             } else {
+                options.twoWay = true;
                 args.push("status", "--porcelain", "-b", "-z");
                 // if (!ignored.isOpen)
                     args.push("--untracked-files=no");
@@ -171,21 +172,29 @@ define(function(require, exports, module) {
                     
                     var x = stdout.trim().split("\x00\n");
                     var root = [];
+                    var head;
                     for (var i = 0; i < x.length; i++) {
                         var line = x[i].split("\x00");
+                        var branches = undefined;
+                        if (line[2]) {
+                            branches = line[2].trim().slice(1, -1);
+                            if (/\bHEAD\b/.test(branches))
+                                head = line[0];
+                        }
                         root.push({
                             hash: line[0],
                             parents: line[1],
-                            branches: line[2].trim().slice(1, -1),
                             message: line[3],
-                            label: line[3].substring(0, line[3].indexOf("\n") + 1 || undefined)
+                            label: line[3].substring(0, line[3].indexOf("\n") + 1 || undefined),
+                            branches: undefined
                         });
                     }
                     console.log(err, x);
                     console.log(t-Date.now(), stdout.length);
                     root.unshift({
                         label: "// WIP",
-                        hash: 0
+                        hash: 0,
+                        parents: head
                     });
                     
                     cb(null, root);
