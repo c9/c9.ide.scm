@@ -116,6 +116,8 @@ define(function(require, exports, module) {
                 if (!nodes[1] && !options.hash)
                     options.twoWay = true;
                 
+                options.label = nodes[0].label;
+                
                 emit("select", options);
             });
             

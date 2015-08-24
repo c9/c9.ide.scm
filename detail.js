@@ -40,7 +40,7 @@ define(function(require, exports, module) {
         });
         // var emit = plugin.getEmitter();
         
-        var tree, menuContext;
+        var tree, menuContext, label;
         var arrayCache = [];
         
         function load() {
@@ -73,8 +73,12 @@ define(function(require, exports, module) {
             if (drawn) return;
             drawn = true;
             
+            opts.html.innerHTML = "<div class='detail-label'></div><div class='detail-tree'></div>"
+            opts.html.className = "detail-root";
+            label = opts.html.firstChild;
+            
             tree = new Tree({
-                container: opts.html,
+                container: opts.html.lastChild,
                 scrollMargin: [10, 0],
                 theme: "filetree",
                 enableDragdrop: true,
@@ -355,6 +359,7 @@ define(function(require, exports, module) {
                         root.items.push(ignored);
                     if (conflicts.items.length)
                         root.items.unshift(conflicts);
+                    label.style.display = "none";
                 } else {
                     for (i = 0; i < status.length; i += 2) {
                         x = status[i];
@@ -377,6 +382,9 @@ define(function(require, exports, module) {
                             });
                         }
                     }
+                    
+                    label.innerHTML = "<span class='hash'>" + options.hash + "</span> <div>" + options.label + "</div>";
+                    label.style.display = "block";
                 }
                 tree.setRoot(root);
                 tree.meta.options = options;

@@ -69,3 +69,37 @@
 body .ace_diff-gutter{
     background-color: #F1F1F1 !important;
 }
+
+.detail-label{
+    padding: 6px 40px 7px 5px;
+    font-size: 12px;
+    background-color: #F6F6F6;
+}
+
+.detail-label .hash{
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+    padding: 2px 4px 1px;
+    display: inline-block;
+    border-radius: 4px;
+    background: #f9f796;
+    border: 1px solid #DDDE33;
+    margin-right: 6px;
+    font-size: 12px;
+    float: left;
+}
+
+.detail-label div{
+    margin: 1px 0 0 0;
+    line-height: 1.5em;
+    color: #333333;
+}
+
+.detail-tree{
+    flex: 1;
+    position: relative;
+}
+
+.detail-root{
+    display: flex;
+    flex-direction: column;
+}

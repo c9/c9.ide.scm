@@ -21,15 +21,6 @@ define(function(require, exports, module) {
             - fix errors with added/removed files
         
         # TODO
-            - toolbar
-                - commit - split button
-                    - add all
-                    - unstage all
-                - pull (or fetch - split button
-                    - form
-                        - includes pull vs fetch checkbox
-                - push button - split button
-                    - form
             - pull
                 - pull --rebase
             - conflicts
@@ -37,11 +28,10 @@ define(function(require, exports, module) {
                 - automatically add to staging on save
                 - dialog for one deleted and one saved file 
                 - undo
-            - Compare view
+            - Compare view (Harutyun)
+                - switching session should keep ace session for scroll position (and selection)
                 - scrolling doesn't work well. It should scroll the sides as 
                     slowly as the side with most lines would go when scrolling there
-                - switching session should keep ace session for scroll position (and selection)
-                - diff for modified files is broken
             - branches
                 - Harutyun: Resize properly when expanding/collapsing
                 - Harutyun: scrollMargin for left, right and bottom doesn't work (same for log, detail)
@@ -56,19 +46,25 @@ define(function(require, exports, module) {
                 - don't hide detail
         
         # RUBEN
+            - toolbar
+                - commit - split button
+                    - add all
+                    - unstage all
+                - pull (or fetch - split button
+                    - form
+                        - includes pull vs fetch checkbox
+                        - add fetch dialog (Ruben)
+                            dropdown for remotes
+                            checkbox for --prune
+                            output
+                - push button - split button
+                    - form
+                    - add push dialog (Ruben) 
+                        dropdown for remotes/branches
+                        checkbox for --force
+                        output
             - conflicts
                 - dark theme (Ruben)
-            - Compare view
-                - proper integtation with cloud9 api  (Ruben)
-                
-            - add push dialog (Ruben) 
-                dropdown for remotes/branches
-                checkbox for --force
-                output
-            - add fetch dialog (Ruben)
-                dropdown for remotes
-                checkbox for --prune
-                output
             - Choose Git Path - use file dialog
             - Add setting to collapse tree to only see roots
         
