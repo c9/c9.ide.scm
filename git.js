@@ -186,7 +186,7 @@ define(function(require, exports, module) {
                             parents: line[1],
                             message: line[3],
                             label: line[3].substring(0, line[3].indexOf("\n") + 1 || undefined),
-                            branches: undefined
+                            branches: branches
                         });
                     }
                     console.log(err, x);
