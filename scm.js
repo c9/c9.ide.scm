@@ -44,6 +44,8 @@ define(function(require, exports, module) {
                 - undo doesn't work 
                 - scrolling doesn't work well. It should scroll the sides as 
                     slowly as the side with most lines would go when scrolling there
+                - switching session should keep ace session for scroll position (and selection)
+                - diff for modified files is broken
             - branches
                 - Harutyun: Resize properly when expanding/collapsing
                 - Harutyun: scrollMargin for left, right and bottom doesn't work (same for log, detail)

@@ -406,7 +406,7 @@ define(function(require, exports, module) {
             
             var hash = options.hash
                 ? options.hash + ":"
-                : (node.parent == staged ? ":" : "");
+                : (node.parent == staged ? "STAGED:" : "MODIFIED:");
             
             var base = options.base
                 ? options.base + ":"
