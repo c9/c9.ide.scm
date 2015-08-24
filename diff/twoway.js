@@ -579,7 +579,7 @@ function DiffView(element, options) {
         this.orig.session.unfold();
         
         var chunks = this.chunks;
-        var sep = "---------------------";
+        var sep = "---";
         var prev = { editEnd: 0, origEnd: 0 };
         for (var i = 0; i < chunks.length + 1; i++) {
            var ch = chunks[i] || {
