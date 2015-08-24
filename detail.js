@@ -1,7 +1,8 @@
 define(function(require, exports, module) {
     main.consumes = [
         "SCMPanel", "preferences", "settings", "panels", "Tree", "scm", "Menu", 
-        "MenuItem", "tabManager", "c9", "util", "tabbehavior", "ui", "layout"
+        "MenuItem", "tabManager", "c9", "util", "tabbehavior", "ui", "layout",
+        "scm.log"
     ];
     main.provides = ["scm.detail"];
     return main;
@@ -21,6 +22,7 @@ define(function(require, exports, module) {
         var MenuItem = imports.MenuItem;
         var tabbehavior = imports.tabbehavior;
         var util = imports.util;
+        var scmlog = imports["scm.log"];
         
         // var async = require("async");
         var basename = require("path").basename;
@@ -198,7 +200,11 @@ define(function(require, exports, module) {
                 reload(options || { hash: 0, force: true }, function(e, status) {
                     
                 });
-            });
+            }, plugin);
+            
+            scmlog.on("select", function(options){
+                if (options) reload(options, function(){});
+            }, plugin);
             
             // Context Menu
             menuContext = new Menu({ items: [
@@ -207,6 +213,8 @@ define(function(require, exports, module) {
                 new MenuItem({ match: "file", caption: "Reveal in File Tree", onclick: reveal }, plugin),
             ]});
             opts.aml.setAttribute("contextmenu", menuContext.aml);
+            
+            reload({ hash: 0, force: true }, function(){});
         }
         
         /***** Methods *****/
@@ -260,9 +268,9 @@ define(function(require, exports, module) {
         };
         function reload(options, cb) {
             if (!options) options = {hash: 0};
-            if (!tree.options) tree.options = {};
+            if (!tree.meta.options) tree.meta.options = {};
             if (!options.force)
-            if (tree.options.hash == options.hash && tree.options.base == options.base)
+            if (tree.meta.options.hash == options.hash && tree.meta.options.base == options.base)
                 return;
             var twoWay = !options.hash || options.hash == "staging";
             scm.getStatus(options || {hash: 0}, function(e, status) {
@@ -362,7 +370,7 @@ define(function(require, exports, module) {
                     }
                 }
                 tree.setRoot(root);
-                tree.options = options;
+                tree.meta.options = options;
                 tree.twoWay = twoWay;
             });
         }

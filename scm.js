@@ -361,7 +361,7 @@ define(function(require, exports, module) {
             }), 200, plugin);
             
             mnuExecute = new Menu({ items: [
-                new MenuItem({ caption: "Refresh", onclick: getLog }, plugin),
+                new MenuItem({ caption: "Refresh", onclick: refresh }, plugin),
                 new Divider(),
                 new MenuItem({ caption: "Add All", command: "addall", tooltip: "git add -u" }, plugin),
                 new MenuItem({ caption: "Unstage All", command: "unstageall", tooltip: "git add -u" }, plugin),
@@ -436,6 +436,11 @@ define(function(require, exports, module) {
             delete scms[name];
             
             emit("unregister", { plugin: scmPlugin });
+        }
+        
+        function refresh(){
+            getLog();
+            emit("reload");
         }
         
         function getLog(){
