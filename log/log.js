@@ -263,9 +263,10 @@ function GitGraph(editor) {
                 lineGroup.appendChild(path.el);
             }
         });
-        container.className = "gitGraph";
+        
         svg.style.left = (columnWidth / 2) + "px"
         container.appendChild(svg);
+        
         svg.setAttribute("width", 1000);
         svg.setAttribute("height", 100*1000);
     };
@@ -274,6 +275,9 @@ function GitGraph(editor) {
         this.tree = tree;
         tree.renderer.$cellLayer.update = this.update;
         tree.renderer.$cellLayer.graph = this;
+        this.container = tree.renderer.$cellLayer.element;
+        this.container.className += " gitGraph";
+        this.container.style.position = "relative";
         var that = this;
         tree.model.loadData = function(data) {
             this.visibleItems = data;
@@ -305,7 +309,6 @@ function GitGraph(editor) {
             this.renderPlaceHolder(provider, html, config);
         } else {
             graph.getRowClass = this.getRowClass.bind(this);
-            graph.container = this.element;
             graph.vsize = vsize;
             graph.setLineHeight(provider.rowHeight);
             graph.draw(firstRow, lastRow);

@@ -176,7 +176,7 @@ define(function(require, exports, module) {
                         root.push({
                             hash: line[0],
                             parents: line[1],
-                            branches: line[2],
+                            branches: line[2].trim().slice(1, -1),
                             message: line[3],
                             label: line[3].substring(0, line[3].indexOf("\n") + 1 || undefined)
                         });
