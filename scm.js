@@ -523,10 +523,11 @@ define(function(require, exports, module) {
                 emit("reload");
             });
         }
-        function loadDiff(options){
-            scm.loadDiff(options, function(err){
-                if (err) return console.error(err);
+        function loadDiff(options, callback){
+            return scm.loadDiff(options, function(err, result){
+                // if (err) return console.error(err);
                 // emit("reload");
+                callback(err, result)
             });
         }
         function getStatus(options, callback){
