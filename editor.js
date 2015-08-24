@@ -278,6 +278,10 @@ define(function(require, exports, module) {
                 if (session.diff)
                     return loadSession(session);
                 
+                var newPath = session.newPath
+                    .replace(/MODIFIED:/, "")
+                    .replace(/STAGED:/, ":");
+                
                 session.request = scm.loadDiff({ 
                     oldPath: session.oldPath, 
                     newPath: session.newPath 
