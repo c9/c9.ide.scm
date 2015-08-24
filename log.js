@@ -1,6 +1,7 @@
 define(function(require, exports, module) {
     main.consumes = [
-        "SCMPanel", "settings", "panels", "prefs", "Tree", "layout", "scm"
+        "SCMPanel", "settings", "panels", "preferences", "Tree", "layout", 
+        "scm", "ui"
     ];
     main.provides = ["scm.log"];
     return main;
@@ -10,6 +11,7 @@ define(function(require, exports, module) {
         var settings = imports.settings;
         var panels = imports.panels;
         var scm = imports.scm;
+        var ui = imports.ui;
         var prefs = imports.preferences;
         var Tree = imports.Tree;
         var layout = imports.layout;
@@ -21,6 +23,7 @@ define(function(require, exports, module) {
         var plugin = new SCMPanel("Ajax.org", main.consumes, {
             caption: "Log View",
             index: 200,
+            showTitle: true,
             // splitter: true,
             style: "flex:1;-webkit-flex:1"
         });
@@ -76,34 +79,25 @@ define(function(require, exports, module) {
             }, plugin);
             
             tree.container.style.position = "absolute";
-            tree.container.style.left = "10px";
+            tree.container.style.left = "0";
             tree.container.style.top = "0";
             tree.container.style.right = "10px";
             tree.container.style.bottom = "0";
             tree.container.style.height = "";
             
             // Enable Git Graph
-            new GitGraph().attachToTree(tree.tree);
+            new GitGraph().attachToTree(tree.acetree);
             
             // tree.tooltip = new Tooltip(tree);
             // logTree.tooltip = new Tooltip(logTree);
             
-            // layout.on("eachTheme", function(e){
-            //     var height = parseInt(ui.getStyleRule(".filetree .tree-row", "height"), 10) || 22;
-            //     model.rowHeightInner = height;
-            //     model.rowHeight = height + 1;
-            //     logModel.rowHeightInner = height;
-            //     logModel.rowHeight = height + 1;
-            //     if (branchesTree) {
-            //         branchesTree.model.rowHeightInner = height;
-            //         branchesTree.model.rowHeight = height + 1;
-            //     }
-            //     if (e.changed) {
-            //         tree && tree.resize();
-            //         logTree && logTree.resize();
-            //         branchesTree && branchesTree.resize();
-            //     }
-            // });
+            layout.on("eachTheme", function(e){
+                var height = parseInt(ui.getStyleRule(".filetree .tree-row", "height"), 10) || 22;
+                tree.rowHeightInner = height;
+                tree.rowHeight = height + 1;
+                if (e.changed)
+                    tree.resize();
+            }, plugin);
             
             tree.on("userSelect", function(e) {
                 var options = {};
@@ -149,7 +143,7 @@ define(function(require, exports, module) {
             // }, plugin);
             
             scm.on("log", function(node){
-                tree.loadData(node);
+                tree.model.loadData(node);
             }, plugin);
         }
         

@@ -1,7 +1,8 @@
 define(function(require, exports, module) {
     main.consumes = [
-        "Panel", "Menu", "MenuItem", "Divider", "settings", "ui", "c9", "tabs", 
-        "watcher", "panels", "util", "save", "prefs", "commands", "Tree"
+        "Panel", "Menu", "MenuItem", "Divider", "settings", "ui", "c9", 
+        "watcher", "panels", "util", "save", "preferences", "commands", "Tree",
+        "tabManager", "layout"
     ];
     main.provides = ["scm"];
     return main;
@@ -36,6 +37,12 @@ define(function(require, exports, module) {
                 - git add the left file 
                 - restore compare view after reload/ when moving tab
                 - undo doesn't work 
+            - branches
+                - Harutyun: Resize properly when expanding/collapsing
+                - Harutyun: scrollMargin for left, right and bottom doesn't work (same for log, detail)
+                - When updating, only do a partial update (maintain selection, expanded state - see test/data/data.js)
+            - log
+                - Setting indent to 0 doesn't work
         
         # RUBEN
             - add push dialog (Ruben)
@@ -72,6 +79,7 @@ define(function(require, exports, module) {
         var panels = imports.panels;
         var util = imports.util;
         var save = imports.save;
+        var layout = imports.layout;
         var prefs = imports.preferences;
         var commands = imports.commands;
         
@@ -224,17 +232,25 @@ define(function(require, exports, module) {
             plugin.addElement(toolbar);
             
             mnuCommit = new ui.menu({
+                width: 300,
+                style: "padding:10px;",
                 childNodes: [
-                    commitBox = new ui.codebox({}),
+                    commitBox = new apf.codebox({}),
                     new ui.hbox({
                         childNodes: [
-                            new ui.label({ caption: "amend" }),
-                            ammendCb = new ui.checkbox({}),
+                            ammendCb = new ui.checkbox({ 
+                                label: "amend",
+                                skin: "checkbox_black",
+                                margin: "5 0 0 0"
+                            }),
                             new ui.hbox({ flex: 1 }),
                             doneBtn = new ui.button({
-                                caption: "Done",
-                                skin: "c9-toolbarbutton-glossy",
+                                caption: "Commit",
+                                skin: "btn-default-css3",
+                                class: "btn-green",
+                                margin: "5 0 0 0",
                                 onclick: function() {
+                                    mnuCommit.hide();
                                     commitBox.ace.execCommand("commit");
                                 }
                             })
@@ -251,22 +267,24 @@ define(function(require, exports, module) {
                 }
             })
             
-            commitBox.ace.setOption("minLines", 2);
-            commitBox.ace.commands.addCommand({
-                bindKey: "Esc",
-                exec: function() {
-                    btnCommit.hideMenu();
-                }
-            });
-            commitBox.ace.commands.addCommand({
-                bindKey: "Ctrl-Enter|Cmd-Enter",
-                name: "commit",
-                exec: function(editor) {
-                    commands.exec("commit", null, {
-                        message: commitBox.ace.getValue(),
-                        ammend: ammendCb.checked
-                    });
-                }
+            commitBox.on("DOMNodeInsertedIntoDocument", function(){
+                commitBox.ace.setOption("minLines", 2);
+                commitBox.ace.commands.addCommand({
+                    bindKey: "Esc",
+                    exec: function() {
+                        btnCommit.hideMenu();
+                    }
+                });
+                commitBox.ace.commands.addCommand({
+                    bindKey: "Ctrl-Enter|Cmd-Enter",
+                    name: "commit",
+                    exec: function(editor) {
+                        commands.exec("commit", null, {
+                            message: commitBox.ace.getValue(),
+                            ammend: ammendCb.checked
+                        });
+                    }
+                });
             });
 
             btnCommit = ui.insertByIndex(toolbar, new ui.button({
@@ -276,7 +294,7 @@ define(function(require, exports, module) {
                 submenu: mnuCommit
             }), 100, plugin);
             
-            mnuBranches = new ui.menu({});
+            mnuBranches = new ui.menu({ width: 300, height: 100, style: "padding:0" });
             mnuBranches.on("prop.visible", function(e){
                 if (e.value) {
                     if (!branchesTree) {
@@ -294,7 +312,21 @@ define(function(require, exports, module) {
                                 else
                                     return "No files found that match '" + this.keyword + "'";
                             }
+                        }, plugin);
+                        branchesTree.on("afterRender", function(){
+                            var maxHeight = window.innerHeight / 2;
+                            mnuBranches.setHeight(Math.min(maxHeight, 
+                                branchesTree.renderer.layerConfig.maxHeight + 27));
+                            branchesTree.resize();
                         });
+                        layout.on("eachTheme", function(e){
+                            var height = parseInt(ui.getStyleRule(".filetree .tree-row", "height"), 10) || 22;
+                            branchesTree.rowHeightInner = height;
+                            branchesTree.rowHeight = height + 1;
+                            if (e.changed)
+                                branchesTree.resize();
+                        }, plugin);
+                        branchesTree.container.style.margin = "0 10px 0 0";
                     }
                     scm.listAllRefs(function(err, data) {
                         if (err) return console.error(err);
@@ -307,7 +339,7 @@ define(function(require, exports, module) {
                             var node = root;
                             parts.forEach(function(p, i) {
                                 var map = node.map || (node.map = {});
-                                node = map[p] || (map[p] = {label: p, isOpen: true});
+                                node = map[p] || (map[p] = { label: p, isOpen: false });
                             });
                             var map = node.map || (node.map = {});
                             map[x.name] = x;
@@ -316,6 +348,7 @@ define(function(require, exports, module) {
                         // branchesTree.model.rowHeightInner = tree.model.rowHeightInner;
                         // branchesTree.model.rowHeight = tree.model.rowHeight;
                         branchesTree.setRoot(root.map.refs);
+                        branchesTree.resize();
                     });
                 }
             });
@@ -339,17 +372,17 @@ define(function(require, exports, module) {
                 new MenuItem({ caption: "Push", command: "push" }, plugin),
             ]}, plugin);
             
-            btnExecute = ui.insertByIndex(toolbar, new ui.button({
-                caption: "Execute",
-                skinset: "default",
-                skin: "c9-menu-btn",
-                command: "cleartestresults",
-                submenu: mnuExecute.aml
-            }), 300, plugin);
+            // btnExecute = ui.insertByIndex(toolbar, new ui.button({
+            //     caption: "Execute",
+            //     skinset: "default",
+            //     skin: "c9-menu-btn",
+            //     command: "cleartestresults",
+            //     submenu: mnuExecute.aml
+            // }), 300, plugin);
             
-            mnuSettings = new Menu({ items: [
+            mnuSettings = mnuExecute; /*new Menu({ items: [
                 
-            ]}, plugin);
+            ]}, plugin);*/
             
             btnSettings = opts.aml.appendChild(new ui.button({
                 skin: "header-btn",
@@ -392,13 +425,17 @@ define(function(require, exports, module) {
         
         /***** Methods *****/
         
-        function registerSCM(scm){
-            scms[scm.name] = scm;
-            if (!scm) scm = scm;
+        function registerSCM(name, scmPlugin){
+            scms[name] = scmPlugin;
+            if (!scm) scm = scmPlugin;
+            
+            emit("register", { plugin: scmPlugin });
         }
         
-        function unregisterSCM(scm){
-            delete scms[scm.name];
+        function unregisterSCM(name, scmPlugin){
+            delete scms[name];
+            
+            emit("unregister", { plugin: scmPlugin });
         }
         
         function getLog(){
@@ -431,7 +468,7 @@ define(function(require, exports, module) {
                 return node.path;
             }).filter(Boolean);
             
-            unstage(paths, function(err){
+            scm.unstage(paths, function(err){
                 if (err) return console.error(err);
                 emit("reload");
             });
@@ -445,7 +482,7 @@ define(function(require, exports, module) {
                 return node.path;
             }).filter(Boolean);
             
-            addFileToStaging(paths, function(err){
+            scm.addFileToStaging(paths, function(err){
                 if (err) return console.error(err);
                 emit("reload");
             });
@@ -499,7 +536,9 @@ define(function(require, exports, module) {
         plugin.on("disable", function(){
             
         });
-        plugin.on("show", function(e) {
+        plugin.on("show", function onShow(e) {
+            if (!scm) return plugin.once("register", onShow);
+            
             emit("reload", { force: true });
             getLog();
         });

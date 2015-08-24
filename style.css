@@ -10,3 +10,7 @@
 .filetree .status-icon-conflict {
     color: #E466C7;
 }
+
+.filetree .heading .status-icon {
+    display: none;
+}

@@ -1,6 +1,6 @@
 define(function(require, exports, module) {
     main.consumes = [
-        "editors", "Editor", "ui", "git.status", "layout", "settings",
+        "editors", "Editor", "ui", "scm", "layout", "settings",
         "threewaymerge", "menus", "Menu", "MenuItem", "Divider", "ace"
     ];
     main.provides = ["diffview"];
@@ -10,7 +10,7 @@ define(function(require, exports, module) {
         var settings = imports.settings;
         var editors = imports.editors;
         var Editor = imports.Editor;
-        var status = imports["git.status"];
+        var status = imports.scm;
         var layout = imports.layout;
         var MenuItem = imports.MenuItem;
         var Divider = imports.Divider;

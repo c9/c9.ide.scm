@@ -1,7 +1,7 @@
 define(function(require, exports, module) {
     main.consumes = [
-        "SCMPanel", "prefs", "settings", "panels", "Tree", "scm", "Menu", 
-        "MenuItem", "tabManager", "c9", "util", "tabbehavior"
+        "SCMPanel", "preferences", "settings", "panels", "Tree", "scm", "Menu", 
+        "MenuItem", "tabManager", "c9", "util", "tabbehavior", "ui", "layout"
     ];
     main.provides = ["scm.detail"];
     return main;
@@ -15,6 +15,8 @@ define(function(require, exports, module) {
         var Tree = imports.Tree;
         var scm = imports.scm;
         var c9 = imports.c9;
+        var layout = imports.layout;
+        var ui = imports.ui;
         var Menu = imports.Menu;
         var MenuItem = imports.MenuItem;
         var tabbehavior = imports.tabbehavior;
@@ -30,7 +32,7 @@ define(function(require, exports, module) {
         var plugin = new SCMPanel("Ajax.org", main.consumes, {
             caption: "Test Results",
             index: 100,
-            height: 150,
+            height: 250,
             splitter: true,
             style: "border-bottom:1px solid #DDD;overflow:auto" // TODO
         });
@@ -97,7 +99,7 @@ define(function(require, exports, module) {
                 },
                 
                 getRowIndent: function(node) {
-                    return node.$depth ? node.$depth - 2 : 0;
+                    return 0; //node.$depth ? node.$depth - 2 : 0;
                 },
                 
                 isLoading: function() {},
@@ -113,11 +115,19 @@ define(function(require, exports, module) {
             }, plugin);
             
             tree.container.style.position = "absolute";
-            tree.container.style.left = "10px";
+            tree.container.style.left = "0";
             tree.container.style.top = "0";
             tree.container.style.right = "10px";
             tree.container.style.bottom = "0";
             tree.container.style.height = "";
+            
+            layout.on("eachTheme", function(e){
+                var height = parseInt(ui.getStyleRule(".filetree .tree-row", "height"), 10) || 22;
+                tree.rowHeightInner = height;
+                tree.rowHeight = height + 1;
+                if (e.changed)
+                    tree.resize();
+            }, plugin);
             
             tree.on("afterChoose", function(e) {
                 openSelection();
