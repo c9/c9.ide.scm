@@ -74,6 +74,29 @@ define(function(require, exports, module) {
             
             plugin.on("draw", function(e) {
                 ui.insertMarkup(e.tab, require("text!./editor.xml"), plugin);
+                
+                
+                
+                // <a:vsplitbox id="parent" anchors="0 0 0 0">
+                //     <a:hbox class="imgtoolbar fakehbox aligncenter padding3" id="barTools" height="30" align="center">
+                //         <a:label id="labelLeft"></a:label>
+                        
+                //         <a:hbox flex="1"></a:hbox>
+                //         <a:divider skin="c9-divider" />
+                //         <a:button skin="c9-toolbarbutton-glossy" id="next">Next</a:button>
+                //         <a:button skin="c9-toolbarbutton-glossy" id="prev">Previous</a:button>
+                //         <a:divider skin="c9-divider" />
+                //         <a:hbox flex="1"></a:hbox>
+                        
+                //         <a:label id="labelRight"></a:label>
+                        
+                //         <a:button skin="c9-toolbarbutton-glossy" id="fold">Fold</a:button>
+                //     </a:hbox>
+                    
+                //     <a:bar id="main" flex="1" visible="true" class='ace_diff-container'>
+                //     </a:bar>
+                // </a:vsplitbox>
+                
                 diffview = new DiffView(plugin.getElement("main").$ext, {});
                 
                 labelLeft = plugin.getElement("labelLeft");
@@ -101,11 +124,14 @@ define(function(require, exports, module) {
                     else
                         ace.textInput.blur();
                 };
+                
                 function focusApf() {
                     var page = apf.findHost(diffview.container.parentElement.parentElement);
                     if (apf.activeElement != page)
                         page.focus();
                 }
+                function updateLastAce(e, ace) { lastAce = ace; }
+                
                 diffview.edit.on("focus", focusApf);
                 diffview.orig.on("focus", focusApf);
                 diffview.edit.keyBinding.setDefaultHandler(null);
@@ -113,8 +139,6 @@ define(function(require, exports, module) {
                 
                 diffview.edit.on("focus", updateLastAce);
                 diffview.orig.on("focus", updateLastAce);
-                function updateLastAce(e, ace) { lastAce = ace; }
-                
                 
                 lastAce = diffview.edit;
                 
@@ -139,11 +163,10 @@ define(function(require, exports, module) {
 
                     return false;
                 });
-                
-                
             });
             
             /***** Method *****/
+            
             function loadDiff(opts) {
                 var session = diffview.c9session;
                 
@@ -153,8 +176,9 @@ define(function(require, exports, module) {
                 var newFilename = (opts.newPath + "").split("/").pop();
                 this.activeDocument.title = "Compare " + newFilename;
                 
-                session.request = scm.loadDiff(opts, function(e, diff) {
-                    if (e) return console.log(e);
+                session.request = scm.loadDiff(opts, function(err, diff) {
+                    if (err) return console.log(err);
+                    
                     if (session.request == diff.request) {
                         if (typeof diff.patch == "string") {
                             diffview.setValueFromFullPatch(diff.patch);
@@ -194,9 +218,8 @@ define(function(require, exports, module) {
                 diffview.orig.session.c9session = session;
                 diffview.edit.session.c9session = session;
                 
-                if (doc.meta.path) {
+                if (doc.meta.path)
                     loadDiff(doc.meta);
-                }
                 
                 function setTheme(e) {
                     var tab = doc.tab;

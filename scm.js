@@ -21,12 +21,17 @@ define(function(require, exports, module) {
             - fix errors with added/removed files
         
         # TODO
-            - tree
-                - solve edge line cases
-            - branches
-                - make a datagrid?
+            - toolbar
+                - commit - split button
+                    - add all
+                    - unstage all
+                - pull (or fetch - split button
+                    - form
+                        - includes pull vs fetch checkbox
+                - push button - split button
+                    - form
             - pull
-                pull --rebase
+                - pull --rebase
             - conflicts
                 - add commands? detect, next, prev, use 1/ 2 
                 - automatically add to staging on save
@@ -41,10 +46,21 @@ define(function(require, exports, module) {
                 - Harutyun: Resize properly when expanding/collapsing
                 - Harutyun: scrollMargin for left, right and bottom doesn't work (same for log, detail)
                 - When updating, only do a partial update (maintain selection, expanded state - see test/data/data.js)
+                - Move to icon (branches) button on the right
+                - make a datagrid?
             - log
                 - Setting indent to 0 doesn't work
+            - detail
+                - Show header of hash + commit message
+            - commmit
+                - don't hide detail
         
         # RUBEN
+            - conflicts
+                - dark theme (Ruben)
+            - Compare view
+                - proper integtation with cloud9 api  (Ruben)
+                
             - add push dialog (Ruben) 
                 dropdown for remotes/branches
                 checkbox for --force
@@ -53,16 +69,14 @@ define(function(require, exports, module) {
                 dropdown for remotes
                 checkbox for --prune
                 output
-            - Compare view
-                - proper integtation with cloud9 api  (Ruben)
             - Choose Git Path - use file dialog
             - Add setting to collapse tree to only see roots
-            - conflicts
-                - dark theme (Ruben)
         
         # LATER
             - split status.js into git and general parts
             - support multiple git roots
+            - tree
+                - solve edge line cases
     */
     
     function main(options, imports, register) {
@@ -413,9 +427,9 @@ define(function(require, exports, module) {
             function markDirty(e) {
                 clearTimeout(timer);
                 timer = setTimeout(function() {
-                    if (tree.options && !tree.options.hash) {
-                        tree.options.force = true;
-                        emit("reload", tree.options);
+                    if (tree.meta.options && !tree.meta.options.hash) {
+                        tree.meta.options.force = true;
+                        emit("reload", tree.meta.options);
                     }
                 }, 800);
             }
