@@ -2,7 +2,7 @@ define(function(require, exports, module) {
     main.consumes = [
         "SCMPanel", "settings", "panels", "preferences", "Tree", "layout", 
         "scm", "ui"
-    ];
+    ]; 
     main.provides = ["scm.log"];
     return main;
 
