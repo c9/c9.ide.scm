@@ -97,11 +97,14 @@ define(function(require, exports, module) {
                     }
                 });
                 btnFold = new ui.button({ 
-                    caption: "Fold",
+                    caption: "Toggle Folds",
                     height: 23,
                     skin: "c9-toolbarbutton-glossy",
                     onclick: function() {
-                        diffview.foldUnchanged();
+                        if (diffview.orig.session.$foldData.length)
+                            diffview.orig.session.unfold() 
+                        else
+                            diffview.foldUnchanged();
                     }
                 });
                 container = new ui.bar({ flex: 1, class: "ace_diff-container" });
@@ -221,6 +224,8 @@ define(function(require, exports, module) {
                 }
                 diffview.orig.renderer.once("afterRender", function() {
                     diffview.computeDiff();
+                    diffview.foldUnchanged();
+                    diffview.computeDiff();
                     diffview.gotoNext(1);
                 });
             }
@@ -281,10 +286,12 @@ define(function(require, exports, module) {
                 var newPath = session.newPath
                     .replace(/MODIFIED:/, "")
                     .replace(/STAGED:/, ":");
+                var oldPath = session.oldPath
+                    .replace(/PREVIOUS:/, ":");
                 
                 session.request = scm.loadDiff({ 
-                    oldPath: session.oldPath, 
-                    newPath: session.newPath 
+                    oldPath: oldPath, 
+                    newPath: newPath 
                 }, function(err, diff) {
                     if (err) return console.log(err);
                     

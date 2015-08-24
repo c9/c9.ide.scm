@@ -38,10 +38,6 @@ define(function(require, exports, module) {
                 - dialog for one deleted and one saved file 
                 - undo
             - Compare view
-                - save the right file (use ace session clone)
-                - git add the left file 
-                - restore compare view after reload/ when moving tab
-                - undo doesn't work 
                 - scrolling doesn't work well. It should scroll the sides as 
                     slowly as the side with most lines would go when scrolling there
                 - switching session should keep ace session for scroll position (and selection)
@@ -81,6 +77,10 @@ define(function(require, exports, module) {
             - support multiple git roots
             - tree
                 - solve edge line cases
+            - Compare view
+                - save the right file (use ace session clone)
+                - git add the left file 
+                - undo doesn't work 
     */
     
     function main(options, imports, register) {

@@ -123,6 +123,21 @@ define(function(require, exports, module) {
             tree.container.style.bottom = "0";
             tree.container.style.height = "";
             
+            tree.commands.bindKey("Space", function(e) {
+                if (tabManager.previewTab)
+                    tabManager.preview({ cancel: true });
+                else
+                    openSelection({ preview: true });
+            });
+            
+            tree.commands.bindKey("Enter", function(e) {
+                openSelection();
+            });
+            
+            tree.commands.bindKey("Shift-Enter", function(e) {
+                openSelectedFiles();
+            });
+            
             layout.on("eachTheme", function(e){
                 var height = parseInt(ui.getStyleRule(".filetree .tree-row", "height"), 10) || 22;
                 tree.rowHeightInner = height;
@@ -136,9 +151,8 @@ define(function(require, exports, module) {
             });
             
             tree.on("userSelect", function(e) {
-                if (tabManager.focussedTab && tabManager.focussedTab.editorType == "diffview") {
-                    openSelection({noFocus: true});
-                }
+                if (tabManager.previewTab)
+                    openSelection({ preview: true });
             });
             
             tree.on("drop", function(e) {
@@ -166,14 +180,6 @@ define(function(require, exports, module) {
             });
             
             tree.setRoot(arrayCache);
-            
-            tree.commands.bindKey("Space", function(e) {
-                // openTestFile();
-            });
-            
-            tree.commands.bindKey("Enter", function(e) {
-                // commands.exec("runtest");
-            });
             
             // tree.on("focus", function(){
             //     test.focussedPanel = plugin;
@@ -410,27 +416,42 @@ define(function(require, exports, module) {
             
             var base = options.base
                 ? options.base + ":"
-                : (node.parent == staged ? "HEAD" : ":");
+                : (node.parent == staged ? "HEAD:" : "PREVIOUS:");
             
-            // findOpenDiffview(done) || 
-            tabManager.open({
+            var diffview = {
+                oldPath: base + oldPath,
+                newPath: hash + newPath
+            };
+            
+            var tab = findOpenDiffview(diffview);
+            if (tab && !(opts && opts.preview)) {
+                if (tab.document.meta.preview)
+                    tabManager.preview({ cancel: true, keep: true });
+                else {
+                    opts && opts.preview
+                        ? tabManager.activateTab(tab)
+                        : tabManager.focusTab(tab);
+                }
+                return;
+            }
+            
+            tabManager[opts && opts.preview ? "preview" : "open"]({
                 editorType: "diffview",
                 focus: true,
                 document: {
-                    diffview: {
-                        oldPath: base + oldPath,
-                        newPath: hash + newPath
-                    }
+                    diffview: diffview
                 }
             }, function(){});
         }
         
-        function findOpenDiffview(cb){
+        function findOpenDiffview(options){
             var pages = tabManager.getTabs();
             for (var i = 0, tab = pages[i]; tab; tab = pages[i++]) {
                 if (tab.editorType == "diffview") {
-                    cb(null, tab);
-                    return true;
+                    var session = tab.document.getSession();
+                    if (session.oldPath == options.oldPath 
+                      && session.newPath == options.newPath)
+                        return tab;
                 }
             }
         }
