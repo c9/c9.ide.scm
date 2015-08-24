@@ -165,7 +165,7 @@ define(function(require, exports, module) {
                 var args = ["log", "--topo-order", "--date=raw"];
                 if (options.boundary !== false) args.push("--boundary");
                 if (options.logOptions) args.push.apply(args, options.logOptions);
-                args.push('--pretty=format:' + (options.format || "%h %p %d %B ").replace(/ /g, "%x00"));
+                args.push('--pretty=format:' + (options.format || "%h %p %D %B ").replace(/ /g, "%x00"));
                 args.push("--all");
                 args.push("HEAD");
                 args.push("-n", options.count || 1000);
@@ -186,8 +186,8 @@ define(function(require, exports, module) {
                         var line = x[i].split("\x00");
                         var branches = undefined;
                         if (line[2]) {
-                            branches = line[2].trim().slice(1, -1);
-                            if (/\bHEAD\b/.test(branches))
+                            branches = line[2].trim();
+                            if (/(^|, )HEAD[, ]/.test(branches))
                                 head = line[0];
                         }
                         root.push({
