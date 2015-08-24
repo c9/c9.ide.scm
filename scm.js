@@ -42,6 +42,8 @@ define(function(require, exports, module) {
                 - git add the left file 
                 - restore compare view after reload/ when moving tab
                 - undo doesn't work 
+                - scrolling doesn't work well. It should scroll the sides as 
+                    slowly as the side with most lines would go when scrolling there
             - branches
                 - Harutyun: Resize properly when expanding/collapsing
                 - Harutyun: scrollMargin for left, right and bottom doesn't work (same for log, detail)

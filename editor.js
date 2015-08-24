@@ -201,39 +201,27 @@ define(function(require, exports, module) {
                     + "<span class='dirname'> - " + dirname(dirpath) + "</span>";
             }
             
-            function loadDiff(opts) {
-                var session = diffview.c9session;
+            function loadSession(session){
+                var diff = session.diff;
                 
-                lblLeft.setAttribute("caption", getLabelValue(opts.oldPath));
-                lblRight.setAttribute("caption", getLabelValue(opts.newPath));
-                
-                var newFilename = (opts.newPath + "").split("/").pop();
-                this.activeDocument.title = "Compare " + newFilename;
-                
-                session.request = scm.loadDiff(opts, function(err, diff) {
-                    if (err) return console.log(err);
-                    
-                    if (session.request == diff.request) {
-                        if (typeof diff.patch == "string") {
-                            diffview.setValueFromFullPatch(diff.patch);
-                        } else {
-                            diffview.orig.session.setValue(diff.orig);
-                            diffview.edit.session.setValue(diff.edit);
-                        }
-                        diffview.orig.setReadOnly(true);
-                        diffview.edit.setReadOnly(true);
-                         
-                        var syntax = ace.getSyntaxForPath(opts.newPath);
-                        if (syntax && syntax.indexOf("/") == -1) syntax = "ace/mode/" + syntax;
-                        if (syntax) {
-                            diffview.orig.session.setMode(syntax);
-                            diffview.edit.session.setMode(syntax);
-                        }
-                        diffview.orig.renderer.once("afterRender", function() {
-                            diffview.computeDiff();
-                            diffview.gotoNext(1);
-                        });
-                    }
+                if (typeof diff.patch == "string") {
+                    diffview.setValueFromFullPatch(diff.patch);
+                } else {
+                    diffview.orig.session.setValue(diff.orig);
+                    diffview.edit.session.setValue(diff.edit);
+                }
+                diffview.orig.setReadOnly(true);
+                diffview.edit.setReadOnly(true);
+                 
+                var syntax = ace.getSyntaxForPath(session.newPath);
+                if (syntax && syntax.indexOf("/") == -1) syntax = "ace/mode/" + syntax;
+                if (syntax) {
+                    diffview.orig.session.setMode(syntax);
+                    diffview.edit.session.setMode(syntax);
+                }
+                diffview.orig.renderer.once("afterRender", function() {
+                    diffview.computeDiff();
+                    diffview.gotoNext(1);
                 });
             }
             
@@ -246,14 +234,16 @@ define(function(require, exports, module) {
                 var doc = e.doc;
                 var session = e.doc.getSession();
                 
+                if (e.state.oldPath)
+                    session.oldPath = e.state.oldPath;
+                if (e.state.newPath)
+                    session.newPath = e.state.newPath;
+                
                 doc.title = "Compare Files...";
                 
                 diffview.c9session = session;
                 diffview.orig.session.c9session = session;
                 diffview.edit.session.c9session = session;
-                
-                if (doc.meta.path)
-                    loadDiff(doc.meta);
                 
                 function setTheme(e) {
                     var tab = doc.tab;
@@ -275,14 +265,44 @@ define(function(require, exports, module) {
                 
             });
             plugin.on("documentActivate", function(e) {
-                currentSession = e.doc.getSession();
+                var session = currentSession = e.doc.getSession();
+                
+                if (!session.newPath) return;
+                
+                var newFilename = (session.newPath + "").split("/").pop();
+                e.doc.title = "Compare " + newFilename;
+                
+                lblLeft.setAttribute("caption", getLabelValue(session.oldPath));
+                lblRight.setAttribute("caption", getLabelValue(session.newPath));
+                
+                if (session.diff)
+                    return loadSession(session);
+                
+                session.request = scm.loadDiff({ 
+                    oldPath: session.oldPath, 
+                    newPath: session.newPath 
+                }, function(err, diff) {
+                    if (err) return console.log(err);
+                    
+                    if (session.request == diff.request) {
+                        session.diff = diff;
+                        loadSession(session);
+                    }
+                });
+                
             });
             plugin.on("documentUnload", function(e) {
-                var session = e.doc.getSession();
+                // var session = e.doc.getSession();
             });
             plugin.on("getState", function(e) {
+                var session = e.doc.getSession();
+                e.state.oldPath = session.oldPath;
+                e.state.newPath = session.newPath;
             });
             plugin.on("setState", function(e) {
+                var session = e.doc.getSession();
+                session.oldPath = e.state.oldPath;
+                session.newPath = e.state.newPath;
             });
             plugin.on("clear", function(){
             });
@@ -305,8 +325,7 @@ define(function(require, exports, module) {
              **/
             plugin.freezePublicAPI({
                 get diffview() { return diffview },
-                get ace () { return lastAce },
-                loadDiff: loadDiff
+                get ace () { return lastAce }
             });
             
             plugin.load(null, "ace.repl");

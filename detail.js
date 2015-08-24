@@ -393,7 +393,7 @@ define(function(require, exports, module) {
             if (!c9.has(c9.STORAGE))
                 return;
             
-            var node = tree.selection.getCursor();
+            var node = tree.selectedNode;
             if (!node || node.isFolder)
                 return;
             
@@ -401,37 +401,28 @@ define(function(require, exports, module) {
                 return openConflictView(node);
             
             var options = tree.meta.options;
-            findOpenDiffview(done) || tabManager.open({
-                editorType: "diffview",
-                focus: true
-            }, done);
+            var oldPath = node.path;
+            var newPath = node.originalPath || node.path;
             
-            function done(e, tab) {
-                tab = tab || tabManager.focussedTab;
-                if (!opts || !opts.noFocus)
-                    tabManager.focusTab(tab);
-                
-                var oldPath = node.path;
-                var newPath = node.originalPath || node.path;
-                
-                var hash = options.hash;
-                if (hash) {
-                    hash = hash + ":";
-                } else {
-                    hash = node.parent == staged ? ":" : "";
+            var hash = options.hash
+                ? options.hash + ":"
+                : (node.parent == staged ? ":" : "");
+            
+            var base = options.base
+                ? options.base + ":"
+                : (node.parent == staged ? "HEAD" : ":");
+            
+            // findOpenDiffview(done) || 
+            tabManager.open({
+                editorType: "diffview",
+                focus: true,
+                document: {
+                    diffview: {
+                        oldPath: base + oldPath,
+                        newPath: hash + newPath
+                    }
                 }
-                
-                var base = options.base;
-                if (!base)
-                    base = node.parent == staged ? "HEAD" : ":";
-                if (base && base != ":")
-                    base = base + ":";
-                
-                tab.editor.loadDiff({
-                    oldPath: base + oldPath,
-                    newPath: hash + newPath
-                });
-            }
+            }, function(){});
         }
         
         function findOpenDiffview(cb){
