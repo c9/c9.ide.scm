@@ -54,6 +54,10 @@ define(function(require, exports, module) {
             git("pull", callback);
         }
         
+        function push(callback){
+            git("push", callback);
+        }
+        
         function git(args, cb) {
             if (typeof args == "string")
                 args = args.split(/\s+/);
@@ -368,6 +372,11 @@ define(function(require, exports, module) {
              * 
              */
             git: git,
+            
+            /**
+             * 
+             */
+            push: push,
             
             /**
              * 
