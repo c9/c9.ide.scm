@@ -45,7 +45,7 @@ define(function(require, exports, module) {
                 - Setting indent to 0 doesn't work
         
         # RUBEN
-            - add push dialog (Ruben)
+            - add push dialog (Ruben) 
                 dropdown for remotes/branches
                 checkbox for --force
                 output
@@ -523,6 +523,12 @@ define(function(require, exports, module) {
                 emit("reload");
             });
         }
+        function loadDiff(options){
+            scm.loadDiff(options, function(err){
+                if (err) return console.error(err);
+                // emit("reload");
+            });
+        }
         function getStatus(options, callback){
             scm.getStatus(options, callback);
         }
@@ -576,12 +582,19 @@ define(function(require, exports, module) {
             /**
              * 
              */
+            loadDiff: loadDiff,
+            
+            /**
+             * 
+             */
             unstage: unstage,
             
             /**
              * 
              */
             getStatus: getStatus
+            
+            // TODO all other functions
         });
         
         register(null, {

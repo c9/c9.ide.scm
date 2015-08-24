@@ -397,7 +397,7 @@ define(function(require, exports, module) {
             if (node.parent == conflicts)
                 return openConflictView(node);
             
-            options = tree.model.options;
+            options = tree.meta.options;
             findOpenDiffview(done) || tabManager.open({
                 editorType: "diffview",
                 focus: true

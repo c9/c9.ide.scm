@@ -10,7 +10,7 @@ define(function(require, exports, module) {
         var settings = imports.settings;
         var editors = imports.editors;
         var Editor = imports.Editor;
-        var status = imports.scm;
+        var scm = imports.scm;
         var layout = imports.layout;
         var MenuItem = imports.MenuItem;
         var Divider = imports.Divider;
@@ -153,7 +153,7 @@ define(function(require, exports, module) {
                 var newFilename = (opts.newPath + "").split("/").pop();
                 this.activeDocument.title = "Compare " + newFilename;
                 
-                session.request = status.loadDiff(opts, function(e, diff) {
+                session.request = scm.loadDiff(opts, function(e, diff) {
                     if (e) return console.log(e);
                     if (session.request == diff.request) {
                         if (typeof diff.patch == "string") {
