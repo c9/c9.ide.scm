@@ -113,14 +113,14 @@ define(function(require, exports, module) {
         });
         var emit = plugin.getEmitter();
         
-        var tree, commitBox, toolbar, ammendCb, doneBtn;
+        var tree, commitBox, toolbar, ammendCb, commitBtn;
         var mnuBranches, branchesTree, btnBranches;
         
         var scms = {};
         var scm;
         
         var mnuCommit, btnCommit, mnuExecute, barCommit, mnuSettings;
-        var btnSettings, container;
+        var btnSettings, container, btnPush, barPush, pushBtn;
         
         var workspaceDir = c9.workspaceDir; // + "/plugins/c9.ide.scm/mock/git";
         
@@ -198,7 +198,7 @@ define(function(require, exports, module) {
             commands.addCommand({
                 name: "push",
                 group: "scm",
-                exec: function(){ push(); }
+                exec: function(){ push({}); }
             }, plugin);
             
             commands.addCommand({
@@ -242,7 +242,7 @@ define(function(require, exports, module) {
             plugin.addElement(toolbar);
             
             barCommit = vbox.appendChild(new ui.bar({
-                class: "commit-bar",
+                class: "form-bar",
                 visible: false,
                 childNodes: [
                     commitBox = new apf.codebox({}),
@@ -254,18 +254,18 @@ define(function(require, exports, module) {
                                 skin: "checkbox_black",
                                 margin: "5 0 0 0"
                             }),
-                            new ui.hbox({ flex: 1 }),
-                            new ui.button({
-                                caption: "Cancel",
-                                skin: "btn-default-css3",
-                                margin: "5 0 0 0",
-                                onclick: function() {
-                                    ammendCb.uncheck();
-                                    ammendCb.setValue("");
-                                    barCommit.hide();
-                                }
-                            }),
-                            doneBtn = new ui.button({
+                            new ui.filler(),
+                            // new ui.button({
+                            //     caption: "Cancel",
+                            //     skin: "btn-default-css3",
+                            //     margin: "5 0 0 0",
+                            //     onclick: function() {
+                            //         ammendCb.uncheck();
+                            //         ammendCb.setValue("");
+                            //         barCommit.hide();
+                            //     }
+                            // }),
+                            commitBtn = new ui.button({
                                 caption: "Commit",
                                 skin: "btn-default-css3",
                                 class: "btn-green",
@@ -320,7 +320,11 @@ define(function(require, exports, module) {
                         barCommit.show();
                         commitBox.focus();
                     }
-                    else barCommit.hide();
+                    else {
+                        ammendCb.uncheck();
+                        ammendCb.setValue("");
+                        barCommit.hide();
+                    }
                 }
             }), 100, plugin);
             btnCommit.$button1.setAttribute("state", true);
@@ -328,16 +332,69 @@ define(function(require, exports, module) {
                 btnCommit.$button1.setAttribute("value", e.value);
             });
             
-            // btnPush = ui.insertByIndex(toolbar, new ui.splitbutton({
-            //     caption: "Push",
-            //     skinset: "default",
-            //     skin: "c9-menu-btn",
-            //     submenu: mnuPush.aml,
-            //     onclick: function(){
-            //         barCommit.show();
-            //         commitBox.focus();
-            //     }
-            // }), 100, plugin);
+            var forceCb, branchBox;
+            barPush = vbox.appendChild(new ui.bar({
+                class: "form-bar",
+                visible: false,
+                childNodes: [
+                    new ui.hsplitbox({
+                        height: 30,
+                        align: "center",
+                        padding: 3,
+                        childNodes: [
+                            new ui.label({ caption: "Branch", width: 70, margin: "5 0 0 0" }),
+                            new apf.codebox()
+                        ]
+                    }),
+                    new ui.hbox({
+                        padding: 3,
+                        childNodes: [
+                            branchBox = new ui.checkbox({ 
+                                label: "force",
+                                skin: "checkbox_black",
+                                margin: "5 0 0 0"
+                            }),
+                            new ui.filler(),
+                            forceCb = new ui.button({
+                                caption: "Push",
+                                skin: "btn-default-css3",
+                                class: "btn-green",
+                                margin: "5 0 0 0",
+                                onclick: function() {
+                                    push({
+                                        branch: branchBox.ace.getValue(), 
+                                        force: forceCb.checked
+                                    }, function(err){
+                                        if (err) return console.error(err);
+                                        
+                                        // TODO stream output
+                                        barPush.hide();
+                                    });
+                                }
+                            })
+                        ]
+                    })
+                ]
+            }));
+            
+            btnPush = ui.insertByIndex(toolbar, new ui.button({
+                caption: "Push",
+                skinset: "default",
+                skin: "c9-menu-btn",
+                class: "single-button",
+                state: true,
+                onclick: function(){
+                    if (barPush.visible) {
+                        barPush.hide();
+                    }
+                    else {
+                        barPush.show();
+                    }
+                }
+            }), 100, plugin);
+            barPush.on("prop.visible", function(e){
+                btnPush.setAttribute("value", e.value);
+            });
             
             mnuBranches = new ui.menu({ width: 300, height: 100, style: "padding:0" });
             mnuBranches.on("prop.visible", function(e){
@@ -560,10 +617,11 @@ define(function(require, exports, module) {
                 emit("reload");
             });
         }
-        function push(){
-            scm.push(function(err){
-                if (err) return console.error(err);
+        function push(options, callback){
+            scm.push(options, function(err){
+                if (err) return callback(err);
                 emit("reload");
+                callback && callback();
             });
         }
         function loadDiff(options, callback){

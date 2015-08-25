@@ -104,7 +104,7 @@ body .ace_diff-gutter{
     flex-direction: column;
 }
 
-.commit-bar{
+.form-bar{
     padding: 10px 50px 10px 10px;
     box-sizing: border-box;
     border-bottom: 1px solid #E6E6E6;
@@ -112,10 +112,11 @@ body .ace_diff-gutter{
     background-color: white; /*#FBFBFB;*/
 }
 
-.changes .splitbutton .c9-menu-btnDown{
-    height: 32px;
+.changes>.c9-menu-btnDown, .changes>.splitbutton div.c9-menu-btnDown:first-child{
+    height: 31px;
+    box-shadow: -1px 1px white !important;
 }
-.changes .splitbutton .c9-menu-btnDown:after{
+.changes .splitbutton>div.c9-menu-btnDown:first-child:after{
     top: 0;
     bottom: 0;
 }

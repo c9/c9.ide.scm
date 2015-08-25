@@ -54,8 +54,11 @@ define(function(require, exports, module) {
             git("pull", callback);
         }
         
-        function push(callback){
-            git("push", callback);
+        function push(options, callback){
+            var args = ["push"];
+            if (options.force) args.push("--force");
+            if (options.branch) args.push(options.branch);
+            git(args, callback);
         }
         
         function git(args, cb) {
