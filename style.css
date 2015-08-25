@@ -103,3 +103,19 @@ body .ace_diff-gutter{
     display: flex;
     flex-direction: column;
 }
+
+.commit-bar{
+    padding: 10px 50px 10px 10px;
+    box-sizing: border-box;
+    border-bottom: 1px solid #E6E6E6;
+    margin: 0px;
+    background-color: white; /*#FBFBFB;*/
+}
+
+.changes .splitbutton .c9-menu-btnDown{
+    height: 32px;
+}
+.changes .splitbutton .c9-menu-btnDown:after{
+    top: 0;
+    bottom: 0;
+}

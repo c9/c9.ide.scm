@@ -47,9 +47,6 @@ define(function(require, exports, module) {
         
         # RUBEN
             - toolbar
-                - commit - split button
-                    - add all
-                    - unstage all
                 - pull (or fetch - split button
                     - form
                         - includes pull vs fetch checkbox
@@ -238,9 +235,8 @@ define(function(require, exports, module) {
             
             // Toolbar
             toolbar = vbox.appendChild(new ui.bar({
-                id: "toolbar",
                 skin: "toolbar-top",
-                class: "fakehbox aligncenter debugger_buttons basic",
+                class: "fakehbox aligncenter debugger_buttons basic changes",
                 style: "white-space:nowrap !important; height:32px;"
             }));
             plugin.addElement(toolbar);
@@ -305,10 +301,28 @@ define(function(require, exports, module) {
                 skin: "c9-menu-btn",
                 submenu: mnuCommit.aml,
                 onclick: function(){
-                    barCommit.show();
-                    commitBox.focus();
+                    if (!barCommit.visible) {
+                        barCommit.show();
+                        commitBox.focus();
+                    }
+                    else barCommit.hide();
                 }
             }), 100, plugin);
+            btnCommit.$button1.setAttribute("state", true);
+            barCommit.on("prop.visible", function(e){
+                btnCommit.$button1.setAttribute("value", e.value);
+            });
+            
+            // btnPush = ui.insertByIndex(toolbar, new ui.splitbutton({
+            //     caption: "Push",
+            //     skinset: "default",
+            //     skin: "c9-menu-btn",
+            //     submenu: mnuPush.aml,
+            //     onclick: function(){
+            //         barCommit.show();
+            //         commitBox.focus();
+            //     }
+            // }), 100, plugin);
             
             mnuBranches = new ui.menu({ width: 300, height: 100, style: "padding:0" });
             mnuBranches.on("prop.visible", function(e){
@@ -373,6 +387,7 @@ define(function(require, exports, module) {
                 caption: "Branches",
                 skinset: "default",
                 skin: "c9-menu-btn",
+                style: "float:right",
                 submenu: mnuBranches
             }), 200, plugin);
             
