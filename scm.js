@@ -343,13 +343,13 @@ define(function(require, exports, module) {
                         padding: 3,
                         childNodes: [
                             new ui.label({ caption: "Branch", width: 70, margin: "5 0 0 0" }),
-                            new apf.codebox()
+                            branchBox = new apf.codebox()
                         ]
                     }),
                     new ui.hbox({
                         padding: 3,
                         childNodes: [
-                            branchBox = new ui.checkbox({ 
+                            new ui.checkbox({ 
                                 label: "force",
                                 skin: "checkbox_black",
                                 margin: "5 0 0 0"
