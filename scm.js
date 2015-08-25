@@ -25,10 +25,13 @@ define(function(require, exports, module) {
             - fix errors with added/removed files
         
         # TODO
+            - commit
+                - amend doesnt work
             - pull
                 - pull --rebase
             - detail    
                 - afterChoose should stage/unstage files instead of opening diff view
+                - drag to staged doesnt work sometimes (rowheight issue?)
             - conflicts
                 - add commands? detect, next, prev, use 1/ 2 
             - branches
@@ -49,12 +52,14 @@ define(function(require, exports, module) {
                     - Merge doesn't work (no UI for merge message)
                     - Handle error states
                     - Change to splitbutton with form only shown on arrow
+                    - reload of log doesn't work after pull
                 / push button - split button
                     / add push dialog (Ruben) 
                         / dropdown for remotes/branches
                         - output
                     - Handle error states
                     - Change to splitbutton with form only shown on arrow
+                    - reload of log doesn't work after push
         
         # LATER
             # Ruben
@@ -550,7 +555,7 @@ define(function(require, exports, module) {
             }), 200, plugin);
             
             mnuExecute = new Menu({ items: [
-                new MenuItem({ caption: "Refresh", onclick: refresh }, plugin)e
+                new MenuItem({ caption: "Refresh", onclick: refresh }, plugin)
             ]}, plugin);
             
             // btnExecute = ui.insertByIndex(toolbar, new ui.button({
