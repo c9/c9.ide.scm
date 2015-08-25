@@ -214,7 +214,7 @@ define(function(require, exports, module) {
                     if (args.message) commit(args.message, args.amend);
                     else {
                         panels.activate("changes");
-                        btnCommit.showMenu();
+                        barCommit.show();
                     }
                 }
             }, plugin);
@@ -242,12 +242,12 @@ define(function(require, exports, module) {
             plugin.addElement(toolbar);
             
             barCommit = vbox.appendChild(new ui.bar({
-                width: 300,
-                style: "padding:10px;",
+                class: "commit-bar",
                 visible: false,
                 childNodes: [
                     commitBox = new apf.codebox({}),
                     new ui.hbox({
+                        padding: 5,
                         childNodes: [
                             ammendCb = new ui.checkbox({ 
                                 label: "amend",
@@ -255,14 +255,29 @@ define(function(require, exports, module) {
                                 margin: "5 0 0 0"
                             }),
                             new ui.hbox({ flex: 1 }),
+                            new ui.button({
+                                caption: "Cancel",
+                                skin: "btn-default-css3",
+                                margin: "5 0 0 0",
+                                onclick: function() {
+                                    ammendCb.uncheck();
+                                    ammendCb.setValue("");
+                                    barCommit.hide();
+                                }
+                            }),
                             doneBtn = new ui.button({
                                 caption: "Commit",
                                 skin: "btn-default-css3",
                                 class: "btn-green",
                                 margin: "5 0 0 0",
                                 onclick: function() {
-                                    mnuCommit.hide();
-                                    commitBox.ace.execCommand("commit");
+                                    commit(commitBox.ace.getValue(), ammendCb.checked, function(err){
+                                        if (err) return console.error(err);
+                                        
+                                        ammendCb.uncheck();
+                                        commitBox.ace.setValue("");
+                                        barCommit.hide();
+                                    });
                                 }
                             })
                         ]
@@ -290,7 +305,7 @@ define(function(require, exports, module) {
                 });
             });
             
-            mnuCommit = new Menu({ childNodes: [
+            mnuCommit = new Menu({ items: [
                 new MenuItem({ caption: "Add All", command: "addall", tooltip: "git add -u" }, plugin),
                 new MenuItem({ caption: "Unstage All", command: "unstageall", tooltip: "git add -u" }, plugin)
             ]});
@@ -481,8 +496,8 @@ define(function(require, exports, module) {
         
         function commit(message, amend, callback){
             scm.commit({ 
-                message: message || commitBox.ace.getValue(),
-                amend: amend || false
+                message: message,
+                amend: amend
             }, function(err){
                 if (err) return console.error(err);
                 
