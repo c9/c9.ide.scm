@@ -66,10 +66,6 @@
     color: #BBBBBB;
 }
 
-body .ace_diff-gutter{
-    background-color: #F1F1F1 !important;
-}
-
 .detail-label{
     padding: 6px 40px 7px 5px;
     font-size: 12px;
