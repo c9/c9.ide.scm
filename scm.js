@@ -271,7 +271,9 @@ define(function(require, exports, module) {
                                 class: "btn-green",
                                 margin: "5 0 0 0",
                                 onclick: function() {
+                                    commitBtn.disable();
                                     commit(commitBox.ace.getValue(), ammendCb.checked, function(err){
+                                        commitBtn.enable();
                                         if (err) return console.error(err);
                                         
                                         ammendCb.uncheck();
@@ -349,22 +351,24 @@ define(function(require, exports, module) {
                     new ui.hbox({
                         padding: 3,
                         childNodes: [
-                            new ui.checkbox({ 
+                            forceCb = new ui.checkbox({ 
                                 label: "force",
                                 skin: "checkbox_black",
                                 margin: "5 0 0 0"
                             }),
                             new ui.filler(),
-                            forceCb = new ui.button({
+                            pushBtn = new ui.button({
                                 caption: "Push",
                                 skin: "btn-default-css3",
                                 class: "btn-green",
                                 margin: "5 0 0 0",
                                 onclick: function() {
+                                    pushBtn.disable();
                                     push({
                                         branch: branchBox.ace.getValue(), 
                                         force: forceCb.checked
                                     }, function(err){
+                                        pushBtn.enable();
                                         if (err) return console.error(err);
                                         
                                         // TODO stream output
