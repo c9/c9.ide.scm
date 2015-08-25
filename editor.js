@@ -205,8 +205,18 @@ define(function(require, exports, module) {
             }
             
             function loadSession(session){
-                var diff = session.diff;
+                if (session.diffSession) {
+                    diffview.setSession(session.diffSession);
+                    return;
+                }
                 
+                diffview.setSession(session.diffSession = {
+                    orig: diffview.createSession(),
+                    edit: diffview.createSession(),
+                    chunks: []
+                });
+                
+                var diff = session.diff;
                 if (typeof diff.patch == "string") {
                     diffview.setValueFromFullPatch(diff.patch);
                 } else {
@@ -223,10 +233,12 @@ define(function(require, exports, module) {
                     diffview.edit.session.setMode(syntax);
                 }
                 diffview.orig.renderer.once("afterRender", function() {
-                    diffview.computeDiff();
-                    diffview.foldUnchanged();
-                    diffview.computeDiff();
-                    diffview.gotoNext(1);
+                    if (diffview.session == session.diffSession) {
+                        if (!diffview.chunks.length)
+                            diffview.computeDiff();
+                        diffview.foldUnchanged();
+                        diffview.gotoNext(1);
+                    }
                 });
             }
             

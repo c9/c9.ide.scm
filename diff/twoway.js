@@ -16,6 +16,7 @@ var SVG_NS = "http://www.w3.org/2000/svg";
 var Editor = require("ace/editor").Editor;
 var Renderer = require("ace/virtual_renderer").VirtualRenderer;
 var UndoManager = require("ace/undomanager").UndoManager;
+var EditSession = require("ace/edit_session").EditSession;
 require("ace/theme/textmate");
 function createEditor() {
     var editor = new Editor(new Renderer(), null);
@@ -51,9 +52,12 @@ function DiffView(element, options) {
     this.right.setOption("animatedScroll", true);
 
     this.markerLeft = new DiffHighlight(this, -1);
-    this.left.session.addDynamicMarker(this.markerLeft);
     this.markerRight = new DiffHighlight(this, 1);
-    this.right.session.addDynamicMarker(this.markerRight);
+    this.setSession({
+        orig: this.orig.session,
+        edit: this.edit.session,
+        chunks: []
+    });
 
     this.connector = new Connector(this);
     this.connector.createGutter();
@@ -70,7 +74,6 @@ function DiffView(element, options) {
     
     this.$initArrow();
     
-    this.chunks = [];
     this.$attachEventHandlers();
     
     config.resetOptions(this);
@@ -81,12 +84,27 @@ function DiffView(element, options) {
 (function() {
     
     /*** theme/session ***/
-    this.setSession = function() {
-        
+    this.setSession = function(session) {
+        if (this.session) {
+            this.$detachSessionEventHandlers();
+        }
+        this.session = session;
+        if (this.session) {
+            this.chunks = this.session.chunks;
+            this.orig.setSession(session.orig);
+            this.edit.setSession(session.edit);
+            this.$attachSessionEventHandlers();
+        }
     };
     
     this.getSession = function() {
-        
+        return this.session;
+    };
+    
+    this.createSession = function() {
+        var session = new EditSession("");
+        session.setUndoManager(new UndoManager());
+        return session;
     };
     
     this.setTheme = function(theme) {
@@ -206,7 +224,7 @@ function DiffView(element, options) {
             diff.type = type;
         });
     
-        this.chunks = chunks;
+        this.session.chunks = this.chunks = chunks;
         // if we"re dealing with too many chunks, fail silently
         if (this.chunks.length > this.options.maxDiffs) {
             return;
@@ -444,6 +462,8 @@ function DiffView(element, options) {
         this.right.session.on("changeScrollTop", this.onScroll);
         this.left.session.on("changeFold", this.onChangeFold);
         this.right.session.on("changeFold", this.onChangeFold);
+        this.left.session.addDynamicMarker(this.markerLeft);
+        this.right.session.addDynamicMarker(this.markerRight);
     };
     
     this.$detachSessionEventHandlers = function() {
@@ -451,6 +471,8 @@ function DiffView(element, options) {
         this.right.session.off("changeScrollTop", this.onScroll);
         this.left.session.off("changeFold", this.onChangeFold);
         this.right.session.off("changeFold", this.onChangeFold);
+        this.left.session.removeMarker(this.markerLeft.id);
+        this.right.session.removeMarker(this.markerRight.id);
     };
     
     this.$attachEventHandlers = function() {
@@ -472,9 +494,6 @@ function DiffView(element, options) {
         
         this.left.on("input", this.onInput);
         this.right.on("input", this.onInput);
-        
-        
-        this.$attachSessionEventHandlers();
     };
     
     this.$initArrow = function() {
