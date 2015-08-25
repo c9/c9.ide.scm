@@ -18,7 +18,6 @@ define(function(require, exports, module) {
                 - save
             - tree
                 - add watcher to .git/HEAD
-            - update overview panel style 
             - git commit 
                 - do dry-run 
                     - add status message for ammend 
@@ -32,32 +31,22 @@ define(function(require, exports, module) {
                 - afterChoose should stage/unstage files instead of opening diff view
             - conflicts
                 - add commands? detect, next, prev, use 1/ 2 
-                - automatically add to staging on save
-                - dialog for one deleted and one saved file 
-                - undo
-            - Compare view (Harutyun)
-                - switching session should keep ace session for scroll position (and selection)
-                - scrolling doesn't work well. It should scroll the sides as 
-                    slowly as the side with most lines would go when scrolling there
             - branches
                 - Harutyun: Resize properly when expanding/collapsing
                 - Harutyun: scrollMargin for left, right and bottom doesn't work (same for log, detail)
-                - When updating, only do a partial update (maintain selection, expanded state - see test/data/data.js)
-                - Move to icon (branches) button on the right
-                - make a datagrid?
+                - Use icon
             - log
                 - Setting indent to 0 doesn't work
-            - detail
-                - Show header of hash + commit message
-            - commmit
-                - don't hide detail
         
         # RUBEN
+            - conflicts
+                - dark theme (Ruben)
             - toolbar
                 / pull (or fetch - split button
                     / add fetch dialog (Ruben)
                         / dropdown for remotes
                         - output
+                    - Merge doesn't work (no UI for merge message)
                     - Handle error states
                     - Change to splitbutton with form only shown on arrow
                 / push button - split button
@@ -66,20 +55,27 @@ define(function(require, exports, module) {
                         - output
                     - Handle error states
                     - Change to splitbutton with form only shown on arrow
-            - conflicts
-                - dark theme (Ruben)
-            - Choose Git Path - use file dialog
-            - Add setting to collapse tree to only see roots
         
         # LATER
-            - split status.js into git and general parts
-            - support multiple git roots
+            # Ruben
+                - Choose Git Path - use file dialog
+                    - support multiple git roots
+                - Add setting to collapse tree to only see roots
             - tree
                 - solve edge line cases
             - Compare view
                 - save the right file (use ace session clone)
                 - git add the left file 
                 - undo doesn't work 
+                - scrolling doesn't work well. It should scroll the sides as 
+                    slowly as the side with most lines would go when scrolling there
+            - conflicts
+                - automatically add to staging on save
+                - dialog for one deleted and one saved file 
+                - undo
+            - branches
+                - When updating, only do a partial update (maintain selection, expanded state - see test/data/data.js)
+                - make a datagrid?
     */
     
     function main(options, imports, register) {
@@ -554,7 +550,7 @@ define(function(require, exports, module) {
             }), 200, plugin);
             
             mnuExecute = new Menu({ items: [
-                new MenuItem({ caption: "Refresh", onclick: refresh }, plugin)
+                new MenuItem({ caption: "Refresh", onclick: refresh }, plugin)e
             ]}, plugin);
             
             // btnExecute = ui.insertByIndex(toolbar, new ui.button({
