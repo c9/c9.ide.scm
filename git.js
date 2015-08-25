@@ -46,8 +46,11 @@ define(function(require, exports, module) {
             git(["reset", "--mixed", "--"].concat(paths), callback);
         }
         
-        function fetch(callback){
-            git("fetch", callback);
+        function fetch(options, callback){
+            var args = ["fetch"];
+            if (options.prune) args.push("--prune");
+            if (options.branch) args.push(options.branch);
+            git(args, callback);
         }
         
         function pull(options, callback){

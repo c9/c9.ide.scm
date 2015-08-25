@@ -8,6 +8,11 @@ define(function(require, exports, module) {
     return main;
     
     /*
+        LEGEND:
+            * = done (item should be removed)
+            / = half done
+            - = not done
+    
         # LOW HANGING FRUIT 
             - conflicts
                 - save
@@ -49,18 +54,18 @@ define(function(require, exports, module) {
         
         # RUBEN
             - toolbar
-                - pull (or fetch - split button
-                    - form
-                        - includes pull vs fetch checkbox
-                        - add fetch dialog (Ruben)
-                            dropdown for remotes
-                            checkbox for --prune
-                            output
-                - push button - split button
+                / pull (or fetch - split button
+                    / add fetch dialog (Ruben)
+                        / dropdown for remotes
+                        - output
+                    - Handle error states
+                    - Change to splitbutton with form only shown on arrow
+                / push button - split button
                     / add push dialog (Ruben) 
                         / dropdown for remotes/branches
-                        * checkbox for --force
                         - output
+                    - Handle error states
+                    - Change to splitbutton with form only shown on arrow
             - conflicts
                 - dark theme (Ruben)
             - Choose Git Path - use file dialog
@@ -392,7 +397,7 @@ define(function(require, exports, module) {
                 btnPush.setAttribute("value", e.value);
             });
             
-            var pruneCb, branchBoxPull, pullBtn;
+            var pruneCb, branchBoxPull, pullBtn, fetchBtn;
             barPull = vbox.appendChild(new ui.bar({
                 class: "form-bar",
                 visible: false,
@@ -415,6 +420,27 @@ define(function(require, exports, module) {
                                 margin: "5 0 0 0"
                             }),
                             new ui.filler(),
+                            fetchBtn = new ui.button({
+                                caption: "Fetch",
+                                skin: "btn-default-css3",
+                                class: "btn-green",
+                                margin: "5 0 0 0",
+                                onclick: function() {
+                                    pullBtn.disable();
+                                    fetchBtn.disable();
+                                    fetch({
+                                        branch: branchBoxPull.ace.getValue(), 
+                                        prune: pruneCb.checked
+                                    }, function(err){
+                                        pullBtn.enable();
+                                        fetchBtn.enable();
+                                        if (err) return console.error(err);
+                                        
+                                        // TODO stream output
+                                        barPull.hide();
+                                    });
+                                }
+                            }),
                             pullBtn = new ui.button({
                                 caption: "Pull",
                                 skin: "btn-default-css3",
@@ -422,11 +448,13 @@ define(function(require, exports, module) {
                                 margin: "5 0 0 0",
                                 onclick: function() {
                                     pullBtn.disable();
+                                    fetchBtn.disable();
                                     pull({
                                         branch: branchBoxPull.ace.getValue(), 
                                         prune: pruneCb.checked
                                     }, function(err){
                                         pullBtn.enable();
+                                        fetchBtn.enable();
                                         if (err) return console.error(err);
                                         
                                         // TODO stream output
@@ -526,12 +554,7 @@ define(function(require, exports, module) {
             }), 200, plugin);
             
             mnuExecute = new Menu({ items: [
-                new MenuItem({ caption: "Refresh", onclick: refresh }, plugin),
-                new Divider(),
-                new MenuItem({ caption: "Fetch", command: "fetch" }, plugin),
-                new MenuItem({ caption: "Pull", command: "pull" }, plugin),
-                new Divider(),
-                new MenuItem({ caption: "Push", command: "push" }, plugin),
+                new MenuItem({ caption: "Refresh", onclick: refresh }, plugin)
             ]}, plugin);
             
             // btnExecute = ui.insertByIndex(toolbar, new ui.button({
@@ -667,10 +690,11 @@ define(function(require, exports, module) {
                 emit("reload");
             });
         }
-        function fetch(){
-            scm.fetch(function(err){
+        function fetch(options, callback){
+            scm.fetch(options, function(err){
                 if (err) return console.error(err);
                 emit("reload");
+                callback && callback();
             });
         }
         function pull(options, callback){
