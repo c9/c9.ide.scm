@@ -82,7 +82,7 @@ define(function(require, exports, module) {
                 lblRight = new ui.label({ flex:1, class:"right" });
                 btnNext = new ui.button({ 
                     caption: ">", 
-                    height: 23,
+                    height: 24,
                     skin: "c9-toolbarbutton-glossy",
                     onclick: function() {
                         diffview.gotoNext(1);
@@ -90,15 +90,15 @@ define(function(require, exports, module) {
                 }); 
                 btnPrev = new ui.button({ 
                     caption: "<",
-                    height: 23,
+                    height: 24,
                     skin: "c9-toolbarbutton-glossy",
                     onclick: function() {
                         diffview.gotoNext(-1);
                     }
                 });
                 btnFold = new ui.button({ 
-                    caption: "Toggle Folds",
-                    height: 23,
+                    caption: "Fold",
+                    height: 24,
                     skin: "c9-toolbarbutton-glossy",
                     onclick: function() {
                         if (diffview.orig.session.$foldData.length)

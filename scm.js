@@ -40,8 +40,13 @@ define(function(require, exports, module) {
                 - Use icon
             - log
                 - Setting indent to 0 doesn't work
+                - Remove arrow in title
         
         # RUBEN
+            - add discard changes to context menu
+            - resize issues
+            - hotkeys should show bars in dialog
+            - buttons/forms should be mututally exclusive
             - conflicts
                 - dark theme (Ruben)
             - toolbar
