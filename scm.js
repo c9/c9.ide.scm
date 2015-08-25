@@ -23,6 +23,8 @@ define(function(require, exports, module) {
         # TODO
             - pull
                 - pull --rebase
+            - detail    
+                - afterChoose should stage/unstage files instead of opening diff view
             - conflicts
                 - add commands? detect, next, prev, use 1/ 2 
                 - automatically add to staging on save
@@ -55,11 +57,10 @@ define(function(require, exports, module) {
                             checkbox for --prune
                             output
                 - push button - split button
-                    - form
-                    - add push dialog (Ruben) 
-                        dropdown for remotes/branches
-                        checkbox for --force
-                        output
+                    / add push dialog (Ruben) 
+                        / dropdown for remotes/branches
+                        * checkbox for --force
+                        - output
             - conflicts
                 - dark theme (Ruben)
             - Choose Git Path - use file dialog
@@ -121,6 +122,7 @@ define(function(require, exports, module) {
         
         var mnuCommit, btnCommit, mnuExecute, barCommit, mnuSettings;
         var btnSettings, container, btnPush, barPush, pushBtn;
+        var barPull, btnPull;
         
         var workspaceDir = c9.workspaceDir; // + "/plugins/c9.ide.scm/mock/git";
         
@@ -204,7 +206,7 @@ define(function(require, exports, module) {
             commands.addCommand({
                 name: "pull",
                 group: "scm",
-                exec: function(){ pull(); }
+                exec: function(){ pull({}); }
             }, plugin);
             
             commands.addCommand({
@@ -255,16 +257,6 @@ define(function(require, exports, module) {
                                 margin: "5 0 0 0"
                             }),
                             new ui.filler(),
-                            // new ui.button({
-                            //     caption: "Cancel",
-                            //     skin: "btn-default-css3",
-                            //     margin: "5 0 0 0",
-                            //     onclick: function() {
-                            //         ammendCb.uncheck();
-                            //         ammendCb.setValue("");
-                            //         barCommit.hide();
-                            //     }
-                            // }),
                             commitBtn = new ui.button({
                                 caption: "Commit",
                                 skin: "btn-default-css3",
@@ -398,6 +390,72 @@ define(function(require, exports, module) {
             }), 100, plugin);
             barPush.on("prop.visible", function(e){
                 btnPush.setAttribute("value", e.value);
+            });
+            
+            var pruneCb, branchBoxPull, pullBtn;
+            barPull = vbox.appendChild(new ui.bar({
+                class: "form-bar",
+                visible: false,
+                childNodes: [
+                    new ui.hsplitbox({
+                        height: 30,
+                        align: "center",
+                        padding: 3,
+                        childNodes: [
+                            new ui.label({ caption: "Branch", width: 70, margin: "5 0 0 0" }),
+                            branchBoxPull = new apf.codebox()
+                        ]
+                    }),
+                    new ui.hbox({
+                        padding: 3,
+                        childNodes: [
+                            pruneCb = new ui.checkbox({ 
+                                label: "prune",
+                                skin: "checkbox_black",
+                                margin: "5 0 0 0"
+                            }),
+                            new ui.filler(),
+                            pullBtn = new ui.button({
+                                caption: "Pull",
+                                skin: "btn-default-css3",
+                                class: "btn-green",
+                                margin: "5 0 0 0",
+                                onclick: function() {
+                                    pullBtn.disable();
+                                    pull({
+                                        branch: branchBoxPull.ace.getValue(), 
+                                        prune: pruneCb.checked
+                                    }, function(err){
+                                        pullBtn.enable();
+                                        if (err) return console.error(err);
+                                        
+                                        // TODO stream output
+                                        barPull.hide();
+                                    });
+                                }
+                            })
+                        ]
+                    })
+                ]
+            }));
+            
+            btnPull = ui.insertByIndex(toolbar, new ui.button({
+                caption: "Pull",
+                skinset: "default",
+                skin: "c9-menu-btn",
+                class: "single-button",
+                state: true,
+                onclick: function(){
+                    if (barPull.visible) {
+                        barPull.hide();
+                    }
+                    else {
+                        barPull.show();
+                    }
+                }
+            }), 100, plugin);
+            barPull.on("prop.visible", function(e){
+                btnPull.setAttribute("value", e.value);
             });
             
             mnuBranches = new ui.menu({ width: 300, height: 100, style: "padding:0" });
@@ -615,10 +673,11 @@ define(function(require, exports, module) {
                 emit("reload");
             });
         }
-        function pull(){
-            scm.pull(function(err){
+        function pull(options, callback){
+            scm.pull(options, function(err){
                 if (err) return console.error(err);
                 emit("reload");
+                callback && callback();
             });
         }
         function push(options, callback){

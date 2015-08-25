@@ -50,8 +50,11 @@ define(function(require, exports, module) {
             git("fetch", callback);
         }
         
-        function pull(callback){
-            git("pull", callback);
+        function pull(options, callback){
+            var args = ["pull"];
+            if (options.prune) args.push("--prune");
+            if (options.branch) args.push(options.branch);
+            git(args, callback);
         }
         
         function push(options, callback){
