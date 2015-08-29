@@ -73,7 +73,7 @@ define(function(require, exports, module) {
             drawn = true;
             
             opts.html.innerHTML = "<div class='detail-label'></div><div class='detail-tree'></div>"
-            opts.html.className = "detail-root";
+            opts.html.className = "detail-root top-test-panel";
             label = opts.html.firstChild;
             label.host = {textselect: true};
             

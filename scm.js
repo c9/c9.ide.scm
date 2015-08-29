@@ -249,7 +249,7 @@ define(function(require, exports, module) {
             toolbar = vbox.appendChild(new ui.bar({
                 skin: "toolbar-top",
                 class: "fakehbox aligncenter debugger_buttons basic changes",
-                style: "white-space:nowrap !important; height:32px;"
+                style: "white-space:nowrap !important;"
             }));
             plugin.addElement(toolbar);
             
@@ -606,8 +606,7 @@ define(function(require, exports, module) {
             
             btnSettings = opts.aml.appendChild(new ui.button({
                 skin: "header-btn",
-                class: "panel-settings",
-                style: "top:46px",
+                class: "panel-settings changes",
                 submenu: mnuSettings.aml
             }));
             
