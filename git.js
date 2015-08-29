@@ -145,7 +145,7 @@ define(function(require, exports, module) {
                             return getStatus(options, cb);
                         }
                     }
-                    console.error(err);
+                    return cb(err);
                 }
                 console.log(err, stdout);
                 console.log(t-Date.now(), stdout.length);

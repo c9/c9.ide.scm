@@ -69,7 +69,9 @@
 .detail-label{
     padding: 6px 40px 7px 5px;
     font-size: 12px;
-    background-color: #F6F6F6;
+    background-color: @detail-label-background;
+    border-bottom: @detail-label-border-bottom;
+    box-shadow: 0 1px 0 @detail-label-box-shadow;
 }
 
 .detail-label .hash{
@@ -77,17 +79,18 @@
     padding: 2px 4px 1px;
     display: inline-block;
     border-radius: 4px;
-    background: #f9f796;
-    border: 1px solid #DDDE33;
+    background: @detail-label-hash-background;
+    border: @detail-label-hash-border;
+    color: @detail-label-hash-color;
     margin-right: 6px;
     font-size: 12px;
     float: left;
 }
 
 .detail-label div{
-    margin: 1px 0 0 67px;
+    margin: @detail-label-margin;
     line-height: 1.5em;
-    color: #333333;
+    color: @detail-label-color;
 }
 
 .detail-tree{
@@ -115,4 +118,10 @@
 .changes .splitbutton>div.c9-menu-btnDown:first-child:after{
     top: 0;
     bottom: 0;
+}
+
+.top-test-panel{
+    border-bottom: 1px solid rgb(0,0,0);
+    box-shadow: 0 1px @border-highlight;
+    overflow: auto;
 }

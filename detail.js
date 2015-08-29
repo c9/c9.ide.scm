@@ -35,8 +35,7 @@ define(function(require, exports, module) {
             caption: "Test Results",
             index: 100,
             height: 250,
-            splitter: true,
-            style: "border-bottom:1px solid #DDD;overflow:auto" // TODO
+            splitter: true
         });
         // var emit = plugin.getEmitter();
         
@@ -211,6 +210,10 @@ define(function(require, exports, module) {
                     
                 });
             }, plugin);
+            
+            scm.on("resize", function(){
+                tree && tree.resize();
+            });
             
             scmlog.on("select", function(options){
                 if (options) reload(options, function(){});

@@ -18,14 +18,13 @@ define(function(require, exports, module) {
                 - save
             - tree
                 - add watcher to .git/HEAD
-            - git commit 
-                - do dry-run 
-                    - add status message for ammend 
-                    - display branch to commit to 
             - fix errors with added/removed files
         
         # TODO
             - commit
+                - do dry-run 
+                    - add status message for ammend 
+                    - display branch to commit to 
                 - amend doesnt work
             - pull
                 - pull --rebase
@@ -41,8 +40,6 @@ define(function(require, exports, module) {
             - log
                 - Setting indent to 0 doesn't work
                 - Remove arrow in title
-        
-        # RUBEN
             - add discard changes to context menu
             - resize issues
             - hotkeys should show bars in dialog
@@ -634,6 +631,10 @@ define(function(require, exports, module) {
             emit("reload");
         }
         
+        function resize(){
+            emit("resize");
+        }
+        
         function getLog(){
             scm.getLog({}, function(err, root) {
                 if (err) return console.error(err);
@@ -787,7 +788,12 @@ define(function(require, exports, module) {
             /**
              * 
              */
-            getStatus: getStatus
+            getStatus: getStatus,
+            
+            /**
+             * 
+             */
+            resize: resize
             
             // TODO all other functions
         });

@@ -31,13 +31,14 @@ define(function(require, module, exports) {
                 amlFrame = showTitle ? ui.frame({
                     buttons: "min",
                     activetitle: "min",
-                    "class": "absframe",
+                    "class": "absframe " + (options.class || ""),
                     style: "position:relative;" + (style || ""),
                     textselect: options.textselect,
                     // height      : height,
                     caption: caption
                 }) : ui.bar({
                     style: "position:relative;" + (style || ""),
+                    "class": options.class || "",
                     textselect: options.textselect
                 });
                 
@@ -78,6 +79,8 @@ define(function(require, module, exports) {
                 });
                 scm.on("show", function() { emit("show"); }, plugin);
                 scm.on("hide", function() { emit("hide"); }, plugin);
+                
+                scm.resize();
             }
 
             /***** Methods *****/
@@ -86,11 +89,15 @@ define(function(require, module, exports) {
                 if (amlFrame) {
                     if (amlFrame.restore) amlFrame.restore();
                     else amlFrame.show();
+                    scm.resize();
+                    emit("show");
                 }
             }
 
             function hide(){
                 amlFrame.hide();
+                scm.resize();
+                emit("hide");
             }
 
             /***** Register and define API *****/

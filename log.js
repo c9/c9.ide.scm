@@ -150,6 +150,10 @@ define(function(require, exports, module) {
             scm.on("log", function(node){
                 tree.model.loadData(node);
             }, plugin);
+            
+            scm.on("resize", function(){
+                tree && tree.resize();
+            });
         }
         
         /***** Methods *****/
