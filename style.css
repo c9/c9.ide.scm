@@ -25,10 +25,11 @@
 .branch {
     color: black;
     border-radius: 5px;
-    background: rgb(249, 247, 150);
-    border: 1px solid #DDDE33;
+    background: @log-hash-background;
+    border: @log-hash-border;
     padding: 0 4px !important;
     margin-right: 2px;
+    color: @log-hash-color;
 }
 
 
@@ -37,10 +38,10 @@
 }
 
 .difftoolbar .buttons{
-    background-color: #F9F9F9;
+    background-color: @diff-toolbar-buttons-background;
     border-radius: 5px;
     /*box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.1);*/
-    border: 1px solid @border-highlight-dark;
+    border: @diff-toolbar-buttons-border;
 }
 
 .difftoolbar .hash{
@@ -48,12 +49,11 @@
     padding: 4px 4px 3px;
     display: inline-block;
     border-radius: 4px;
-    /*background-color: yellow;*/
-    /*border: 1px solid #DED228;*/
-    background: rgb(249, 247, 150);
-    border: 1px solid #DDDE33;
+    background: @log-hash-background;
+    border: @log-hash-border;
     margin-right: 7px;
     font-size: 12px;
+    color: @detail-label-hash-color;
 }
 .difftoolbar .right .hash{
     position: absolute;
@@ -61,9 +61,19 @@
     top: 5px;
     margin-right: 0;
 }
+.has_apf .ace_diff-gutter{
+    background-color: rgba(0,0,0,0.1) !important;
+    border-left: 0 !important;
+    border-right: 1px solid black !important;
+    box-shadow: 1px 0 @border-highlight;
+    z-index: 10;
+}
+.has_apf .ace_dark.ace_diff-gutter{
+    background-color: rgba(255,255,255,0.1) !important;
+}
 
 .difftoolbar .dirname{
-    color: #BBBBBB;
+    color: @inactive-font-color;
 }
 
 .detail-label{
