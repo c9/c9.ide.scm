@@ -29,6 +29,7 @@
     border: @log-hash-border;
     padding: 0 4px !important;
     margin-right: 2px;
+    margin-top: -1px;
     color: @log-hash-color;
 }
 
@@ -81,7 +82,7 @@
     font-size: 12px;
     background-color: @detail-label-background;
     border-bottom: @detail-label-border-bottom;
-    box-shadow: 0 1px 0 @detail-label-box-shadow;
+    box-shadow: @detail-label-box-shadow;
 }
 
 .detail-label .hash{
@@ -112,16 +113,17 @@
 }
 
 .form-bar{
-    padding: 10px 50px 10px 10px;
+    padding: @form-bar-padding;
     box-sizing: border-box;
-    border-bottom: 1px solid #E6E6E6;
+    border-bottom: @form-bar-border-bottom;
     margin: 0px;
-    background-color: white; /*#FBFBFB;*/
+    background-color: @form-bar-background;
+    box-shadow: @form-bar-box-shadow;
 }
 
 .changes>.c9-menu-btnDown, .changes>.splitbutton div.c9-menu-btnDown:first-child{
     height: 31px;
-    box-shadow: -1px 1px white !important;
+    box-shadow: 0 1px @border-highlight inset, -1px 1px @border-highlight-dark !important;
 }
 .changes .splitbutton>div.c9-menu-btnDown:first-child:after{
     top: 0;
