@@ -78,7 +78,7 @@ define(function(require, exports, module) {
                 // if (e) console.error(e);
                 
                 buffer(p, function(stdout, stderr){
-                    console.log(e, stdout);
+                    // console.log(e, stdout);
                     
                     cb && cb(e, stdout, stderr);
                 });
@@ -91,7 +91,7 @@ define(function(require, exports, module) {
                 stdout += c;
             });
             process.stderr.on("data", function(c){
-                stdout += c;
+                stderr += c;
             });
             process.on("exit", function(c){
                 callback(stdout, stderr);
@@ -147,8 +147,8 @@ define(function(require, exports, module) {
                     }
                     return cb(err);
                 }
-                console.log(err, stdout);
-                console.log(t-Date.now(), stdout.length);
+                // console.log(err, stdout);
+                // console.log(t-Date.now(), stdout.length);
                 cb(err, stdout);
             });
         }
@@ -165,7 +165,7 @@ define(function(require, exports, module) {
                 var args = ["log", "--topo-order", "--date=raw"];
                 if (options.boundary !== false) args.push("--boundary");
                 if (options.logOptions) args.push.apply(args, options.logOptions);
-                args.push('--pretty=format:' + (options.format || "%h %p %D %B ").replace(/ /g, "%x00"));
+                args.push('--pretty=format:' + (options.format || "%h %p %D %B %an %ct %ae ").replace(/ /g, "%x00"));
                 args.push("--all");
                 args.push("HEAD");
                 args.push("-n", options.count || 1000);
@@ -195,10 +195,13 @@ define(function(require, exports, module) {
                             parents: line[1],
                             message: line[3],
                             label: line[3].substring(0, line[3].indexOf("\n") + 1 || undefined),
-                            branches: branches
+                            branches: branches,
+                            authorname: line[4],
+                            authoremail: line[5],
+                            date: line[6],
                         });
                     }
-                    console.log(err, x);
+                    // console.log(err, x);
                     console.log(t-Date.now(), stdout.length);
                     root.unshift({
                         label: "// WIP",
@@ -331,9 +334,11 @@ define(function(require, exports, module) {
             proc.spawn("git", {
                 args: ["blame", "-wp", "--", basename(path)],
                 cwd: c9.workspaceDir + "/" + dirname(path)
-            }, function(err, result) {
+            }, function(err, process) {
                 if (err) return callback(err);
-                buffer(process, callback);
+                buffer(process, function(stdout, stderr) {
+                    callback(stderr, stdout);
+                });
             });
         }
         

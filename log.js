@@ -115,8 +115,10 @@ define(function(require, exports, module) {
                 
                 if (!nodes[1] && !options.hash)
                     options.twoWay = true;
-                
-                options.label = nodes[0].label;
+                    
+                if (!nodes[1]) {
+                    options.commit = nodes[0];
+                }
                 
                 emit("select", options);
             });

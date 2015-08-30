@@ -143,16 +143,19 @@ function BlameParser(str) {
         var commitData = this.commits;
         var lineData = this.lines;
         var textHash = {}, lastHash = "";
-        for (var li in lineData) {
-            if (lineData[li].numLines != -1 && lineData[li].hash != lastHash) {
-                lastHash = lineData[li].hash;
-                var tempTime = new Date(parseInt(commitData[lineData[li].hash].authorTime, 10) * 1000);
-                textHash[li-1] = {
-                    text : commitData[lineData[li].hash].author +
-                        " \xBB " +
-                        lineData[li].hash.substr(0, 8),
-                    title : commitData[lineData[li].hash].summary/* + "\n" +
-                        tempTime.toUTCString()*/
+        for (var i in lineData) {
+            if (lineData[i].numLines != -1 && lineData[i].hash != lastHash) {
+                lastHash = lineData[i].hash;
+                var time = new Date(parseInt(commitData[lineData[i].hash].authorTime, 10) * 1000);
+                var commit = commitData[lineData[i].hash];
+                textHash[i-1] = {
+                    text : commit.author +
+                        " \xBB "/* +
+                        lineData[i].hash.substr(0, 8),*/,
+                    title : commitData[lineData[i].hash].summary,
+                    data: lineData[i],
+                    commit: commit,
+                    time: time
                 };
             }
         }

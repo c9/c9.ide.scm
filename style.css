@@ -67,7 +67,7 @@
 }
 
 .detail-label{
-    padding: 6px 40px 7px 5px;
+    padding: 6px 5px 7px 5px;
     font-size: 12px;
     background-color: @detail-label-background;
     border-bottom: @detail-label-border-bottom;
@@ -84,11 +84,9 @@
     color: @detail-label-hash-color;
     margin-right: 6px;
     font-size: 12px;
-    float: left;
 }
 
-.detail-label div{
-    margin: @detail-label-margin;
+.detail-label {
     line-height: 1.5em;
     color: @detail-label-color;
 }

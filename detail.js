@@ -75,6 +75,7 @@ define(function(require, exports, module) {
             opts.html.innerHTML = "<div class='detail-label'></div><div class='detail-tree'></div>"
             opts.html.className = "detail-root";
             label = opts.html.firstChild;
+            label.host = {textselect: true};
             
             tree = new Tree({
                 container: opts.html.lastChild,
@@ -122,7 +123,7 @@ define(function(require, exports, module) {
             tree.container.style.position = "absolute";
             tree.container.style.left = "0";
             tree.container.style.top = "0";
-            tree.container.style.right = "10px";
+            tree.container.style.right = "0";
             tree.container.style.bottom = "0";
             tree.container.style.height = "";
             
@@ -386,7 +387,15 @@ define(function(require, exports, module) {
                         }
                     }
                     
-                    label.innerHTML = "<span class='hash'>" + options.hash + "</span> <div>" + options.label + "</div>";
+                    if (options.commit) {
+                        label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span> "
+                            + "<span>" + escapeHTML(options.commit.authorname) + "</span>"
+                            + "<div>" + escapeHTML(options.commit.label) + "</div>";
+                    } else {
+                        label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span>"
+                            + " ... "
+                            + "<span class='hash'>" + escapeHTML(options.base) + "</span> ";
+                    }
                     label.style.display = "block";
                 }
                 tree.setRoot(root);
