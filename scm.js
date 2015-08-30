@@ -2,7 +2,7 @@ define(function(require, exports, module) {
     main.consumes = [
         "Panel", "Menu", "MenuItem", "Divider", "settings", "ui", "c9", 
         "watcher", "panels", "util", "save", "preferences", "commands", "Tree",
-        "tabManager", "layout"
+        "Datagrid", "tabManager", "layout"
     ];
     main.provides = ["scm"];
     return main;
@@ -89,6 +89,7 @@ define(function(require, exports, module) {
         var Panel = imports.Panel;
         var Tree = imports.Tree;
         var Menu = imports.Menu;
+        var Datagrid = imports.Datagrid;
         var MenuItem = imports.MenuItem;
         var Divider = imports.Divider;
         var settings = imports.settings;
@@ -104,6 +105,8 @@ define(function(require, exports, module) {
         var commands = imports.commands;
         
         // var Tooltip = require("ace_tree/tooltip");
+        var DataProvider = require("ace_tree/data_provider");
+        var escapeHTML = require("ace/lib/lang").escapeHTML;
         
         /***** Initialization *****/
         
@@ -489,14 +492,14 @@ define(function(require, exports, module) {
                 btnPull.setAttribute("value", e.value);
             });
             
-            mnuBranches = new ui.menu({ width: 300, height: 100, style: "padding:0" });
+            mnuBranches = new ui.menu({ width: 500, style: "padding:0" });
             mnuBranches.on("prop.visible", function(e){
                 if (e.value) {
                     if (!branchesTree) {
-                        branchesTree = new Tree({
+                        branchesTree = new Datagrid({
                             container: mnuBranches.$int,
-                            scrollMargin: [10, 0],
-                            theme: "filetree",
+                            scrollMargin: [0, 0],
+                            theme: "blackdg",
                             isLoading: function() {},
     
                             getEmptyMessage: function(){
@@ -508,40 +511,84 @@ define(function(require, exports, module) {
                                     return "No files found that match '" + this.keyword + "'";
                             }
                         }, plugin);
-                        branchesTree.on("afterRender", function(){
-                            var maxHeight = window.innerHeight / 2;
-                            mnuBranches.setHeight(Math.min(maxHeight, 
-                                branchesTree.renderer.layerConfig.maxHeight + 27));
-                            branchesTree.resize();
-                        });
-                        layout.on("eachTheme", function(e){
-                            var height = parseInt(ui.getStyleRule(".filetree .tree-row", "height"), 10) || 22;
-                            branchesTree.rowHeightInner = height;
-                            branchesTree.rowHeight = height + 1;
-                            if (e.changed)
-                                branchesTree.resize();
-                        }, plugin);
-                        branchesTree.container.style.margin = "0 10px 0 0";
-                    }
-                    scm.listAllRefs(function(err, data) {
-                        if (err) return console.error(err);
+                        // branchesTree.on("afterRender", function(){
+                        //     var maxHeight = window.innerHeight / 2;
+                        //     mnuBranches.setHeight(Math.min(maxHeight, 
+                        //         branchesTree.renderer.layerConfig.maxHeight + 27));
+                        //     branchesTree.resize();
+                        // });
+                        branchesTree.columns = [
+                            {
+                                caption: "Name",
+                                value: "name",
+                                width: "40%",
+                                type: "tree"
+                            },
+                            {
+                                caption: "Last Author",
+                                value: "authorname",
+                                width: "20%",
+                            },
+                            {
+                                caption: "Last Commit",
+                                value: "subject",
+                                width: "40%",
+                            },
+                            /* upstream, type, subject, authoremail, committerdate,*/
+                            
+                        ];
+                        var idMixin = function () {
+                            this.expandedList = Object.create(null);
+                            this.selectedList = Object.create(null);
+                            this.setOpen = function(node, val) {
+                                if (val)
+                                    this.expandedList[node.path] = val;
+                                else
+                                    delete this.expandedList[node.path];
+                            };
+                            this.isOpen = function(node) {
+                                return this.expandedList[node.path];
+                            };
+                            this.isSelected = function(node) {
+                                return this.selectedList[node.path];
+                            };
+                            this.setSelected = function(node, val) {
+                                if (val)
+                                    this.selectedList[node.path] = !!val;
+                                else
+                                    delete this.selectedList[node.path];
+                            };
+                        };
+                        idMixin.call(branchesTree.model);
+                        branchesTree.model.expandedList["refs/remotes/"] = true;
                         
-                        var root = {};
+                        branchesTree.container.style.margin = "0 0px 0 0";
+                    }
+                    branchesTree.minLines = 3;
+                    branchesTree.maxLines = Math.floor((window.innerHeight - 100) / branchesTree.rowHeight);
+                    branchesTree.emptyMessage = "loading..."
+                    scm.listAllRefs(function(err, data) {
+                        if (err) {
+                            branchesTree.emptyMessage = "Error while loading\n" + escapeHTML(err.message);
+                            return console.error(err);
+                        }
+                        
+                        var root = { path: "" };
                         data.forEach(function(x) {
-                            x.fullName = x.name;
+                            x.path = x.name;
                             var parts = x.name.split("/");
                             x.name = parts.pop();
                             var node = root;
-                            parts.forEach(function(p, i) {
+                            parts.forEach(function(p) {
                                 var map = node.map || (node.map = {});
-                                node = map[p] || (map[p] = { label: p, isOpen: false });
+                                node = map[p] || (map[p] = {
+                                    label: p,
+                                    path: node.path + p + "/"
+                                });
                             });
                             var map = node.map || (node.map = {});
                             map[x.name] = x;
                         });
-                        
-                        // branchesTree.model.rowHeightInner = tree.model.rowHeightInner;
-                        // branchesTree.model.rowHeight = tree.model.rowHeight;
                         branchesTree.setRoot(root.map.refs);
                         branchesTree.resize();
                     });
