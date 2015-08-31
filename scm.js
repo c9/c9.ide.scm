@@ -43,7 +43,6 @@ define(function(require, exports, module) {
             - add discard changes to context menu
             - resize issues
             - hotkeys should show bars in dialog
-            - buttons/forms should be mututally exclusive
             - conflicts
                 - dark theme (Ruben)
             - toolbar
@@ -133,7 +132,7 @@ define(function(require, exports, module) {
         
         var mnuCommit, btnCommit, mnuExecute, barCommit, mnuSettings;
         var btnSettings, container, btnPush, barPush, pushBtn;
-        var barPull, btnPull;
+        var barPull, btnPull, activeDialog;
         
         var workspaceDir = c9.workspaceDir; // + "/plugins/c9.ide.scm/mock/git";
         
@@ -320,22 +319,9 @@ define(function(require, exports, module) {
                 skinset: "default",
                 skin: "c9-menu-btn",
                 submenu: mnuCommit.aml,
-                onclick: function(){
-                    if (!barCommit.visible) {
-                        barCommit.show();
-                        commitBox.focus();
-                    }
-                    else {
-                        ammendCb.uncheck();
-                        ammendCb.setValue("");
-                        barCommit.hide();
-                    }
-                }
             }), 100, plugin);
             btnCommit.$button1.setAttribute("state", true);
-            barCommit.on("prop.visible", function(e){
-                btnCommit.$button1.setAttribute("value", e.value);
-            });
+            link(btnCommit.$button1, barCommit, commitBox);
             
             var forceCb, branchBox;
             barPush = vbox.appendChild(new ui.bar({
@@ -390,18 +376,8 @@ define(function(require, exports, module) {
                 skin: "c9-menu-btn",
                 class: "single-button",
                 state: true,
-                onclick: function(){
-                    if (barPush.visible) {
-                        barPush.hide();
-                    }
-                    else {
-                        barPush.show();
-                    }
-                }
             }), 100, plugin);
-            barPush.on("prop.visible", function(e){
-                btnPush.setAttribute("value", e.value);
-            });
+            link(btnPush, barPush);
             
             var pruneCb, branchBoxPull, pullBtn, fetchBtn;
             barPull = vbox.appendChild(new ui.bar({
@@ -478,19 +454,34 @@ define(function(require, exports, module) {
                 skinset: "default",
                 skin: "c9-menu-btn",
                 class: "single-button",
-                state: true,
-                onclick: function(){
-                    if (barPull.visible) {
-                        barPull.hide();
+                state: true
+            }), 100, plugin);
+            link(btnPull, barPull);
+            
+            function link(btn, bar, main) {
+                btn.bar = bar;
+                bar.button = btn;
+                btn.onclick = function(){
+                    if (bar.visible) {
+                        bar.hide();
                     }
                     else {
-                        barPull.show();
+                        bar.show();
+                        if (main) main.focus();
                     }
+                };
+                bar.on("prop.visible", updateActiveDialog);
+            }
+            function updateActiveDialog(e){
+                if (e.value) {
+                    if (activeDialog && activeDialog != this)
+                        activeDialog.hide();
+                    activeDialog = this;
+                } else if (activeDialog == this) {
+                    activeDialog = null;
                 }
-            }), 100, plugin);
-            barPull.on("prop.visible", function(e){
-                btnPull.setAttribute("value", e.value);
-            });
+                this.button.setAttribute("value", e.value);
+            }
             
             mnuBranches = new ui.menu({ width: 500, style: "padding:0" });
             mnuBranches.on("prop.visible", function(e){
@@ -511,12 +502,6 @@ define(function(require, exports, module) {
                                     return "No files found that match '" + this.keyword + "'";
                             }
                         }, plugin);
-                        // branchesTree.on("afterRender", function(){
-                        //     var maxHeight = window.innerHeight / 2;
-                        //     mnuBranches.setHeight(Math.min(maxHeight, 
-                        //         branchesTree.renderer.layerConfig.maxHeight + 27));
-                        //     branchesTree.resize();
-                        // });
                         branchesTree.columns = [
                             {
                                 caption: "Name",
