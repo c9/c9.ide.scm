@@ -81,9 +81,16 @@ define(function(require, exports, module) {
             tree.container.style.position = "absolute";
             tree.container.style.left = "0";
             tree.container.style.top = "0";
-            tree.container.style.right = "10px";
+            tree.container.style.right = "0px";
             tree.container.style.bottom = "0";
             tree.container.style.height = "";
+            
+            tree.renderer.on("scrollbarVisibilityChanged", updateScrollBarSize);
+            tree.renderer.on("resize", updateScrollBarSize);
+            function updateScrollBarSize() {
+                var w = tree.renderer.scrollBarV.getWidth();
+                tree.renderer.scroller.style.right = Math.max(w, 10) + "px";
+            }
             
             // Enable Git Graph
             new GitGraph().attachToTree(tree.acetree);
@@ -92,9 +99,9 @@ define(function(require, exports, module) {
             // logTree.tooltip = new Tooltip(logTree);
             
             layout.on("eachTheme", function(e){
-                var height = parseInt(ui.getStyleRule(".filetree .tree-row", "height"), 10) || 22;
+                var height = parseInt(ui.getStyleRule(".filetree .tree-row", "height"), 10) || 20;
                 tree.rowHeightInner = height;
-                tree.rowHeight = height + 1;
+                tree.rowHeight = height;
                 if (e.changed)
                     tree.resize();
             }, plugin);
