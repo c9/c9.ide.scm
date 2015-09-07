@@ -32,6 +32,8 @@ define(function(require, exports, module) {
         var tree;
         
         function load() {
+            if (!scm.on) return;
+            
             panels.on("afterAnimate", function(){
                 if (panels.isActive("changes"))
                     tree && tree.resize();

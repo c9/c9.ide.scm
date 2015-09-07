@@ -23,6 +23,7 @@ define(function(require, module, exports) {
             var amlFrame;
 
             plugin.on("load", function(){
+                if (!scm.on) return;
                 // Draw panel when test panel is drawn
                 scm.once("drawPanels", draw, plugin);
             });

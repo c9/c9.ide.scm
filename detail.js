@@ -43,6 +43,7 @@ define(function(require, exports, module) {
         var arrayCache = [];
         
         function load() {
+            if (!scm.on) return;
             panels.on("afterAnimate", function(){
                 if (panels.isActive("changes"))
                     tree && tree.resize();

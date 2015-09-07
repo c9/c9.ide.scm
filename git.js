@@ -345,10 +345,12 @@ define(function(require, exports, module) {
         /***** Lifecycle *****/
         
         plugin.on("load", function() {
-            scm.register("git", plugin);
+            if (scm.register)
+                scm.register("git", plugin);
         });
         plugin.on("unload", function() {
-            scm.unregister("git", plugin);
+            if (scm.register)
+                scm.unregister("git", plugin);
         });
         
         /***** Register and define API *****/
