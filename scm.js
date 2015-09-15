@@ -2,7 +2,7 @@ define(function(require, exports, module) {
     main.consumes = [
         "Panel", "Menu", "MenuItem", "Divider", "settings", "ui", "c9", 
         "watcher", "panels", "util", "save", "preferences", "commands", "Tree",
-        "Datagrid", "tabManager", "layout"
+        "Datagrid", "tabManager", "layout", "preferences.experimental"
     ];
     main.provides = ["scm"];
     return main;
@@ -102,6 +102,7 @@ define(function(require, exports, module) {
         var layout = imports.layout;
         var prefs = imports.preferences;
         var commands = imports.commands;
+        var experimental = imports["preferences.experimental"];
         
         // var Tooltip = require("ace_tree/tooltip");
         var DataProvider = require("ace_tree/data_provider");
@@ -109,7 +110,9 @@ define(function(require, exports, module) {
         
         /***** Initialization *****/
         
-        if (c9.hosted && c9.location.indexOf("git=1") == -1 || c9.location.indexOf("git=0") != -1) {
+        var ENABLED = experimental.addExperiment(c9.hosted ? "git=1" : "git=0", "Panels/Changes Panel")
+        
+        if (!ENABLED) {
             return register(null, {
                 "scm": {}
             });
