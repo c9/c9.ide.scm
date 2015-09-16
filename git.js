@@ -180,18 +180,18 @@ define(function(require, exports, module) {
                 git(args, function(err, stdout, stderr) {
                     if (err) return cb(err);
                     
-                    var x = stdout.trim().split("\x00\n");
+                    var data = stdout.trim().split("\x00\n");
                     var root = [];
                     var head;
                     // handle empty git history
-                    if (x.length == 1 && !x[0]) {
-                        x = [];
+                    if (data.length == 1 && !data[0]) {
+                        data = [];
                     }
-                    for (var i = 0; i < x.length; i++) {
-                        var line = x[i].split("\x00");
-                        var branches = undefined;
-                        if (line[2]) {
-                            branches = line[2]
+                    for (var i = 0; i < data.length; i++) {
+                        var line = data[i].split("\x00");
+                        var branches = line[2];
+                        if (branches) {
+                            branches = branches
                                 .replace(/^\s*\(\s*/g, "")
                                 .replace(/\s*\)\s*$/g, "");
                             if (/(^|, )HEAD[, ]/.test(branches))
@@ -202,7 +202,7 @@ define(function(require, exports, module) {
                             parents: line[1],
                             message: line[3],
                             label: line[3].substring(0, line[3].indexOf("\n") + 1 || undefined),
-                            branches: branches,
+                            branches: branches || undefined, // set to undefined to not keep in JSON.stringify
                             authorname: line[4],
                             authoremail: line[5],
                             date: line[6],
