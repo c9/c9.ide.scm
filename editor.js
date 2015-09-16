@@ -216,12 +216,12 @@ define(function(require, exports, module) {
                     chunks: []
                 });
                 
-                var diff = session.diff;
+                var diff = session.diff || {};
                 if (typeof diff.patch == "string") {
                     diffview.setValueFromFullPatch(diff.patch);
                 } else {
-                    diffview.orig.session.setValue(diff.orig);
-                    diffview.edit.session.setValue(diff.edit);
+                    diffview.orig.session.setValue(diff.orig || "");
+                    diffview.edit.session.setValue(diff.edit || "");
                 }
                 diffview.orig.setReadOnly(true);
                 diffview.edit.setReadOnly(true);
@@ -305,7 +305,8 @@ define(function(require, exports, module) {
                     oldPath: oldPath, 
                     newPath: newPath 
                 }, function(err, diff) {
-                    if (err) return console.log(err);
+                    if (err) 
+                        diff;
                     
                     if (session.request == diff.request) {
                         session.diff = diff;

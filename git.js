@@ -181,16 +181,17 @@ define(function(require, exports, module) {
                     if (err) return cb(err);
                     
                     var data = stdout.trim().split("\x00\n");
-                    var root = [];
-                    var head;
                     // handle empty git history
                     if (data.length == 1 && !data[0]) {
                         data = [];
                     }
+                    var root = [];
+                    var head;
                     for (var i = 0; i < data.length; i++) {
                         var line = data[i].split("\x00");
                         var branches = line[2];
                         if (branches) {
+                            // remove braces
                             branches = branches
                                 .replace(/^\s*\(\s*/g, "")
                                 .replace(/\s*\)\s*$/g, "");
@@ -223,17 +224,21 @@ define(function(require, exports, module) {
         }
         
         function getFileAtHash(hash, path, cb) {
-            if (!hash) {
-                if (path[0] != "/")
-                    path = "/" + path;
-                return proc.readfile(path, {}, cb);
+            var id = hash;
+            if (path) {
+                if (!hash) {
+                    if (path[0] != "/")
+                        path = "/" + path;
+                    return proc.readfile(path, {}, cb);
+                }
+                if (hash == "staging")
+                    hash = "";
+                if (path[0] == "/")
+                    path = path.substr(1);
+                id = hash + ":" + path;
             }
-            if (hash == "staging")
-                hash = "";
-            if (path[0] == "/")
-                path = path.substr(1);
             proc.execFile("git", {
-                args: ["show", hash + ":" + path],
+                args: ["show", id],
                 maxBuffer: 1000 * 1024,
                 cwd: workspaceDir
             }, function(err, stdout, stderr) {
@@ -248,21 +253,16 @@ define(function(require, exports, module) {
                 args: args,
                 cwd: workspaceDir
             }, function(err, stdout, stderr) {
-                if (err) return callback(err);
-                if (!stdout) {
-                    proc.execFile("git", {
-                        args: ["show", options.oldPath],
-                        maxBuffer: 1000 * 1024,
-                        cwd: workspaceDir
-                    }, function(err, stdout, stderr) {
-                        if (err) return callback(err);
-                        callback(err, {
-                            request: req,
-                            orig: stdout,
-                            edit: stdout
-                        });
+                if (err || !stdout) {
+                    return getFileAtHash(options.oldPath, "", function(err, orig) {
+                        getFileAtHash(options.newPath, "", function(err, edit) {
+                            callback(err, {
+                                request: req,
+                                orig: orig || "",
+                                edit: edit || ""
+                            });
+                        })
                     });
-                    return;
                 }
                 callback(null, {
                     request: req,
