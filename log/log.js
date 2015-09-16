@@ -14,7 +14,7 @@ function GitGraph(editor) {
 }
 
 (function() {
-    this.themes = [
+    this.themes = [ 
         [
             "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f",
             "#bcbd22", "#17becf"
@@ -125,13 +125,9 @@ function GitGraph(editor) {
         
         var container = this.container;
         
-        container.innerHTML = "";
-        var desc = document.createElement("div");
-        container.appendChild(desc);
-    
-        var svg = createSvg("svg");
-        svg.style.top = 0;
-        svg.style.position = "absolute";
+        var svg = this.svg;
+        var desc = this.desc;
+        desc.innerHTML = svg.innerHTML = "";
         
         var lineGroup = svg.appendChild(createSvg("g"));
         var circleGroup = svg.appendChild(createSvg("g"));
@@ -143,7 +139,6 @@ function GitGraph(editor) {
         lineGroup.setAttribute("stroke-width", config.strokeWidth);
         lineGroup.setAttribute("fill", "none");
         
-        container.appendChild(svg);
         svg.setAttribute("width", 1000);
         svg.setAttribute("height", 1000);
         
@@ -248,9 +243,7 @@ function GitGraph(editor) {
                 s = document.createElement("span");
                 s.textContent = d.label;
                 p.appendChild(s);
-                // p.className = "row";
-                if (d.parent2)
-                    p.className += " merge";
+                
                 p.style.paddingLeft = (Math.max(lines.length, prevLength || 0) + 0)*columnWidth+"px";
                 prevLength = lines.length;
                 desc.appendChild(p);
@@ -278,12 +271,25 @@ function GitGraph(editor) {
         this.container = tree.renderer.$cellLayer.element;
         this.container.className += " gitGraph";
         this.container.style.position = "relative";
+        
+        this.desc = document.createElement("div");
+        this.container.appendChild(this.desc);
+        this.svg = createSvg("svg");
+        this.svg.style.top = 0;
+        this.svg.style.position = "absolute";
+        this.container.appendChild(this.svg);
+        tree.renderer.$cellLayer.element = this.desc;
+        
         var that = this;
         tree.model.loadData = function(data) {
             this.visibleItems = data;
             that.setColumns(data);
             that.data = data;
             this._signal("change");
+        };
+        
+        tree.model.getClassName = function(node) {
+            return (node.className || "") + (node.parent2 ? " merge" : "");
         };
     };
     

@@ -165,7 +165,8 @@ define(function(require, exports, module) {
                 var args = ["log", "--topo-order", "--date=raw"];
                 if (options.boundary !== false) args.push("--boundary");
                 if (options.logOptions) args.push.apply(args, options.logOptions);
-                args.push('--pretty=format:' + (options.format || "%h %p %D %B %an %ct %ae ").replace(/ /g, "%x00"));
+                // not using %D since it is missing on git 1.9
+                args.push('--pretty=format:' + (options.format || "%h %p %d %B %an %ct %ae ").replace(/ /g, "%x00"));
                 args.push("--all");
                 args.push("HEAD");
                 args.push("-n", options.count || 1000);
@@ -182,11 +183,17 @@ define(function(require, exports, module) {
                     var x = stdout.trim().split("\x00\n");
                     var root = [];
                     var head;
+                    // handle empty git history
+                    if (x.length == 1 && !x[0]) {
+                        x = [];
+                    }
                     for (var i = 0; i < x.length; i++) {
                         var line = x[i].split("\x00");
                         var branches = undefined;
                         if (line[2]) {
-                            branches = line[2].trim();
+                            branches = line[2]
+                                .replace(/^\s*\(\s*/g, "")
+                                .replace(/\s*\)\s*$/g, "");
                             if (/(^|, )HEAD[, ]/.test(branches))
                                 head = line[0];
                         }
