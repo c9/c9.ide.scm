@@ -470,7 +470,7 @@ define(function(require, exports, module) {
             for (var i = 0, tab = pages[i]; tab; tab = pages[i++]) {
                 if (tab.editorType == "diffview") {
                     var session = tab.document.getSession();
-                    if (session.oldPath == options.oldPath 
+                    if (session && session.oldPath == options.oldPath 
                       && session.newPath == options.newPath)
                         return tab;
                 }
