@@ -241,8 +241,8 @@ function ConflictMarker(editor) {
         chunk.footer.el.innerHTML = chunk.branch2 + "<span class='ace_comment'> // their changes</span>"+
             "<span class='ace_button conflict-button-top' actionId='use2'>Use Me</span>";
         chunk.splitter.el.innerHTML = "<span class='conflict-button-top'>"
-            +"<span class='ace_button' actionId='prev'>Prev</span>"
-            +"<span class='ace_button' actionId='next'>Next</span>"
+            +"<span class='ace_button' actionId='prev'>&lt;</span>"
+            +"<span class='ace_button' actionId='next'>&gt;</span>"
             +"</span>";
         chunk.header.el.onclick = 
         chunk.footer.el.onclick = 

@@ -19,7 +19,6 @@
     padding: 1px 1.2em;
 }
 
-
 .conflict-marker-1 {
     position: absolute;
     background: rgb(221, 236, 217);
@@ -36,7 +35,6 @@
 .conflict-marker-1.edited, .conflict-marker-2.edited {
     background: rgb(243, 240, 199);
 }
-
 
 .ace_button {
     margin-left: 2px;
@@ -71,13 +69,24 @@
 }
 .conflict-button-top {
     position: absolute;
-    top: 0;
-    right: 1.4em;
+    top: 16px;
+    right: 0.4em;
     transform: translateY(-50%);
 }
 .conflict-button-bottom {
     position: absolute;
-    bottom: 0;
-    right: 1.4em;
+    bottom: 16px;
+    right: 0.4em;
     transform: translateY(50%);
+}
+
+.conflict-widget-split .conflict-button-top {
+    top: 0.7em;
+}
+
+.conflict-widget-split .ace_button{
+    display: block;
+    width: 1.5em;
+    margin-top: -0.1em;
+    transform: rotate(90deg);
 }

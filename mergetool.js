@@ -11,31 +11,32 @@ define(function(require, exports, module) {
         
         var addConflictMarker = require("./diff/conflictmarker");
         
-        var MERGE_REGEXP = /<<<<<<< [\s\S]*=======[\s\S]*>>>>>>>/;
-        
         /***** Initialization *****/
         
         var plugin = new Plugin("Ajax.org", main.consumes);
         // var emit = plugin.getEmitter();
         
         function load() {
-            tabManager.on("open", function(e){
-                var tab = e.tab;
-                var value = tab.document.recentValue;
-                
-                tab.document.on("mergeState", function(){
-                    if (MERGE_REGEXP.test(tab.document.recentValue))
-                        decorateTab(tab);
-                }, plugin);
-                
-                if (!value) return;
-                
-                if (MERGE_REGEXP.test(value))
-                    decorateTab(tab);
-            }, plugin);
+            tabManager.on("open", onNewValue, plugin);
+            tabManager.on("reload", onNewValue, plugin);
         }
         
         /***** Methods *****/
+        
+        function onNewValue(e){
+            var tab = e.tab;
+            var value = tab.document.recentValue;
+            if (!value) return;
+            
+            if (hasMergeState(value))
+                decorateTab(tab);
+        }
+        
+        function hasMergeState(value) {
+            return /^<{7} /gm.test(value)
+                && /^={7}/gm.test(value)
+                && /^>{7} /gm.test(value);
+        }
         
         function decorateTab(tab) {
             if (tab.editor.ace)
