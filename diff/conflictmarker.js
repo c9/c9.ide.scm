@@ -27,6 +27,7 @@ function ConflictMarker(editor) {
     this.onClick = this.onClick.bind(this);
     this.onMouseDown = this.onMouseDown.bind(this);
     this.onChangeEditor = this.onChangeEditor.bind(this);
+    this.onEndOperation = this.onEndOperation.bind(this);
     
     this.editor = editor;
     this.resolved = [];
@@ -42,7 +43,7 @@ function ConflictMarker(editor) {
             this.detachFromSession();
         this.session = session;
         
-        this.chunks = this.parse(session);
+        this.chunks = this.parse();
         session.on("changeEditor", this.onChangeEditor);
         session.on("change", this.onChange);
         this.addWidgets(session, this.editor.renderer.lineHeight);
@@ -71,75 +72,46 @@ function ConflictMarker(editor) {
         }
     };
     
+    this.refresh = function() {
+        var session = this.session;
+        this.detachFromSession(session);
+        this.attachToSession(session);
+    };
+    
+    this.onEndOperation = function() {
+        if (this.mustRefresh) {
+            this.mustRefresh = false;
+            this.refresh();
+        }
+    };
+    
     this.onChange = function(delta) { 
         var isInsert = delta.action == "insert";
         var start = delta.start;
         var end = delta.end;
         var rowShift = (end.row - start.row) * (isInsert ? 1 : -1);
-        var colShift = (end.column - start.column) * (isInsert ? 1 : -1);
         if (isInsert) end = start;
           
         var chunks = this.chunks;
-        // for (var i = 0; i < chunks.length; i++) {
-        //     var chunk = chunks[i];
-        //     if (chunk.v2Range.end.row > end.row)
-        //         break;
-        // }
         if (rowShift) {
             for (var i = 0; i < chunks.length; i++) {
                 var chunk = chunks[i];
                 if (chunk.v1Range.start.row > start.row)
                     chunk.v1Range.start.row += rowShift;
-                if (chunk.v1Range.end.row > start.row)
+                if (chunk.v1Range.end.row >= start.row)
                     chunk.v1Range.end.row += rowShift;
                 if (chunk.v2Range.start.row > start.row)
                     chunk.v2Range.start.row += rowShift;
-                if (chunk.v2Range.end.row > start.row)
+                if (chunk.v2Range.end.row >= start.row)
                     chunk.v2Range.end.row += rowShift;
             }
         }
+        if (rowShift && !this.mustRefresh)
+            this.mustRefresh = setTimeout(this.onEndOperation, 20);
     };
-    this.$updateMarkers = function(delta) {
-          var isInsert = delta.action == "insert";
-          var start = delta.start;
-          var end = delta.end;
-          var rowShift = (end.row - start.row) * (isInsert ? 1 : -1);
-          var colShift = (end.column - start.column) * (isInsert ? 1 : -1);
-          if (isInsert) end = start;
-
-          for (var i in this.marks) {
-              var point = this.marks[i];
-              var cmp = Range.comparePoints(point, start);
-              if (cmp < 0) {
-                  continue; // delta starts after the range
-              }
-              if (cmp === 0) {
-                  if (isInsert) {
-                      if (point.bias == 1) {
-                          cmp = 1;
-                      }
-                      else {
-                          point.bias == -1;
-                          continue;
-                      }
-                  }
-              }
-              var cmp2 = isInsert ? cmp : Range.comparePoints(point, end);
-              if (cmp2 > 0) {
-                  point.row += rowShift;
-                  point.column += point.row == end.row ? colShift : 0;
-                  continue;
-              }
-              if (!isInsert && cmp2 <= 0) {
-                  point.row = start.row;
-                  point.column = start.column;
-                  if (cmp2 === 0)
-                      point.bias = 1;
-              }
-          }
-      };
     
-    this.parse = function(session) {
+    this.parse = function() {
+        var session = this.session;
         var chunks = [];
         var lines = session.doc.getAllLines();
         var last;
@@ -206,7 +178,7 @@ function ConflictMarker(editor) {
             this.chunks.splice(i, 1);
         }
     };
-    this.createWidget = function(chunk) {
+    this.createWidget = function(chunk, pos, count) {
         chunk.header = {
             row: chunk.v1Range.start.row - 1,
             el: document.createElement("div"),
@@ -236,13 +208,19 @@ function ConflictMarker(editor) {
         chunk.footer.el.className = "conflict-widget-2";
         chunk.splitter.el.className = "conflict-widget-split";
         
-        chunk.header.el.innerHTML = chunk.branch1 + "<span class='ace_comment'> // our changes</span>"+
-            "<span class='ace_button conflict-button-bottom' actionId='use1'>Use Me</span>";
-        chunk.footer.el.innerHTML = chunk.branch2 + "<span class='ace_comment'> // their changes</span>"+
-            "<span class='ace_button conflict-button-top' actionId='use2'>Use Me</span>";
+        chunk.header.el.innerHTML = chunk.branch1 + "<span class='ace_comment'> // our changes</span>"
+            +"<span class='conflict-button-bottom'>"
+            +"<span class='ace_button' actionId='use-1'>Use Me</span>"
+            +"<span class='ace_button' actionId='use-1-2'>Use Both</span>"
+            +"</span>";
+        chunk.footer.el.innerHTML = chunk.branch2 + "<span class='ace_comment'> // their changes</span>"
+            +"<span class='conflict-button-top'>"
+            +"<span class='ace_button' actionId='use-2'>Use Me</span>"
+            +"<span class='ace_button' actionId='use-2-1'>Use Both</span>"
+            +"</span>";
         chunk.splitter.el.innerHTML = "<span class='conflict-button-top'>"
-            +"<span class='ace_button' actionId='prev'>&lt;</span>"
-            +"<span class='ace_button' actionId='next'>&gt;</span>"
+            +(pos ? "<span class='ace_button' actionId='prev'>&lt;</span>" : "")
+            +(pos < count-1 ? "<span class='ace_button' actionId='next'>&gt;</span>" : "")
             +"</span>";
         chunk.header.el.onclick = 
         chunk.footer.el.onclick = 
@@ -259,7 +237,7 @@ function ConflictMarker(editor) {
         var chunks = this.chunks;
         for (var i = 0; i < chunks.length; i++) {
             var chunk = chunks[i];
-            this.createWidget(chunk);
+            this.createWidget(chunk, i, chunks.length);
     
             chunk.header.el.style.height =
             chunk.footer.el.style.height =
@@ -271,13 +249,15 @@ function ConflictMarker(editor) {
         }
     };
     this.onClick = function(e) {
-        var el = e.target;        
+        var el = e.target;
         var chunk = e.currentTarget.chunk;
         var session = this.session;
         var chunks = this.chunks;
         var actionId = el.getAttribute('actionId');
-        if (actionId == "use1" || actionId == "use2") {
-            var text = session.getTextRange(actionId == "use1" ? chunk.v1Range : chunk.v2Range);
+        if (actionId && /^use/.test(actionId)) {
+            var text = actionId.split("-").slice(1).map(function(part) {
+                return session.getTextRange(part == "1" ? chunk.v1Range : chunk.v2Range);
+            }).join("\n");
             session.replace(new Range(chunk.v1Range.start.row - 1, 0, chunk.v2Range.end.row + 1, Number.MAX_VALUE), text);
             this.removeChunk(chunk);
         } else if (actionId == "next" || actionId == "prev") {
@@ -293,6 +273,18 @@ function ConflictMarker(editor) {
     
     this.onMouseDown = function(e) {
         e.preventDefault();
+        var el = e.target;
+        var chunk = e.currentTarget.chunk;
+        var session = this.session;
+        var actionId = el.getAttribute('actionId');
+        if (!actionId && chunk) {
+            var pos = chunk.v2Range.start;
+            if (e.currentTarget.classList.contains("conflict-widget-2"))
+                pos = chunk.v2Range.end;
+            else if (e.currentTarget.classList.contains("conflict-widget-1"))
+                pos = chunk.v1Range.start;
+            session.selection.moveToPosition(pos);
+        }
     };
     
     // ace dynamic marker
