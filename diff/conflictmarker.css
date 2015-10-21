@@ -2,7 +2,7 @@
     background: rgb(178, 228, 145);
     box-sizing: border-box;
     border-radius: 4px 4px 0 0;
-    padding: 1px 1.2em;
+    padding: 0px 1.2em;
 }
 .ace_dark .conflict-widget-1 {
     background: #3A6120;
@@ -12,7 +12,7 @@
     background: rgb(130, 188, 239);
     box-sizing: border-box;      
     border-radius: 0 0 4px 4px;
-    padding: 1px 1.2em;
+    padding: 0px 1.2em;
 }
 .ace_dark .conflict-widget-2 {
     background: #124775;
@@ -21,7 +21,7 @@
 .conflict-widget-split {
     background: inherit;
     box-sizing: border-box;
-    padding: 1px 1.2em;
+    padding: 0px 1.2em;
 }
 
 .conflict-marker-1 {

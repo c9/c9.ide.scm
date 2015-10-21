@@ -239,10 +239,6 @@ function ConflictMarker(editor) {
             var chunk = chunks[i];
             this.createWidget(chunk, i, chunks.length);
     
-            chunk.header.el.style.height =
-            chunk.footer.el.style.height =
-            chunk.splitter.el.style.height = (1 * lineHeight) + "px";
-            
             wm.addLineWidget(chunk.header);
             wm.addLineWidget(chunk.footer);
             wm.addLineWidget(chunk.splitter); 
