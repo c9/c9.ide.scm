@@ -19,6 +19,7 @@ define(function(require, exports, module) {
         function load() {
             tabManager.on("open", onNewValue, plugin);
             tabManager.on("reload", onNewValue, plugin);
+            tabManager.on("switchEditor", onNewValue, plugin);
         }
         
         /***** Methods *****/
@@ -26,7 +27,7 @@ define(function(require, exports, module) {
         function onNewValue(e){
             var tab = e.tab;
             var value = tab.document.recentValue;
-            if (!value) return;
+            if (!value || typeof value != "string") return;
             
             if (hasMergeState(value))
                 decorateTab(tab);
