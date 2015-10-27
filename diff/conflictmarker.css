@@ -3,7 +3,6 @@
     box-sizing: border-box;
     border-radius: 4px 4px 0 0;
     padding: 0px 1.2em;
-    cursor: default;
 }
 .ace_dark .conflict-widget-1 {
     background: #3A6120;
@@ -14,7 +13,6 @@
     box-sizing: border-box;      
     border-radius: 0 0 4px 4px;
     padding: 0px 1.2em;
-    cursor: default;
 }
 .ace_dark .conflict-widget-2 {
     background: #124775;
@@ -24,7 +22,6 @@
     background: inherit;
     box-sizing: border-box;
     padding: 0px 1.2em;
-    cursor: default;
 }
 
 .conflict-marker-1 {
@@ -63,6 +60,7 @@
     -ms-user-select: none;
     user-select: none;
     overflow: hidden;
+    /*opacity: 0.7;*/
     border: 1px solid rgba(100,100,100,0.23);
     padding: 2px 4px;
     box-sizing: border-box;
@@ -76,6 +74,7 @@
     color: #333;
     background: #B1B1B1;
 }
+
 .ace_button:hover {
     background-color: #eee;
     opacity:1;
@@ -90,10 +89,6 @@
 .ace_dark .ace_button:active {
     background-color: #B1B1B1;
 }
-.ace_button.disabled {
-    color: transparent;
-    pointer-events: none;
-}
 
 .ace_button.checked {
     border-color: #3399ff;
@@ -101,22 +96,24 @@
 }
 .conflict-button-top {
     position: absolute;
+    top: 16px;
     right: 1.4em;
     transform: translateY(-50%);
 }
 .conflict-button-bottom {
     position: absolute;
+    bottom: 16px;
     right: 1.4em;
     transform: translateY(50%);
 }
 
 .conflict-widget-split .conflict-button-top {
-    transform: none;
+    top: 0.7em;
 }
 
 .conflict-widget-split .ace_button{
-    display: inline-block;
+    display: block;
     width: 1.5em;
-    margin-top: -3px;
+    margin-top: -0.1em;
     transform: rotate(90deg);
 }

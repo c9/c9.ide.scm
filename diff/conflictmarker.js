@@ -218,9 +218,9 @@ function ConflictMarker(editor) {
             +"<span class='ace_button' actionId='use-2'>Use Me</span>"
             +"<span class='ace_button' actionId='use-2-1'>Use Both</span>"
             +"</span>";
-        chunk.splitter.el.innerHTML = "&nbsp;<span class='conflict-button-top'>"
-            +"<span class='ace_button" + (pos ? "" : " disabled") + "' actionId='prev'>&lt;</span>"
-            +"<span class='ace_button" + (pos < count-1 ? "" : " disabled") + "' actionId='next'>&gt;</span>"
+        chunk.splitter.el.innerHTML = "<span class='conflict-button-top'>"
+            +(pos ? "<span class='ace_button' actionId='prev'>&lt;</span>" : "")
+            +(pos < count-1 ? "<span class='ace_button' actionId='next'>&gt;</span>" : "")
             +"</span>";
         chunk.header.el.onclick = 
         chunk.footer.el.onclick = 
