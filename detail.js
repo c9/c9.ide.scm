@@ -294,7 +294,7 @@ define(function(require, exports, module) {
                 var i, name, x;
                 var twoWay = options.twoWay;
                 
-                status = status.split("\x00");
+                status = (status || "").split("\x00");
                 console.log(status);
                 if (twoWay) {
                     status.shift();
