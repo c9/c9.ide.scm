@@ -127,6 +127,7 @@ define(function(require, exports, module) {
             tree.container.style.right = "0";
             tree.container.style.bottom = "0";
             tree.container.style.height = "";
+            tree.renderer.scrollBarV.$minWidth = 10;
             
             tree.commands.bindKey("Space", function(e) {
                 if (tabManager.previewTab)
@@ -293,7 +294,7 @@ define(function(require, exports, module) {
                 var i, name, x;
                 var twoWay = options.twoWay;
                 
-                status = status.split("\x00");
+                status = (status || "").split("\x00");
                 console.log(status);
                 if (twoWay) {
                     status.shift();

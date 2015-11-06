@@ -87,12 +87,7 @@ define(function(require, exports, module) {
             tree.container.style.bottom = "0";
             tree.container.style.height = "";
             
-            tree.renderer.on("scrollbarVisibilityChanged", updateScrollBarSize);
-            tree.renderer.on("resize", updateScrollBarSize);
-            function updateScrollBarSize() {
-                var w = tree.renderer.scrollBarV.getWidth();
-                tree.renderer.scroller.style.right = Math.max(w, 10) + "px";
-            }
+            tree.renderer.scrollBarV.$minWidth = 10;
             
             // Enable Git Graph
             new GitGraph().attachToTree(tree.acetree);
