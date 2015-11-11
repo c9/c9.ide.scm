@@ -91,7 +91,7 @@
     background-color: #B1B1B1;
 }
 .ace_button.disabled {
-    visibility: hidden;
+    display: none !important;
     pointer-events: none;
 }
 
