@@ -138,3 +138,84 @@
 .panel-settings.changes{
     top: @panel-settings-changes-top;
 }
+
+
+/******** NEW ***********/
+
+.btn-scm {
+    height: 100%;
+}
+.btn-scm.dark {
+    margin-top: -1px;
+}
+/*.btn-scm div:first-child {*/
+/*    min-width: 26px;*/
+/*    padding-left: 3px !important;*/
+/*}*/
+/*.btn-scm div:first-child .icon{*/
+/*    .image-2x("@{icon-path}/sync-button.png", 19px, 19px, no-repeat, true);*/
+/*    background-position: 8px 8px;*/
+/*    left: 3px;*/
+/*    top: 2px;*/
+/*    width: 36px;*/
+/*    height: 36px;*/
+/*}*/
+/*.btn-scm.dark div:first-child .icon{*/
+/*    height: 23px;*/
+/*    background-position: 8px 1px;*/
+/*}*/
+.btn-scm div:last-child {
+    vertical-align: top;
+}
+/*.btn-scm.error div:first-child .icon{*/
+/*    .image-2x("@{icon-path}/error-button.png", 19px, 19px, no-repeat, true);*/
+/*}*/
+/*.btn-scm.conflict div:first-child .icon{*/
+/*    .image-2x("@{icon-path}/conflict-button.png", 19px, 19px, no-repeat, true);*/
+/*}*/
+/*// Syncing States - Light*/
+/*.btn-scm.syncing div:first-child .icon{*/
+/*    .image-2x("@{icon-path}/syncing.gif", 19px, 19px, no-repeat, true);*/
+/*}*/
+/*.btn-scm.syncing.error div:first-child .icon{*/
+/*    .image-2x("@{icon-path}/syncing-error.gif", 19px, 19px, no-repeat, true);*/
+/*}*/
+/*.btn-scm.syncing.conflict div:first-child .icon{*/
+/*    .image-2x("@{icon-path}/syncing-conflict.gif", 19px, 19px, no-repeat, true);*/
+/*}*/
+/*// Syncing States - Dark*/
+/*.btn-scm.syncing.dark div:first-child .icon{*/
+/*    .image-2x("@{icon-path}/syncing-dark.gif", 19px, 19px, no-repeat, true);*/
+/*}*/
+/*.btn-scm.syncing.error.dark div:first-child .icon{*/
+/*    .image-2x("@{icon-path}/syncing-error-dark.gif", 19px, 19px, no-repeat, true);*/
+/*}*/
+/*.btn-scm.syncing.conflict.dark div:first-child .icon{*/
+/*    .image-2x("@{icon-path}/syncing-conflict-dark.gif", 19px, 19px, no-repeat, true);*/
+/*}*/
+
+.scm-title > div:last-child {
+    text-transform: uppercase;
+    font-size: 9px;
+    color: #949494;
+    text-align: center;
+    padding: 0 10px;
+}
+
+.scmtree .toggler{
+    width: 2px;
+}
+
+/*.sync-icon {*/
+/*    width: 16px;*/
+/*    height: 16px;*/
+/*    padding: 0px;*/
+/*    margin: 0px 1px;*/
+/*    background-repeat: no-repeat;*/
+/*}*/
+/*.sync-icon.conflict {*/
+/*    .image-2x("@{icon-path}/failed.png", 16px, 16px, no-repeat);*/
+/*}*/
+/*.sync-icon.error {*/
+/*    .image-2x("@{icon-path}/error.png", 16px, 16px, no-repeat);*/
+/*}*/
