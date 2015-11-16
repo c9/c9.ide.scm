@@ -31,6 +31,20 @@ define(function(require, exports, module) {
         var timeago = require("timeago");
         var escapeHTML = require("ace/lib/lang").escapeHTML;
         
+        /*
+            TODO:
+            - Add support for remotes:
+                - Auto open remotes section
+                - Show url in remotes section
+                    git remote -v
+                    origin  git@github.com:c9/newclient.git (fetch)
+                    origin  git@github.com:c9/newclient.git (push)
+                - Add button to add remote next to 'remotes'
+                - Remove a remote using context menu
+            - Variable rows:
+                https://github.com/c9/newclient/blob/master/node_modules/ace_tree/lib/ace_tree/data_provider.js#L393
+        */
+        
         /***** Initialization *****/
         
         var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Source Control Management")
@@ -54,8 +68,9 @@ define(function(require, exports, module) {
         var ICON_PULLREQUEST = require("text!./icons/git-pull-request.svg");
         var ICON_TAG = require("text!./icons/git-tag.svg");
         
-        var branchesTree;
-        var mnuSettings, btnSettings
+        var branchesTree, lastData;
+        var displayMode = "branches";
+        var mnuSettings, btnSettings;
         var workspaceDir = c9.workspaceDir; // + "/plugins/c9.ide.scm/mock/git";
         
         var loaded = false;
@@ -95,6 +110,20 @@ define(function(require, exports, module) {
             if (drawn) return;
             drawn = true;
             
+            var mnuFilter = Menu({ items: [
+                new MenuItem({ type: "radio", caption: "Branches", value: "branches" }),
+                new MenuItem({ type: "radio", caption: "Committer", value: "committer" })
+            ]}, plugin);
+            mnuFilter.on("itemclick", function(e){
+                button.setCaption(e.item.caption);
+                displayMode = e.item.value;
+                
+                if (displayMode == "branches")
+                    showBranches();
+                else
+                    showCommitters();
+            });
+            
             var codebox = new ui.codebox({
                 realtime: "true",
                 skin: "codebox",
@@ -108,8 +137,15 @@ define(function(require, exports, module) {
                 // class: "navigate-search"
             });
             var container = new ui.bar({ anchors: "47 0 0 0" });
+            var button = new ui.button({
+                caption: "Branches",
+                right: 10,
+                top: 10,
+                submenu: mnuFilter.aml
+            });
             
             opts.aml.appendChild(codebox);
+            opts.aml.appendChild(button);
             opts.aml.appendChild(container);
             
             var mnuContext = new Menu({ items: [
@@ -127,8 +163,6 @@ define(function(require, exports, module) {
             branchesTree = new Tree({
                 container: container.$int,
                 scrollMargin: [0, 10],
-                filterProperty: "path",
-                filterRoot: all,
                 theme: "filetree branches"
                     + (settings.getBool("user/scm/@showauthor") ? " showAuthorName" : ""),
                     
@@ -150,17 +184,25 @@ define(function(require, exports, module) {
                 
                 getCaptionHTML: function(node) {
                     var name;
-                    if (branchesTree.filterKeyword && node.path && !node.parent.parent)
+                    if (branchesTree.filterKeyword && node.path && !node.parent.parent 
+                      || node.path && displayMode == "committer")
                         name = node.path.replace(/^refs\//, "");
                     else
                         name = node.label || node.name;
+                    
+                    if (node.type == "user")
+                        return "<img src='" 
+                            + util.getGravatarUrl(node.email.replace(/[<>]/g, ""), 32, "") 
+                            + "' width='16' height='16' />" 
+                            + escapeHTML(node.label) 
+                            + " (" + node.items.length + ")";
                     
                     if (node.authorname) {
                         return escapeHTML(name)
                             + "<span class='author'><img src='" 
                             + util.getGravatarUrl(node.authoremail.replace(/[<>]/g, ""), 32, "") 
                             + "' width='16' height='16' />" 
-                            + node.authorname + "</span>"
+                            + escapeHTML(node.authorname) + "</span>"
                             + "<span class='extrainfo'> - " 
                             + (node.date ? timeago(node.date) : "") + "</span>";
                     }
@@ -174,11 +216,11 @@ define(function(require, exports, module) {
                 },
                 
                 getRowIndent: function(node) {
-                    return branchesTree.filterKeyword 
+                    return branchesTree.filterKeyword || displayMode == "committer"
                         ? node.$depth
                         : node.$depth ? node.$depth - 1 : 0;
                 },
-
+                
                 getEmptyMessage: function(){
                     return branchesTree.filterKeyword
                         ? "No branches found for '" + branchesTree.filterKeyword + "'"
@@ -190,49 +232,29 @@ define(function(require, exports, module) {
                         return;
                     
                     var compare = branchesTree.model.alphanumCompare;
+                    
+                    if (children[0].type == "user")
+                        return children.sort(function(a, b){
+                            if (a.label == "[None]") return 1;
+                            if (b.label == "[None]") return -1;
+                            return compare(a.label + "", b.label + "");
+                        });
+                    
                     return children.sort(function(a, b) {
                         if (a.isFolder) return 0;
                         
                         if (a.authorname && !b.authorname)
-                            return 1;
-                        if (b.authorname && !a.authorname)
                             return -1;
+                        if (b.authorname && !a.authorname)
+                            return 1;
                 
                         return compare(b.date + "", a.date + "");
                     });
                 }
             }, plugin);
             
-            // var idMixin = function () {
-            //     this.expandedList = Object.create(null);
-            //     this.selectedList = Object.create(null);
-            //     this.setOpen = function(node, val) {
-            //         if (val)
-            //             this.expandedList[node.path] = val;
-            //         else
-            //             delete this.expandedList[node.path];
-            //     };
-            //     this.isOpen = function(node) {
-            //         return this.expandedList[node.path];
-            //     };
-            //     this.isSelected = function(node) {
-            //         return this.selectedList[node.path];
-            //     };
-            //     this.setSelected = function(node, val) {
-            //         if (val)
-            //             this.selectedList[node.path] = !!val;
-            //         else
-            //             delete this.selectedList[node.path];
-            //     };
-            // };
-            // idMixin.call(branchesTree.model);
-            // branchesTree.model.expandedList["refs/remotes/"] = true;
-            
             branchesTree.renderer.scrollBarV.$minWidth = 10;
-            // branchesTree.container.style.margin = "0 0px 0 0";
             
-            // branchesTree.minLines = 3;
-            // branchesTree.maxLines = Math.floor((window.innerHeight - 100) / branchesTree.rowHeight);
             branchesTree.emptyMessage = "loading..."
             
             branchesTree.on("afterChoose", function(e){
@@ -287,14 +309,7 @@ define(function(require, exports, module) {
                 };
             }));
             
-            scm.listAllRefs(function(err, data) {
-                if (err) {
-                    branchesTree.emptyMessage = "Error while loading\n" + escapeHTML(err.message);
-                    return console.error(err);
-                }
-                
-                loadBranches(data);
-            });
+            refresh();
             
             mnuSettings = new Menu({ items: [
                 new MenuItem({ caption: "Refresh", onclick: refresh }, plugin),
@@ -399,12 +414,17 @@ define(function(require, exports, module) {
             noSelect: true,
             $sorted: true
         };
+        var branchesRoot = { 
+            path: "",
+            items: [recentLocal, primaryRemote, pullRequests, recentActive, all]
+        };
+        var committersRoot = { 
+            path: "",
+            items: []
+        }
         
         function loadBranches(data){
-            var root = { 
-                path: "",
-                items: [recentLocal, primaryRemote, pullRequests, recentActive, all]
-            };
+            var root = branchesRoot;
             root.items.forEach(function(n){
                 if (n.isPR) {
                     n.items[0].items.length = 0;
@@ -500,12 +520,68 @@ define(function(require, exports, module) {
                 return n.items.length;
             });
             
-            branchesTree.setRoot(root.items);
-            branchesTree.resize();
+            // Reset committers root
+            committersRoot.items.length = 0;
+            
+            // branchesTree.filterRoot = data;
+            // branchesTree.setRoot(root.items);
+            // branchesTree.resize();
+        }
+        
+        function showBranches(){
+            branchesTree.filterProperty = "path";
+            branchesTree.filterRoot = lastData;
+            branchesTree.setRoot(branchesRoot.items);
+        }
+        function showCommitters(){
+            if (!committersRoot.items.length) {
+                var data = lastData;
+                var users = {}, emails = {};
+                data.forEach(function(x) {
+                    var user = x.authorname || "[None]";
+                    if (!emails[user]) emails[user] = x.authoremail;
+                    (users[user] || (users[user] = [])).push(x);
+                });
+                for (var user in users) {
+                    committersRoot.items.push({
+                        label: user,
+                        authorname: user,
+                        email: emails[user],
+                        type: "user",
+                        items: users[user],
+                        clone: function(){ 
+                            var x = function(){};
+                            x.prototype = this;
+                            var y = new x();
+                            y.keepChildren = true;
+                            y.isOpen = true;
+                            return y;
+                        }
+                    });
+                }
+            }
+            
+            branchesTree.filterProperty = "authorname";
+            branchesTree.filterRoot = committersRoot;
+            branchesTree.setRoot(committersRoot.items);
         }
         
         function refresh(){
-            
+            scm.listAllRefs(function(err, data) {
+                if (err) {
+                    branchesTree.emptyMessage = "Error while loading\n" + escapeHTML(err.message);
+                    branchesTree.setRoot(null);
+                    return console.error(err);
+                }
+                
+                lastData = data;
+                loadBranches(data);
+                
+                if (displayMode == "branches")
+                    showBranches();
+                else
+                    showCommitters();
+            });
         }
 
         /***** Lifecycle *****/
