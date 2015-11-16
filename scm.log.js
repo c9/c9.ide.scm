@@ -2,13 +2,14 @@ define(function(require, exports, module) {
     main.consumes = [
         "Editor", "editors", "ui", "save", "scm", "Datagrid", "Tree",
         "layout", "settings", "tabManager", "commands", "Divider", "MenuItem",
-        "console", "Menu"
+        "console", "Menu", "preferences.experimental", "c9"
     ];
     main.provides = ["scm.log"];
     return main;
 
     function main(options, imports, register) {
         var ui = imports.ui;
+        var c9 = imports.c9;
         var save = imports.save;
         var Editor = imports.Editor;
         var Tree = imports.Tree;
@@ -22,6 +23,7 @@ define(function(require, exports, module) {
         var settings = imports.settings;
         var cnsl = imports.console;
         var commands = imports.commands;
+        var experimental = imports["preferences.experimental"];
         var scm = imports.scm;
         
         var GitGraph = require("./log/log");
@@ -31,6 +33,10 @@ define(function(require, exports, module) {
         var escapeHTML = require("ace/lib/lang").escapeHTML;
         
         /***** Initialization *****/
+        
+        var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Source Control Management")
+        if (!ENABLED)
+            return register(null, { "scm.log": {} });
         
         var extensions = [];
         
@@ -269,7 +275,7 @@ define(function(require, exports, module) {
                 datagrid = new Datagrid({
                     container: parentHtml,
                     scrollMargin: [10, 0],
-                    // theme: "filetree",
+                    theme: "blackdg",
                     
                     columns : [
                         {

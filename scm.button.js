@@ -4,7 +4,7 @@ define(function(require, exports, module) {
         "dialog.info", "dialog.confirm", "dialog.error", "fs", "dialog.alert", 
         "Menu", "MenuItem", "Divider", "layout", "Tree", "tabManager", 
         "dialog.question", "dialog.filechange", "tree", "save",
-        "commands", "c9", "scm", "console"
+        "commands", "c9", "scm", "console", "preferences.experimental"
     ];
     main.provides = ["scm.button"];
     return main;
@@ -31,6 +31,7 @@ define(function(require, exports, module) {
         var Tree = imports.Tree;
         var scm = imports.scm;
         var save = imports.save;
+        var experimental = imports["preferences.experimental"];
         var cnsl = imports.console;
         var tabManager = imports.tabManager;
         
@@ -40,6 +41,10 @@ define(function(require, exports, module) {
         var escapeHTML = require("ace/lib/lang").escapeHTML;
         
         /***** Initialization *****/
+        
+        var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Source Control Management")
+        if (!ENABLED)
+            return register(null, { "scm.button": {} });
         
         var plugin = new Plugin("Ajax.org", main.consumes);
         var emit = plugin.getEmitter();

@@ -110,13 +110,9 @@ define(function(require, exports, module) {
         
         /***** Initialization *****/
         
-        var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Changes Panel")
-        
-        if (!ENABLED) {
-            return register(null, {
-                "scm": {}
-            });
-        }
+        var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Source Control Management")
+        if (!ENABLED)
+            return register(null, { "scm": {} });
         
         var plugin = new Panel("Ajax.org", main.consumes, {
             index: options.index || 350,
@@ -762,6 +758,9 @@ define(function(require, exports, module) {
         function getStatus(options, callback){
             scm.getStatus(options, callback);
         }
+        function listAllRefs(options, callback){
+            scm.listAllRefs(options, callback);
+        }
         
         /***** Lifecycle *****/
         
@@ -823,6 +822,11 @@ define(function(require, exports, module) {
              * 
              */
             getStatus: getStatus,
+            
+            /**
+             * 
+             */
+            listAllRefs: listAllRefs,
             
             /**
              * 
