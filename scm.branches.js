@@ -2,7 +2,8 @@ define(function(require, exports, module) {
     main.consumes = [
         "Panel", "Menu", "MenuItem", "Divider", "settings", "ui", "c9", 
         "watcher", "panels", "util", "save", "preferences", "commands", "Tree",
-        "tabManager", "layout", "preferences.experimental", "scm", "util"
+        "tabManager", "layout", "preferences.experimental", "scm", "util",
+        "dialog.alert"
     ];
     main.provides = ["scm.branches"];
     return main;
@@ -27,22 +28,26 @@ define(function(require, exports, module) {
         var prefs = imports.preferences;
         var commands = imports.commands;
         var experimental = imports["preferences.experimental"];
+        var alert = imports["dialog.alert"].show;
         
+        var async = require("async");
         var timeago = require("timeago");
         var escapeHTML = require("ace/lib/lang").escapeHTML;
         
         /*
             TODO:
             - Add support for remotes:
-                - Auto open remotes section
-                - Show url in remotes section
+                * Auto open remotes section
+                * Show url in remotes section
                     git remote -v
                     origin  git@github.com:c9/newclient.git (fetch)
                     origin  git@github.com:c9/newclient.git (push)
                 - Add button to add remote next to 'remotes'
                 - Remove a remote using context menu
             - Variable rows:
-                https://github.com/c9/newclient/blob/master/node_modules/ace_tree/lib/ace_tree/data_provider.js#L393
+                - https://github.com/c9/newclient/blob/master/node_modules/ace_tree/lib/ace_tree/data_provider.js#L393
+                - getHeight();
+                - node.height
         */
         
         /***** Initialization *****/
@@ -67,6 +72,7 @@ define(function(require, exports, module) {
         var ICON_BRANCH = require("text!./icons/git-branch.svg");
         var ICON_PULLREQUEST = require("text!./icons/git-pull-request.svg");
         var ICON_TAG = require("text!./icons/git-tag.svg");
+        var REMOTES = {};
         
         var branchesTree, lastData;
         var displayMode = "branches";
@@ -155,6 +161,29 @@ define(function(require, exports, module) {
                 new MenuItem({ caption: "Show In Version Log" }),
                 new MenuItem({ caption: "Compare With Master" }),
                 new Divider(),
+                new MenuItem({ caption: "Remove Remote", onclick: function(){
+                    var node = branchesTree.selectedNode;
+                    
+                    scm.removeRemote(node.label, function(err){
+                        if (err) {
+                            return alert("Could Not Remove Remote",
+                                "Received Error While Removing Remote",
+                                err.message);
+                        }
+                        
+                        delete REMOTES[name];
+                        
+                        delete node.parent.map[node.label];
+                        node.parent.children.remove(node);
+                        branchesTree.refresh();
+                        
+                        refresh();
+                    });
+                }, isAvailable: function(){
+                    var node = branchesTree.selectedNode;
+                    return node && node.parent.isRemote ? true : false;
+                }}),
+                new Divider(),
                 new MenuItem({ caption: "Delete Branch" }),
                 new MenuItem({ caption: "Merge Into Current Branch" })
             ]}, plugin);
@@ -195,7 +224,16 @@ define(function(require, exports, module) {
                             + util.getGravatarUrl(node.email.replace(/[<>]/g, ""), 32, "") 
                             + "' width='16' height='16' />" 
                             + escapeHTML(node.label) 
-                            + " (" + node.items.length + ")";
+                            + " (" + node.children.length + ")";
+                    
+                    if (node.isRemote) {
+                        return "remotes <span class='remote-button'>Add Remote</span>";
+                    }
+                    
+                    if (node.parent.isRemote) {
+                        return escapeHTML(name) + " [" 
+                            + (REMOTES[name] || "") + "]";
+                    }
                     
                     if (node.authorname) {
                         return escapeHTML(name)
@@ -206,6 +244,7 @@ define(function(require, exports, module) {
                             + "<span class='extrainfo'> - " 
                             + (node.date ? timeago(node.date) : "") + "</span>";
                     }
+                    
                     return escapeHTML(name);
                 },
                 
@@ -263,18 +302,84 @@ define(function(require, exports, module) {
                 
                 if (node.showall) {
                     var p = node.parent;
-                    p.items = p.children = p.cache;
+                    p.children = p.children = p.cache;
                     node.showall = false;
                     node.label = "Show Less..."
                     branchesTree.refresh();
                 }
                 else if (node.showall === false) {
                     var p = node.parent;
-                    p.items = p.children = p.cache.slice(0, p.limit);
-                    p.items.push(node);
+                    p.children = p.children = p.cache.slice(0, p.limit);
+                    p.children.push(node);
                     node.showall = true;
                     node.label = "Show All (" + p.cache.length + ")...";
                     branchesTree.refresh();
+                }
+            });
+            
+            var remoteName, remoteURI;
+            var remoteMenu = new ui.menu({
+                width: 400,
+                height: 86,
+                style: "padding:0",
+                childNodes: [
+                    new ui.hsplitbox({
+                        height: 20,
+                        edge: 10,
+                        padding: 10,
+                        childNodes: [
+                            remoteName = new ui.textbox({ width: "100", "initial-message": "Name" }),
+                            remoteURI = new ui.textbox({ "initial-message": "URL"})
+                        ]
+                    }),
+                    new ui.button({
+                        caption: "Add Remote",
+                        skin: "btn-default-css3",
+                        class: "btn-green",
+                        right: 10,
+                        bottom: 10,
+                        onclick: function(){
+                            if (!remoteName.getValue() || !remoteURI.getValue() || REMOTES[name])
+                                return;
+                            
+                            remoteMenu.disable();
+                            
+                            var name = remoteName.getValue();
+                            var url = remoteURI.getValue();
+                            
+                            scm.addRemote(name, url, function(err){
+                                remoteMenu.enable();
+                                
+                                if (err) {
+                                    return alert("Could Not Add Remote",
+                                        "Received Error While Adding Remote",
+                                        err.message);
+                                }
+                                
+                                REMOTES[name] = url;
+                                
+                                remoteName.clear();
+                                remoteURI.clear();
+                                remoteMenu.hide();
+                                
+                                var node = nodeRemote.map[name] = {
+                                    label: name,
+                                    path: "remotes/" + name
+                                };
+                                nodeRemote.children.push(node);
+                                branchesTree.refresh();
+                                
+                                refresh();
+                            });
+                        }
+                    })
+                ]
+            });
+            
+            container.$int.addEventListener("click", function(e){
+                if (e.target.className == "remote-button") {
+                    var b = e.target.getBoundingClientRect();
+                    remoteMenu.display(b.left, b.top + b.height);
                 }
             });
             
@@ -356,7 +461,7 @@ define(function(require, exports, module) {
         var recentLocal = {
             label: "recent local branches",
             className: "heading",
-            items: [],
+            children: [],
             isOpen: true,
             isFolder: true,
             noSelect: true,
@@ -365,7 +470,7 @@ define(function(require, exports, module) {
         var primaryRemote = {
             label: "primary remote branches",
             className: "heading",
-            items: [],
+            children: [],
             isOpen: true,
             isFolder: true,
             noSelect: true,
@@ -375,16 +480,16 @@ define(function(require, exports, module) {
             label: "pull requests",
             className: "heading",
             isPR: true,
-            items: [
+            children: [
                 {
                     label: "Open",
-                    items: [],
+                    children: [],
                     isOpen: true,
                     isFolder: true
                 },
                 {
                     label: "Closed",
-                    items: [],
+                    children: [],
                     isOpen: false,
                     isFolder: true
                 }
@@ -398,7 +503,7 @@ define(function(require, exports, module) {
         var recentActive = {
             label: "recently active",
             className: "heading",
-            items: [],
+            children: [],
             isOpen: true,
             isFolder: true,
             map: {},
@@ -408,7 +513,7 @@ define(function(require, exports, module) {
         var all = {
             label: "all",
             className: "heading",
-            items: [],
+            children: [],
             isOpen: true,
             isFolder: true,
             noSelect: true,
@@ -416,25 +521,32 @@ define(function(require, exports, module) {
         };
         var branchesRoot = { 
             path: "",
-            items: [recentLocal, primaryRemote, pullRequests, recentActive, all]
+            children: [recentLocal, primaryRemote, pullRequests, recentActive, all]
         };
         var committersRoot = { 
             path: "",
-            items: []
+            children: []
         }
         
+        var nodeRemote;
         function loadBranches(data){
             var root = branchesRoot;
-            root.items.forEach(function(n){
+            root.children.forEach(function(n){
                 if (n.isPR) {
-                    n.items[0].items.length = 0;
-                    n.items[1].items.length = 0;
+                    n.children[0].children.length = 0;
+                    n.children[1].children.length = 0;
+                    n.children[0].map = {};
+                    n.children[1].map = {};
                 }
-                else n.items.length = 0;
+                else {
+                    n.children.length = 0;
+                    n.map = {};
+                }
             });
+            root.map = {};
             
-            var primary = settings.getJson("project/scm/@primary");
             function isPrimary(path){
+                var primary = settings.getJson("project/scm/@primary");
                 return ~primary.indexOf(path.replace(/^refs\/remotes\//, ""));
             }
             function copyNode(x){
@@ -453,12 +565,12 @@ define(function(require, exports, module) {
                 
                 if (parts[0] == "remotes") {
                     if (isPrimary(x.path))
-                        primaryRemote.items.push(copyNode(x));
+                        primaryRemote.children.push(copyNode(x));
                 }
                 
                 var node = all;
                 parts.forEach(function(p) {
-                    var items = node.items || (node.items = []);
+                    var items = node.children || (node.children = []);
                     var map = node.map || (node.map = {});
                     if (map[p]) node = map[p];
                     else {
@@ -466,14 +578,36 @@ define(function(require, exports, module) {
                             label: p,
                             path: (node.path || "") + p + "/"
                         };
+                        if (p == "remotes") {
+                            node.isOpen = true;
+                            node.isRemote = true;
+                            nodeRemote = node;
+                        }
                         items.push(node);
                     }
                 });
-                var items = node.items || (node.items = []);
+                var items = node.children || (node.children = []);
                 var map = node.map || (node.map = {});
                 map[x.name] = x;
                 items.push(x);
             });
+            
+            // Check for empty remotes
+            if (!nodeRemote) {
+                nodeRemote = { label: "remotes", isOpen: true, map: {}, children: [] };
+                all.children.push(nodeRemote);
+                all.map["remotes"] = nodeRemote;
+            }   
+            
+            for (var name in REMOTES) {
+                if (!nodeRemote.map[name]) {
+                    var node = nodeRemote.map[name] = {
+                        label: name,
+                        path: "remotes/" + name
+                    };
+                    nodeRemote.children.push(node);
+                }
+            }
             
             // Sort by date
             data.sort(function(a, b){
@@ -493,48 +627,47 @@ define(function(require, exports, module) {
             }
             
             // TODO add current branch to top of recent local and make bold
+            // TODO in committers view move current user to the top and auto expand, show current branch in bold
+            var n;
             
             recentLocal.limit = ITEM_THRESHOLD_LOCAL;
             recentLocal.cache = local;
-            recentLocal.items = local.slice(0, ITEM_THRESHOLD_LOCAL);
+            recentLocal.children = 
+            recentLocal.children = local.slice(0, ITEM_THRESHOLD_LOCAL);
             if (local.length > ITEM_THRESHOLD_LOCAL) {
-                var n = { showall: true, label: "Show All (" + local.length + ")..." };
-                recentLocal.items.push(n);
+                n = { showall: true, label: "Show All (" + local.length + ")..." };
+                recentLocal.children.push(n);
                 local.push(n);
             }
             
             recentActive.limit = ITEM_THRESHOLD_REMOTE;
             recentActive.cache = remote;
             recentActive.children = 
-            recentActive.items = remote.slice(0, ITEM_THRESHOLD_REMOTE);
+            recentActive.children = remote.slice(0, ITEM_THRESHOLD_REMOTE);
             if (remote.length > ITEM_THRESHOLD_REMOTE) {
-                var n = { showall: true, label: "Show All (" + remote.length + ")..." };
-                recentActive.items.push(n);
+                n = { showall: true, label: "Show All (" + remote.length + ")..." };
+                recentActive.children.push(n);
                 remote.push(n);
             }
             
             // Remove empty blocks
-            root.items = root.items.filter(function(n){
+            root.children = root.children.filter(function(n){
                 if (n == all) return true;
-                if (n.isPR) return n.items[0].length + n.items[1].length;
-                return n.items.length;
+                if (n.isPR) return n.children[0].length + n.children[1].length;
+                return n.children.length;
             });
             
             // Reset committers root
-            committersRoot.items.length = 0;
-            
-            // branchesTree.filterRoot = data;
-            // branchesTree.setRoot(root.items);
-            // branchesTree.resize();
+            committersRoot.children.length = 0;
         }
         
         function showBranches(){
             branchesTree.filterProperty = "path";
             branchesTree.filterRoot = lastData;
-            branchesTree.setRoot(branchesRoot.items);
+            branchesTree.setRoot(branchesRoot.children);
         }
         function showCommitters(){
-            if (!committersRoot.items.length) {
+            if (!committersRoot.children.length) {
                 var data = lastData;
                 var users = {}, emails = {};
                 data.forEach(function(x) {
@@ -543,12 +676,12 @@ define(function(require, exports, module) {
                     (users[user] || (users[user] = [])).push(x);
                 });
                 for (var user in users) {
-                    committersRoot.items.push({
+                    committersRoot.children.push({
                         label: user,
                         authorname: user,
                         email: emails[user],
                         type: "user",
-                        items: users[user],
+                        children: users[user],
                         clone: function(){ 
                             var x = function(){};
                             x.prototype = this;
@@ -563,19 +696,33 @@ define(function(require, exports, module) {
             
             branchesTree.filterProperty = "authorname";
             branchesTree.filterRoot = committersRoot;
-            branchesTree.setRoot(committersRoot.items);
+            branchesTree.setRoot(committersRoot.children);
         }
         
         function refresh(){
-            scm.listAllRefs(function(err, data) {
+            async.parallel([
+                function(next){
+                    scm.listAllRefs(function(err, data) {
+                        lastData = data;
+                        next(err);
+                    });
+                },
+                function(next){
+                    scm.getRemotes(function(err, remotes){
+                        if (!err) REMOTES = remotes;
+                        next();
+                    });
+                }
+            ], function(err){
+                // if (!REMOTES["test"]) debugger;
+                
                 if (err) {
                     branchesTree.emptyMessage = "Error while loading\n" + escapeHTML(err.message);
                     branchesTree.setRoot(null);
                     return console.error(err);
                 }
                 
-                lastData = data;
-                loadBranches(data);
+                loadBranches(lastData);
                 
                 if (displayMode == "branches")
                     showBranches();
@@ -583,7 +730,7 @@ define(function(require, exports, module) {
                     showCommitters();
             });
         }
-
+        
         /***** Lifecycle *****/
         
         plugin.on("load", function(){

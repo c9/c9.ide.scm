@@ -98,6 +98,35 @@ define(function(require, exports, module) {
             });
         }
         
+        function getRemotes(callback){
+            git(["remote", "-v"], function(err, stdout, stderr) {
+                if (err) return callback(err);
+                
+                var remotes = {};
+                stdout.split("\n").forEach(function(line){
+                    var parts = line.split(/\s+/);
+                    if (remotes[parts[0]] || !parts[0]) return;
+                    remotes[parts[0]] = parts[1];
+                });
+                
+                callback(null, remotes);
+            });
+        }
+        
+        function addRemote(name, url, callback) {
+            git(["remote", "add", name, url], function(err, stdout, stderr) {
+                if (err) return callback(err);
+                return callback();
+            });
+        }
+        
+        function removeRemote(name, callback) {
+            git(["remote", "remove", name], function(err, stdout, stderr) {
+                if (err) return callback(err);
+                return callback();
+            });
+        }
+        
         function getStatus(options, cb) {
             var t = Date.now();
             var args = [];
@@ -414,6 +443,21 @@ define(function(require, exports, module) {
              * 
              */
             buffer: buffer,
+            
+            /**
+             * 
+             */
+            getRemotes: getRemotes,
+            
+            /**
+             * 
+             */
+            addRemote: addRemote,
+            
+            /**
+             * 
+             */
+            removeRemote: removeRemote,
             
             /**
              * 

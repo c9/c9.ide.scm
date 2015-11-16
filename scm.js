@@ -755,6 +755,15 @@ define(function(require, exports, module) {
                 callback(err, result)
             });
         }
+        function getRemotes(callback){
+            scm.getRemotes(callback);
+        }
+        function addRemote(name, url, callback) {
+            scm.addRemote(name, url, callback);
+        }
+        function removeRemote(name, callback) {
+            scm.removeRemote(name, callback);
+        }
         function getStatus(options, callback){
             scm.getStatus(options, callback);
         }
@@ -817,6 +826,21 @@ define(function(require, exports, module) {
              * 
              */
             unstage: unstage,
+            
+            /**
+             * 
+             */
+            addRemote: addRemote,
+            
+            /**
+             * 
+             */
+            removeRemote: removeRemote,
+            
+            /**
+             * 
+             */
+            getRemotes: getRemotes,
             
             /**
              * 
