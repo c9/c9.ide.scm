@@ -98,6 +98,7 @@ define(function(require, exports, module) {
             var codebox = new ui.codebox({
                 realtime: "true",
                 skin: "codebox",
+                "initial-message": "Filter Branches",
                 clearbutton: "true",
                 focusselect: "true",
                 singleline: "true",
@@ -112,11 +113,11 @@ define(function(require, exports, module) {
             opts.aml.appendChild(container);
             
             var mnuContext = new Menu({ items: [
-                // new MenuItem({ caption: "Add All", command: "addall", tooltip: "git add -u" }, plugin),
-                // new MenuItem({ caption: "Unstage All", command: "unstageall", tooltip: "git add -u" }, plugin)
                 new MenuItem({ caption: "Checkout" }),
+                // new MenuItem({ caption: "Create Pull Request" }),
                 new Divider(),
-                new MenuItem({ caption: "Show Changes Compared With Master" }),
+                new MenuItem({ caption: "Show In Version Log" }),
+                new MenuItem({ caption: "Compare With Master" }),
                 new Divider(),
                 new MenuItem({ caption: "Delete Branch" }),
                 new MenuItem({ caption: "Merge Into Current Branch" })
@@ -126,12 +127,15 @@ define(function(require, exports, module) {
             branchesTree = new Tree({
                 container: container.$int,
                 scrollMargin: [0, 10],
+                filterProperty: "path",
+                filterRoot: all,
                 theme: "filetree branches"
                     + (settings.getBool("user/scm/@showauthor") ? " showAuthorName" : ""),
+                    
                 isLoading: function() {},
                 
                 getIconHTML: function(node) {
-                    if (node.isFolder || !node.path || !node.authorname) return "";
+                    if (node.isFolder || !node.path || !node.subject) return "";
                     
                     var icon;
                     if (node.path.indexOf("refs/tags/") === 0)
@@ -145,30 +149,40 @@ define(function(require, exports, module) {
                 },
                 
                 getCaptionHTML: function(node) {
-                    if (node.date) {
-                        return escapeHTML(node.label || node.name)
+                    var name;
+                    if (branchesTree.filterKeyword && node.path && !node.parent.parent)
+                        name = node.path.replace(/^refs\//, "");
+                    else
+                        name = node.label || node.name;
+                    
+                    if (node.authorname) {
+                        return escapeHTML(name)
                             + "<span class='author'><img src='" 
                             + util.getGravatarUrl(node.authoremail.replace(/[<>]/g, ""), 32, "") 
                             + "' width='16' height='16' />" 
                             + node.authorname + "</span>"
                             + "<span class='extrainfo'> - " 
-                            + timeago(node.date) + "</span>";
+                            + (node.date ? timeago(node.date) : "") + "</span>";
                     }
-                    return escapeHTML(node.label || node.name);
+                    return escapeHTML(name);
                 },
                 
                 getTooltipText: function(node){
                     return node.authorname
-                        ? node.authorname + " - " + node.subject
+                        ? "[" + node.hash + "] " + node.authorname + " - " + node.subject
                         : "";
                 },
                 
                 getRowIndent: function(node) {
-                    return node.$depth ? node.$depth - 1 : 0;
+                    return branchesTree.filterKeyword 
+                        ? node.$depth
+                        : node.$depth ? node.$depth - 1 : 0;
                 },
 
                 getEmptyMessage: function(){
-                    return "Loading...";
+                    return branchesTree.filterKeyword
+                        ? "No branches found for '" + branchesTree.filterKeyword + "'"
+                        : "Loading...";
                 },
                 
                 sort: function(children) {
@@ -241,6 +255,37 @@ define(function(require, exports, module) {
                     branchesTree.refresh();
                 }
             });
+            
+            function forwardToTree() {
+                branchesTree.execCommand(this.name);
+            }
+            codebox.ace.on("input", function(){
+                 branchesTree.filterKeyword = codebox.ace.getValue();
+            });
+            codebox.ace.commands.addCommands([
+                "centerselection",
+                "goToStart",
+                "goToEnd",
+                "pageup",
+                "gotopageup",
+                "pagedown",
+                "gotopageDown",
+                "scrollup",
+                "scrolldown",
+                "goUp",
+                "goDown",
+                "selectUp",
+                "selectDown",
+                "selectMoreUp",
+                "selectMoreDown"
+            ].map(function(name) {
+                var command = branchesTree.commands.byName[name];
+                return {
+                    name: command.name,
+                    bindKey: command.editorKey || command.bindKey,
+                    exec: forwardToTree
+                };
+            }));
             
             scm.listAllRefs(function(err, data) {
                 if (err) {
@@ -393,14 +438,21 @@ define(function(require, exports, module) {
                 
                 var node = all;
                 parts.forEach(function(p) {
+                    var items = node.items || (node.items = []);
                     var map = node.map || (node.map = {});
-                    node = map[p] || (map[p] = {
-                        label: p,
-                        path: (node.path || "") + p + "/"
-                    });
+                    if (map[p]) node = map[p];
+                    else {
+                        node = map[p] = {
+                            label: p,
+                            path: (node.path || "") + p + "/"
+                        };
+                        items.push(node);
+                    }
                 });
+                var items = node.items || (node.items = []);
                 var map = node.map || (node.map = {});
                 map[x.name] = x;
+                items.push(x);
             });
             
             // Sort by date
@@ -419,6 +471,8 @@ define(function(require, exports, module) {
                 else if (x.path.indexOf("refs/heads") === 0)
                     local.push(copyNode(x));
             }
+            
+            // TODO add current branch to top of recent local and make bold
             
             recentLocal.limit = ITEM_THRESHOLD_LOCAL;
             recentLocal.cache = local;
