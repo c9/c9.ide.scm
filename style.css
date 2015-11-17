@@ -265,6 +265,14 @@
     padding: 2px 1px 1px 1px !important;
 }
 
+.branches .tree-row.current .caption {
+    font-weight: bold;
+}
+.branches .tree-row.current .author,
+.branches .tree-row.current .extrainfo {
+    font-weight: normal;
+}
+
 .branches .tree-row .author {
     background: #EFEFEF;
     display: inline-block;

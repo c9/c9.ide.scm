@@ -100,7 +100,7 @@ define(function(require, exports, module) {
         
         function getRemotes(callback){
             git(["remote", "-v"], function(err, stdout, stderr) {
-                if (err) return callback(err);
+                if (err || stderr) return callback(err || stderr);
                 
                 var remotes = {};
                 stdout.split("\n").forEach(function(line){
@@ -115,14 +115,59 @@ define(function(require, exports, module) {
         
         function addRemote(name, url, callback) {
             git(["remote", "add", name, url], function(err, stdout, stderr) {
-                if (err) return callback(err);
+                if (err || stderr) return callback(err || stderr);
                 return callback();
             });
         }
         
         function removeRemote(name, callback) {
             git(["remote", "remove", name], function(err, stdout, stderr) {
+                if (err || stderr) return callback(err || stderr);
+                return callback();
+            });
+        }
+        
+        function addBranch(name, basedOn, callback) {
+            git(["update-ref", name, basedOn], function(err, stdout, stderr) {
+                if (err || stderr) return callback(err || stderr);
+                return callback();
+            });
+        }
+        
+        function removeBranch(name, callback) {
+            // detect remote: git push origin :master
+            
+            git(["update-ref", name, "-d"], function(err, stdout, stderr) {
+                if (err || stderr) return callback(err || stderr);
+                return callback();
+            });
+        }
+        
+        function renameBranch(fromName, toName, callback) {
+            // TODO: Remote
+            
+            addBranch(toName, fromName, function(err){
                 if (err) return callback(err);
+                
+                removeBranch(fromName, function(err){
+                    callback(err);
+                });
+            });
+        }
+        
+        function getCurrentBranch(callback) {
+            git(["branch"], function(err, stdout, stderr) {
+                if (err || stderr) return callback(err || stderr);
+                
+                var current = stdout.match(/^\* ([^\s]+)/m)[1];
+                return callback(null, current);
+            });
+        }
+        
+        function checkout(name, callback) {
+            name = name.replace(/^refs\/heads\//, "");
+            git(["checkout", name], function(err, stdout, stderr) {
+                if (err || stderr) return callback(err || stderr);
                 return callback();
             });
         }
@@ -453,6 +498,31 @@ define(function(require, exports, module) {
              * 
              */
             addRemote: addRemote,
+            
+            /**
+             * 
+             */
+            addBranch: addBranch,
+            
+            /**
+             * 
+             */
+            removeBranch: removeBranch,
+            
+            /**
+             * 
+             */
+            renameBranch: renameBranch,
+            
+            /**
+             * 
+             */
+            getCurrentBranch: getCurrentBranch,
+            
+            /**
+             * 
+             */
+            checkout: checkout,
             
             /**
              * 

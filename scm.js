@@ -755,6 +755,21 @@ define(function(require, exports, module) {
                 callback(err, result)
             });
         }
+        function addBranch(name, basedOn, callback) {
+            scm.addBranch(name, basedOn, callback);
+        }
+        function removeBranch(name, callback) {
+            scm.removeBranch(name, callback);
+        }
+        function renameBranch(fromName, toName, callback) {
+            scm.renameBranch(fromName, toName, callback);
+        }
+        function getCurrentBranch(callback) {
+            scm.getCurrentBranch(callback);
+        }
+        function checkout(name, callback) {
+            scm.checkout(name, callback);
+        }
         function getRemotes(callback){
             scm.getRemotes(callback);
         }
@@ -826,6 +841,31 @@ define(function(require, exports, module) {
              * 
              */
             unstage: unstage,
+            
+            /**
+             * 
+             */
+            addBranch: addBranch,
+            
+            /**
+             * 
+             */
+            removeBranch: removeBranch,
+            
+            /**
+             * 
+             */
+            renameBranch: renameBranch,
+            
+            /**
+             * 
+             */
+            getCurrentBranch: getCurrentBranch,
+            
+            /**
+             * 
+             */
+            checkout: checkout,
             
             /**
              * 

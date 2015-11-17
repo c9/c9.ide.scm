@@ -42,8 +42,8 @@ define(function(require, exports, module) {
                     git remote -v
                     origin  git@github.com:c9/newclient.git (fetch)
                     origin  git@github.com:c9/newclient.git (push)
-                - Add button to add remote next to 'remotes'
-                - Remove a remote using context menu
+                * Add button to add remote next to 'remotes'
+                * Remove a remote using context menu
             - Variable rows:
                 - https://github.com/c9/newclient/blob/master/node_modules/ace_tree/lib/ace_tree/data_provider.js#L393
                 - getHeight();
@@ -73,6 +73,7 @@ define(function(require, exports, module) {
         var ICON_PULLREQUEST = require("text!./icons/git-pull-request.svg");
         var ICON_TAG = require("text!./icons/git-tag.svg");
         var REMOTES = {};
+        var CURBRANCH;
         
         var branchesTree, lastData;
         var displayMode = "branches";
@@ -155,8 +156,59 @@ define(function(require, exports, module) {
             opts.aml.appendChild(container);
             
             var mnuContext = new Menu({ items: [
-                new MenuItem({ caption: "Checkout" }),
+                new MenuItem({ caption: "Checkout Branch", onclick: function(){
+                    var node = branchesTree.selectedNode;
+                    scm.checkout(node.path, function(err){
+                        if (err) {
+                            return alert("Could Not Checkout Branch",
+                                "Received Error While Checking out Branch",
+                                err.message || err);
+                        }
+                        
+                        CURBRANCH = node.path;
+                        
+                        branchesTree.refresh();
+                    });
+                }}),
+                new MenuItem({ caption: "Delete Branch", onclick: function(){
+                    var node = branchesTree.selectedNode;
+                    scm.removeBranch(node.path, function(err){
+                        if (err) {
+                            return alert("Could Not Remove Branch",
+                                "Received Error While Removing Branch",
+                                err.message || err);
+                        }
+                        
+                        delete node.parent.map[node.label];
+                        node.parent.items.remove(node);
+                        branchesTree.refresh();
+                    });
+                }}),
+                new MenuItem({ caption: "Rename Branch", onclick: function(){
+                    branchesTree.startRename(branchesTree.selectedNode);
+                }, isAvailable: function(){
+                    var node = branchesTree.selectedNode;
+                    return node.path.match(/^refs\/(?:heads|remotes)/);
+                }}),
+                new Divider(),
                 // new MenuItem({ caption: "Create Pull Request" }),
+                new MenuItem({ caption: "Create New Branch From Here", onclick: function(){
+                    var node = branchesTree.selectedNode;
+                    scm.addBranch("refs/heads/newbranche", node.path, function(err){
+                        if (err) {
+                            return alert("Could Not Add Branch",
+                                "Received Error While Adding Branch",
+                                err.message || err);
+                        }
+                        
+                        // Todo add branch with info of node
+                        // Todo select New Branch
+                        // Todo start renaming New Branch
+                        // Todo Remove refresh
+                        
+                        refresh();
+                    });
+                }}),
                 new Divider(),
                 new MenuItem({ caption: "Show In Version Log" }),
                 new MenuItem({ caption: "Compare With Master" }),
@@ -168,7 +220,7 @@ define(function(require, exports, module) {
                         if (err) {
                             return alert("Could Not Remove Remote",
                                 "Received Error While Removing Remote",
-                                err.message);
+                                err.message || err);
                         }
                         
                         delete REMOTES[name];
@@ -184,7 +236,6 @@ define(function(require, exports, module) {
                     return node && node.parent.isRemote ? true : false;
                 }}),
                 new Divider(),
-                new MenuItem({ caption: "Delete Branch" }),
                 new MenuItem({ caption: "Merge Into Current Branch" })
             ]}, plugin);
             container.setAttribute("contextmenu", mnuContext.aml);
@@ -194,6 +245,7 @@ define(function(require, exports, module) {
                 scrollMargin: [0, 10],
                 theme: "filetree branches"
                     + (settings.getBool("user/scm/@showauthor") ? " showAuthorName" : ""),
+                enableRename: true,
                     
                 isLoading: function() {},
                 
@@ -266,6 +318,12 @@ define(function(require, exports, module) {
                         : "Loading...";
                 },
                 
+                getClassName: function(node) {
+                    return (node.className || "") 
+                        + (node.path == CURBRANCH ? " current" : "")
+                        + (node.status == "loading" ? " loading" : "");
+                },
+                
                 sort: function(children) {
                     if (!children.length)
                         return;
@@ -304,7 +362,7 @@ define(function(require, exports, module) {
                     var p = node.parent;
                     p.children = p.children = p.cache;
                     node.showall = false;
-                    node.label = "Show Less..."
+                    node.label = "Show Less...";
                     branchesTree.refresh();
                 }
                 else if (node.showall === false) {
@@ -315,6 +373,26 @@ define(function(require, exports, module) {
                     node.label = "Show All (" + p.cache.length + ")...";
                     branchesTree.refresh();
                 }
+            });
+            
+            branchesTree.on("beforeRename", function(e) {
+                if (!e.node.path.match(/^refs\/(?:heads|remotes)/))
+                    return e.preventDefault();
+            });
+            branchesTree.on("afterRename", function(e) {
+                // TODO Test if branch exists. If it does, warn user and do nothing
+                // TODO Check for illegal characters
+                
+                var base = e.node.path.match(/^refs\/(?:remotes\/[^\/]+|heads)/)[0];
+                var newPath = base + "/" + e.value;
+                
+                scm.renameBranch(e.node.path, newPath, function(err){
+                    if (err) return;
+                    
+                    e.node.label = e.value;
+                    e.node.path = newPath;
+                    branchesTree.refresh();
+                });
             });
             
             var remoteName, remoteURI;
@@ -353,7 +431,7 @@ define(function(require, exports, module) {
                                 if (err) {
                                     return alert("Could Not Add Remote",
                                         "Received Error While Adding Remote",
-                                        err.message);
+                                        err.message || err);
                                 }
                                 
                                 REMOTES[name] = url;
@@ -419,8 +497,8 @@ define(function(require, exports, module) {
             mnuSettings = new Menu({ items: [
                 new MenuItem({ caption: "Refresh", onclick: refresh }, plugin),
                 new Divider(),
-                new MenuItem({ caption: "Remove All Local Merged Branches", onclick: refresh }, plugin),
-                new MenuItem({ caption: "Remove All Remote Merged Branches", onclick: refresh }, plugin), // https://gist.github.com/schacon/942899
+                new MenuItem({ caption: "Remove All Local Merged Branches", onclick: function(){  alert("Not Implemented"); } }, plugin),
+                new MenuItem({ caption: "Remove All Remote Merged Branches", onclick: function(){  alert("Not Implemented"); } }, plugin), // https://gist.github.com/schacon/942899
                 new Divider(),
                 new MenuItem({ caption: "Show Author Name", type: "check", checked: "user/scm/@showauthor" }, plugin)
             ]}, plugin);
@@ -701,15 +779,21 @@ define(function(require, exports, module) {
         
         function refresh(){
             async.parallel([
-                function(next){
+                function (next) {
                     scm.listAllRefs(function(err, data) {
                         lastData = data;
                         next(err);
                     });
                 },
-                function(next){
+                function (next) {
                     scm.getRemotes(function(err, remotes){
                         if (!err) REMOTES = remotes;
+                        next();
+                    });
+                },
+                function (next) {
+                    scm.getCurrentBranch(function(err, branch){
+                        if (!err) CURBRANCH = "refs/heads/" + branch;
                         next();
                     });
                 }
