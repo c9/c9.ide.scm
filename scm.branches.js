@@ -3,7 +3,7 @@ define(function(require, exports, module) {
         "Panel", "Menu", "MenuItem", "Divider", "settings", "ui", "c9", 
         "watcher", "panels", "util", "save", "preferences", "commands", "Tree",
         "tabManager", "layout", "preferences.experimental", "scm", "util",
-        "dialog.alert"
+        "dialog.alert", "dialog.confirm"
     ];
     main.provides = ["scm.branches"];
     return main;
@@ -29,6 +29,7 @@ define(function(require, exports, module) {
         var commands = imports.commands;
         var experimental = imports["preferences.experimental"];
         var alert = imports["dialog.alert"].show;
+        var confirm = imports["dialog.confirm"].show;
         
         var async = require("async");
         var timeago = require("timeago");
@@ -169,26 +170,37 @@ define(function(require, exports, module) {
                         
                         branchesTree.refresh();
                     });
+                }, isAvailable: function(){
+                    return branchesTree.selectedNodes.length == 1;
                 }}),
                 new MenuItem({ caption: "Delete Branch", onclick: function(){
-                    var node = branchesTree.selectedNode;
-                    scm.removeBranch(node.path, function(err){
-                        if (err) {
-                            return alert("Could Not Remove Branch",
-                                "Received Error While Removing Branch",
-                                err.message || err);
-                        }
-                        
-                        delete node.parent.map[node.label];
-                        node.parent.items.remove(node);
-                        branchesTree.refresh();
+                    var nodes = branchesTree.selectedNodes;
+                    nodes.forEach(function(node){
+                        confirm("Delete Branch",
+                            "Are you sure you want to delete '" + node.name + "'",
+                            "Click OK to delete this branch or click Cancel to cancel this action.",
+                            function(){
+                                scm.removeBranch(node.path, function(err){
+                                    if (err) {
+                                        return alert("Could Not Remove Branch",
+                                            "Received Error While Removing Branch",
+                                            err.message || err);
+                                    }
+                                    
+                                    delete node.parent.map[node.label];
+                                    node.parent.children.remove(node);
+                                    branchesTree.refresh();
+                                });
+                            }, 
+                            function(){});
                     });
                 }}),
                 new MenuItem({ caption: "Rename Branch", onclick: function(){
                     branchesTree.startRename(branchesTree.selectedNode);
                 }, isAvailable: function(){
                     var node = branchesTree.selectedNode;
-                    return node.path.match(/^refs\/(?:heads|remotes)/);
+                    return branchesTree.selectedNodes.length == 1
+                      && node.path && node.path.match(/^refs\/(?:heads|remotes)/);
                 }}),
                 new Divider(),
                 // new MenuItem({ caption: "Create Pull Request" }),
@@ -208,6 +220,8 @@ define(function(require, exports, module) {
                         
                         refresh();
                     });
+                }, isAvailable: function(){
+                    return branchesTree.selectedNodes.length == 1;
                 }}),
                 new Divider(),
                 new MenuItem({ caption: "Show In Version Log" }),
@@ -233,10 +247,11 @@ define(function(require, exports, module) {
                     });
                 }, isAvailable: function(){
                     var node = branchesTree.selectedNode;
-                    return node && node.parent.isRemote ? true : false;
+                    return branchesTree.selectedNodes.length == 1
+                      && node && node.parent.isRemote ? true : false;
                 }}),
-                new Divider(),
-                new MenuItem({ caption: "Merge Into Current Branch" })
+                // new Divider(),
+                // new MenuItem({ caption: "Merge Into Current Branch" })
             ]}, plugin);
             container.setAttribute("contextmenu", mnuContext.aml);
 
@@ -376,7 +391,7 @@ define(function(require, exports, module) {
             });
             
             branchesTree.on("beforeRename", function(e) {
-                if (!e.node.path.match(/^refs\/(?:heads|remotes)/))
+                if (!e.node.path || !e.node.path.match(/^refs\/(?:heads|remotes)/))
                     return e.preventDefault();
             });
             branchesTree.on("afterRename", function(e) {
