@@ -37,14 +37,6 @@ define(function(require, exports, module) {
         
         /*
             TODO:
-            - Add support for remotes:
-                * Auto open remotes section
-                * Show url in remotes section
-                    git remote -v
-                    origin  git@github.com:c9/newclient.git (fetch)
-                    origin  git@github.com:c9/newclient.git (push)
-                * Add button to add remote next to 'remotes'
-                * Remove a remote using context menu
             - Variable rows:
                 - https://github.com/c9/newclient/blob/master/node_modules/ace_tree/lib/ace_tree/data_provider.js#L393
                 - getHeight();
@@ -171,7 +163,8 @@ define(function(require, exports, module) {
                         branchesTree.refresh();
                     });
                 }, isAvailable: function(){
-                    return branchesTree.selectedNodes.length == 1;
+                    return branchesTree.selectedNodes.length == 1
+                        && branchesTree.selectedNode.path;
                 }}),
                 new MenuItem({ caption: "Delete Branch", onclick: function(){
                     var nodes = branchesTree.selectedNodes;
@@ -194,6 +187,9 @@ define(function(require, exports, module) {
                             }, 
                             function(){});
                     });
+                }, isAvailable: function(){
+                    return branchesTree.selectedNode 
+                        && branchesTree.selectedNode.path;
                 }}),
                 new MenuItem({ caption: "Rename Branch", onclick: function(){
                     branchesTree.startRename(branchesTree.selectedNode);
@@ -204,7 +200,10 @@ define(function(require, exports, module) {
                 }}),
                 new Divider(),
                 // new MenuItem({ caption: "Create Pull Request" }),
-                new MenuItem({ caption: "Create New Branch From Here", onclick: function(){
+                new MenuItem({ caption: "New Workspace From This Branch", onclick: function(){
+                    
+                }}),
+                new MenuItem({ caption: "New Branch From This Branch", onclick: function(){
                     var node = branchesTree.selectedNode;
                     scm.addBranch("refs/heads/newbranche", node.path, function(err){
                         if (err) {
@@ -221,7 +220,8 @@ define(function(require, exports, module) {
                         refresh();
                     });
                 }, isAvailable: function(){
-                    return branchesTree.selectedNodes.length == 1;
+                    return branchesTree.selectedNodes.length == 1
+                        && branchesTree.selectedNode.path;
                 }}),
                 new Divider(),
                 new MenuItem({ caption: "Show In Version Log" }),
@@ -322,7 +322,7 @@ define(function(require, exports, module) {
                 },
                 
                 getRowIndent: function(node) {
-                    return branchesTree.filterKeyword || displayMode == "committer"
+                    return displayMode == "committer" //branchesTree.filterKeyword || 
                         ? node.$depth
                         : node.$depth ? node.$depth - 1 : 0;
                 },
@@ -391,7 +391,8 @@ define(function(require, exports, module) {
             });
             
             branchesTree.on("beforeRename", function(e) {
-                if (!e.node.path || !e.node.path.match(/^refs\/(?:heads|remotes)/))
+                if (!e.node.path || !e.node.path.match(/^refs\/(?:heads|remotes)/) 
+                  || e.node.path == CURBRANCH)
                     return e.preventDefault();
             });
             branchesTree.on("afterRename", function(e) {
@@ -788,7 +789,7 @@ define(function(require, exports, module) {
             }
             
             branchesTree.filterProperty = "authorname";
-            branchesTree.filterRoot = committersRoot;
+            branchesTree.filterRoot = committersRoot.children;
             branchesTree.setRoot(committersRoot.children);
         }
         
