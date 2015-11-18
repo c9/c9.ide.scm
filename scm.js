@@ -110,7 +110,7 @@ define(function(require, exports, module) {
         
         /***** Initialization *****/
         
-        var ENABLED = experimental.addExperiment(c9.hosted ? "git=1" : "git=0", "Panels/Changes Panel")
+        var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Changes Panel")
         
         if (!ENABLED) {
             return register(null, {
