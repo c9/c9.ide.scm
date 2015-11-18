@@ -669,7 +669,7 @@ define(function(require, exports, module) {
             root.map = {};
             
             function isPrimary(path){
-                var primary = settings.getJson("project/scm/@primary");
+                var primary = ["origin/master"]; //TODO settings.getJson("project/scm/@primary");
                 return ~primary.indexOf(path.replace(/^refs\/remotes\//, ""));
             }
             function copyNode(x){

@@ -183,8 +183,8 @@ define(function(require, exports, module) {
         }
         
         function checkout(name, callback) {
-            name = name.replace(/^refs\/heads\//, "");
-            git(["checkout", name], function(err, stdout, stderr) {
+            name = name.replace(/^refs\/(?:remotes\/[^\/]+|heads)\//, "");
+            git(["checkout", "-q", name], function(err, stdout, stderr) {
                 if (err || stderr) return callback(err || stderr);
                 return callback();
             });
