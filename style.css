@@ -240,6 +240,12 @@
     padding-bottom: 6px;
     box-sizing: border-box;
 }
+.branches .tree-row.heading.first{
+    padding-top: 2px;
+}
+.branches .tree-row.heading.first .caption{
+    line-height: 1em;
+}
     
 /*.branches .tree-row {*/
 /*    margin: 0px 0px 5px 10px !important;*/

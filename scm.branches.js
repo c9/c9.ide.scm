@@ -37,14 +37,6 @@ define(function(require, exports, module) {
         
         /*
             TODO:
-            - Variable rows:
-                - https://github.com/c9/newclient/blob/master/node_modules/ace_tree/lib/ace_tree/data_provider.js#L393
-                    app["scm.branches"].tree.model.constructor.variableHeightRowMixin.apply(app["scm.branches"].tree.model);
-                    this.getItemHeight = function(node, index) {
-                        return node.height || this.rowHeight;
-                    };
-                - getHeight();
-                - node.height
         */
         
         /***** Initialization *****/
@@ -168,7 +160,7 @@ define(function(require, exports, module) {
                     });
                 }, isAvailable: function(){
                     return branchesTree.selectedNodes.length == 1
-                        && branchesTree.selectedNode.path;
+                        && branchesTree.selectedNode.hash;
                 }}),
                 new MenuItem({ caption: "Delete Branch", onclick: function(){
                     var nodes = branchesTree.selectedNodes;
@@ -193,7 +185,7 @@ define(function(require, exports, module) {
                     });
                 }, isAvailable: function(){
                     return branchesTree.selectedNode 
-                        && branchesTree.selectedNode.path;
+                        && branchesTree.selectedNode.hash;
                 }}),
                 new MenuItem({ caption: "Rename Branch", onclick: function(){
                     branchesTree.startRename(branchesTree.selectedNode);
@@ -206,6 +198,9 @@ define(function(require, exports, module) {
                 // new MenuItem({ caption: "Create Pull Request" }),
                 new MenuItem({ caption: "New Workspace From This Branch", onclick: function(){
                     
+                }, isAvailable: function(){
+                    return branchesTree.selectedNodes.length == 1
+                        && branchesTree.selectedNode.hash;
                 }}),
                 new MenuItem({ caption: "New Branch From This Branch", onclick: function(){
                     var node = branchesTree.selectedNode;
@@ -225,7 +220,7 @@ define(function(require, exports, module) {
                     });
                 }, isAvailable: function(){
                     return branchesTree.selectedNodes.length == 1
-                        && branchesTree.selectedNode.path;
+                        && branchesTree.selectedNode.hash;
                 }}),
                 new Divider(),
                 new MenuItem({ caption: "Show In Version Log" }),
@@ -333,6 +328,7 @@ define(function(require, exports, module) {
                 },
                 
                 getItemHeight: function(node, index){
+                    if (node.className == "heading first") return 27;
                     if (node.className == "heading") return 35;
                     return this.rowHeight;
                 },
@@ -564,7 +560,7 @@ define(function(require, exports, module) {
         
         var recentLocal = {
             label: "recent local branches",
-            className: "heading",
+            className: "heading first",
             children: [],
             isOpen: true,
             isFolder: true,
