@@ -132,27 +132,28 @@ define(function(require, exports, module) {
             var codebox = new ui.codebox({
                 realtime: "true",
                 skin: "codebox",
+                class: "branch-filter",
                 "initial-message": "Filter Branches",
                 clearbutton: "true",
                 focusselect: "true",
                 singleline: "true",
-                left: 10,
-                top: 10,
-                right: 10
-                // class: "navigate-search"
+                style: "flex:1"
             });
             var container = new ui.bar({ anchors: "47 0 0 0" });
             var button = new ui.button({
                 caption: "Branches",
                 skin: "btn-switcher",
-                right: 10,
-                top: 10,
-                height: 27,
                 submenu: mnuFilter.aml
             });
+            var hbox = new ui.hbox({
+                height: 27,
+                left: 10,
+                top: 10,
+                right: 10,
+                childNodes: [codebox, button]
+            });
             
-            opts.aml.appendChild(codebox);
-            opts.aml.appendChild(button);
+            opts.aml.appendChild(hbox);
             opts.aml.appendChild(container);
             
             button.$caption = button.oCaption.parentNode;

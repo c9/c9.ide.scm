@@ -341,3 +341,8 @@
 .branches .remote-button:hover {
     background: #f1f1f1;
 }
+
+body .branch-filter .sbtb_middle{
+    border-right: 0;
+    border-radius: 3px 0 0 3px !important;
+}
