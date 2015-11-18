@@ -39,6 +39,10 @@ define(function(require, exports, module) {
             TODO:
             - Variable rows:
                 - https://github.com/c9/newclient/blob/master/node_modules/ace_tree/lib/ace_tree/data_provider.js#L393
+                    app["scm.branches"].tree.model.constructor.variableHeightRowMixin.apply(app["scm.branches"].tree.model);
+                    this.getItemHeight = function(node, index) {
+                        return node.height || this.rowHeight;
+                    };
                 - getHeight();
                 - node.height
         */
@@ -261,6 +265,7 @@ define(function(require, exports, module) {
                 theme: "filetree branches"
                     + (settings.getBool("user/scm/@showauthor") ? " showAuthorName" : ""),
                 enableRename: true,
+                enableVariableHeight: true,
                     
                 isLoading: function() {},
                 
@@ -325,6 +330,11 @@ define(function(require, exports, module) {
                     return displayMode == "committer" //branchesTree.filterKeyword || 
                         ? node.$depth
                         : node.$depth ? node.$depth - 1 : 0;
+                },
+                
+                getItemHeight: function(node, index){
+                    if (node.className == "heading") return 35;
+                    return this.rowHeight;
                 },
                 
                 getEmptyMessage: function(){
