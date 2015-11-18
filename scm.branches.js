@@ -193,9 +193,12 @@ define(function(require, exports, module) {
                                             err.message || err);
                                     }
                                     
-                                    delete node.parent.map[node.label];
+                                    if (node.parent.map)
+                                        delete node.parent.map[node.label];
                                     node.parent.children.remove(node);
                                     branchesTree.refresh();
+                                    
+                                    refresh();
                                 });
                             }, 
                             function(){});
@@ -255,7 +258,8 @@ define(function(require, exports, module) {
                         
                         delete REMOTES[name];
                         
-                        delete node.parent.map[node.label];
+                        if (node.parent.map)
+                            delete node.parent.map[node.label];
                         node.parent.children.remove(node);
                         branchesTree.refresh();
                         

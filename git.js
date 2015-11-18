@@ -144,9 +144,17 @@ define(function(require, exports, module) {
                 });
             }
             else if ((m = name.match(/refs\/remotes\/([^\/]+)\/(.*)/))) {
-                git(["push", m[1], ":" + m[2]], function(err, stdout, stderr) {
-                    if (err || stderr) return callback(err || stderr);
-                    return callback();
+                git(["push", m[1], ":" + m[2], "-q"], function(err, stdout, stderr) {
+                    // It was already deleted, so intent is success
+                    if (stderr.indexOf("remote ref does not exist") > -1) {
+                        git(["update-ref", name, "-d"], function(err, stdout, stderr) {
+                            if (err || stderr) return callback(err || stderr);
+                            return callback();
+                        });
+                        return;
+                    }
+                    
+                    callback(err || stderr);
                 });
             }
             else callback(new Error("Not Supported"));
