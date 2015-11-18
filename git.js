@@ -136,15 +136,25 @@ define(function(require, exports, module) {
         
         function removeBranch(name, callback) {
             // detect remote: git push origin :master
-            
-            git(["update-ref", name, "-d"], function(err, stdout, stderr) {
-                if (err || stderr) return callback(err || stderr);
-                return callback();
-            });
+            var m;
+            if (name.indexOf("refs/heads") === 0 || name.indexOf("refs/tags") === 0) {
+                git(["update-ref", name, "-d"], function(err, stdout, stderr) {
+                    if (err || stderr) return callback(err || stderr);
+                    return callback();
+                });
+            }
+            else if ((m = name.match(/refs\/remotes\/([^\/]+)\/(.*)/))) {
+                git(["push", m[1], ":" + m[2]], function(err, stdout, stderr) {
+                    if (err || stderr) return callback(err || stderr);
+                    return callback();
+                });
+            }
+            else callback(new Error("Not Supported"));
         }
         
         function renameBranch(fromName, toName, callback) {
-            // TODO: Remote
+            if (fromName.indexOf("refs/heads") !== 0)
+                return callback(new Error("Unable to rename remote branches"));
             
             addBranch(toName, fromName, function(err){
                 if (err) return callback(err);

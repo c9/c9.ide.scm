@@ -209,7 +209,7 @@ define(function(require, exports, module) {
                 }, isAvailable: function(){
                     var node = branchesTree.selectedNode;
                     return branchesTree.selectedNodes.length == 1
-                      && node.path && node.path.match(/^refs\/(?:heads|remotes)/);
+                      && node.path && node.path.match(/^refs\/heads/);
                 }}),
                 new Divider(),
                 // new MenuItem({ caption: "Create Pull Request" }),
