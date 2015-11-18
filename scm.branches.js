@@ -17,16 +17,16 @@ define(function(require, exports, module) {
         var settings = imports.settings;
         var ui = imports.ui;
         var c9 = imports.c9;
-        var tabs = imports.tabManager;
-        var watcher = imports.watcher;
+        // var tabs = imports.tabManager;
+        // var watcher = imports.watcher;
         var util = imports.util;
-        var panels = imports.panels;
-        var util = imports.util;
-        var save = imports.save;
-        var layout = imports.layout;
+        // var panels = imports.panels;
+        // var util = imports.util;
+        // var save = imports.save;
+        // var layout = imports.layout;
         var scm = imports.scm;
-        var prefs = imports.preferences;
-        var commands = imports.commands;
+        // var prefs = imports.preferences;
+        // var commands = imports.commands;
         var experimental = imports["preferences.experimental"];
         var alert = imports["dialog.alert"].show;
         var confirm = imports["dialog.confirm"].show;
@@ -58,6 +58,7 @@ define(function(require, exports, module) {
         var ITEM_THRESHOLD_LOCAL = 5;
         var ITEM_THRESHOLD_REMOTE = 10;
         
+        var ICON_PERSON = require("text!./icons/person.svg");
         var ICON_BRANCH = require("text!./icons/git-branch.svg");
         var ICON_PULLREQUEST = require("text!./icons/git-pull-request.svg");
         var ICON_TAG = require("text!./icons/git-tag.svg");
@@ -67,7 +68,8 @@ define(function(require, exports, module) {
         var branchesTree, lastData;
         var displayMode = "branches";
         var mnuSettings, btnSettings;
-        var workspaceDir = c9.workspaceDir; // + "/plugins/c9.ide.scm/mock/git";
+        // var workspaceDir = c9.workspaceDir; // + "/plugins/c9.ide.scm/mock/git";
+        var ready;
         
         var loaded = false;
         function load(){
@@ -85,7 +87,10 @@ define(function(require, exports, module) {
             
             settings.on("read", function(){
                 settings.setDefaults("project/scm", [["primary", ["origin/master"]]]);
-                settings.setDefaults("user/scm", [["showauthor", [false]]]);
+                settings.setDefaults("user/scm", [["showauthor", [false]]]); // TODO this doesn't actually work
+                settings.setDefaults("state/scm", [["branches-display-mode", "branches"]]);
+                
+                displayMode = settings.get("state/scm/@branches-display-mode");
             });
             
             settings.on("user/scm/@showauthor", function(){
@@ -107,11 +112,15 @@ define(function(require, exports, module) {
             drawn = true;
             
             var mnuFilter = Menu({ items: [
-                new MenuItem({ type: "radio", caption: "Branches", value: "branches" }),
-                new MenuItem({ type: "radio", caption: "Committer", value: "committer" })
+                new MenuItem({ type: "radio", caption: "Branches", value: "branches", selected: displayMode == "branches" }),
+                new MenuItem({ type: "radio", caption: "Committer", value: "committer", selected: displayMode == "committer" })
             ]}, plugin);
             mnuFilter.on("itemclick", function(e){
-                button.setCaption(e.item.caption);
+                settings.set("state/scm/@branches-display-mode", e.value);
+                
+                button.$caption.innerHTML = (e.value == "branches"
+                    ? ICON_BRANCH
+                    : ICON_PERSON) + e.item.caption + "<span> </span>";
                 displayMode = e.item.value;
                 
                 if (displayMode == "branches")
@@ -135,14 +144,21 @@ define(function(require, exports, module) {
             var container = new ui.bar({ anchors: "47 0 0 0" });
             var button = new ui.button({
                 caption: "Branches",
+                skin: "btn-switcher",
                 right: 10,
                 top: 10,
+                height: 27,
                 submenu: mnuFilter.aml
             });
             
             opts.aml.appendChild(codebox);
             opts.aml.appendChild(button);
             opts.aml.appendChild(container);
+            
+            button.$caption = button.oCaption.parentNode;
+            button.$caption.innerHTML = (displayMode == "branches"
+                ? ICON_BRANCH
+                : ICON_PERSON) + displayMode.uCaseFirst() + "<span> </span>";
             
             var mnuContext = new Menu({ items: [
                 new MenuItem({ caption: "Checkout Branch", onclick: function(){
@@ -373,7 +389,7 @@ define(function(require, exports, module) {
             
             branchesTree.renderer.scrollBarV.$minWidth = 10;
             
-            branchesTree.emptyMessage = "loading..."
+            branchesTree.emptyMessage = "loading...";
             
             branchesTree.on("afterChoose", function(e){
                 var node = branchesTree.selectedNode;
@@ -630,6 +646,8 @@ define(function(require, exports, module) {
         
         var nodeRemote;
         function loadBranches(data){
+            if (!data) return;
+            
             var root = branchesRoot;
             root.children.forEach(function(n){
                 if (n.isPR) {
@@ -767,6 +785,8 @@ define(function(require, exports, module) {
             branchesTree.setRoot(branchesRoot.children);
         }
         function showCommitters(){
+            if (!ready) return plugin.once("ready", showCommitters);
+            
             if (!committersRoot.children.length) {
                 var data = lastData;
                 var users = {}, emails = {};
@@ -828,12 +848,15 @@ define(function(require, exports, module) {
                     return console.error(err);
                 }
                 
+                ready = true;
                 loadBranches(lastData);
                 
                 if (displayMode == "branches")
                     showBranches();
                 else
                     showCommitters();
+                    
+                emit("ready");
             });
         }
         
@@ -860,6 +883,14 @@ define(function(require, exports, module) {
         plugin.on("unload", function(){
             loaded = false;
             drawn = false;
+            ready = false;
+            nodeRemote = null;
+            branchesTree = null;
+            lastData = null;
+            displayMode = null;
+            mnuSettings = null;
+            btnSettings = null;
+            // workspaceDir = c9.workspaceDir;
         });
         
         /***** Register and define API *****/
