@@ -140,7 +140,9 @@ define(function(require, exports, module) {
                 singleline: "true",
                 style: "flex:1"
             });
-            var container = new ui.bar({ anchors: "47 0 0 0" });
+            var container = new ui.bar({ 
+                style: "position:absolute;left:0;right:0;bottom:0;top:47px;"
+            });
             var button = new ui.button({
                 caption: "Branches",
                 skin: "btn-switcher",
@@ -392,6 +394,9 @@ define(function(require, exports, module) {
                     return children.sort(function(a, b) {
                         if (a.isFolder) return 0;
                         
+                        if (a.path == CURBRANCH) return -1;
+                        if (b.path == CURBRANCH) return 1;
+                        
                         if (a.authorname && !b.authorname)
                             return -1;
                         if (b.authorname && !a.authorname)
@@ -550,11 +555,23 @@ define(function(require, exports, module) {
             mnuSettings = new Menu({ items: [
                 new MenuItem({ caption: "Refresh", onclick: refresh }, plugin),
                 new Divider(),
-                new MenuItem({ caption: "Remove All Local Merged Branches", onclick: function(){  alert("Not Implemented"); } }, plugin),
-                new MenuItem({ caption: "Remove All Remote Merged Branches", onclick: function(){  alert("Not Implemented"); } }, plugin), // https://gist.github.com/schacon/942899
+                new MenuItem({ caption: "Remove All Local Merged Branches", onclick: function(){
+                    scm.removeAllLocalMerged(function(){
+                        refresh();
+                    });
+                } }, plugin),
                 new Divider(),
-                new MenuItem({ caption: "Stash Changes", onclick: function(){  alert("Not Implemented"); } }, plugin), // https://gist.github.com/schacon/942899
-                new MenuItem({ caption: "Apply Stash", onclick: function(){  alert("Not Implemented"); } }, plugin), // https://gist.github.com/schacon/942899
+                new MenuItem({ caption: "Clear All Changes", onclick: function(){  
+                    scm.resetHard(function(){});
+                }}, plugin),
+                new MenuItem({ caption: "Stash Changes", onclick: function(){  
+                    scm.stash(function(){
+                        refresh();
+                    });
+                }}, plugin),
+                new MenuItem({ caption: "Apply Stash", onclick: function(){
+                    scm.stashApply(function(){});
+                }}, plugin),
                 new Divider(),
                 new MenuItem({ caption: "Show Author Name", type: "check", checked: "user/scm/@showauthor" }, plugin)
             ]}, plugin);
@@ -883,14 +900,24 @@ define(function(require, exports, module) {
                 // Stash
                 function(){
                     scm.stash(function(err){
-                        if (err) return handleError(err);
+                        if (err) {
+                            return alert("Could Not Stash Branch",
+                                "Received Error While Stashing Changes",
+                                err.message || err);
+                        }
+                        
                         callback();
                     });
                 }, 
                 // Discard
                 function(){
                     scm.resetHard(function(err){
-                        if (err) return handleError(err);
+                        if (err) {
+                            return alert("Could Not Discard Changes",
+                                "Received Error While Discarding Changes",
+                                err.message || err);
+                        }
+                        
                         callback();
                     });
                 }, 

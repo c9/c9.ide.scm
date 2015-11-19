@@ -252,6 +252,24 @@ define(function(require, exports, module) {
             });
         }
         
+        function removeAllLocalMerged(callback){
+            var script = 
+                'git checkout master || { echo "Failed to switch to master. Aborting"; exit 1; }\n'
+                + 'git branch --merged | grep -v "\*" | xargs -n 1 git branch -d';
+            
+            proc.spawn("bash", {
+                args: ["-l", "-c", script],
+                cwd: workspaceDir
+            }, function(e, p) {
+                if (e) return callback(e);
+                
+                buffer(p, function(stdout, stderr){
+                    if (stderr) return callback(stderr);
+                    callback();
+                });
+            });
+        }
+        
         function getStatus(options, cb) {
             var t = Date.now();
             var args = [];
@@ -662,6 +680,11 @@ define(function(require, exports, module) {
             /**
              * 
              */
+            removeAllLocalMerged: removeAllLocalMerged,
+            
+            /**
+             * 
+             */
             stash: stash,
              
             /**
@@ -673,8 +696,6 @@ define(function(require, exports, module) {
              * 
              */
             resetHard: resetHard
-             
-            
         });
         
         register(null, {

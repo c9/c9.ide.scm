@@ -794,6 +794,9 @@ define(function(require, exports, module) {
         function resetHard(callback){
             scm.resetHard(callback);
         }
+        function removeAllLocalMerged(callback){
+            scm.removeAllLocalMerged(callback);
+        }
         
         /***** Lifecycle *****/
         
@@ -914,6 +917,7 @@ define(function(require, exports, module) {
             stash: stash,
             stashApply: stashApply,
             resetHard: resetHard,
+            removeAllLocalMerged: removeAllLocalMerged
             
             // TODO all other functions
         });
