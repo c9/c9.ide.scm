@@ -217,8 +217,10 @@ define(function(require, exports, module) {
             
             mnuCommit.on("show", function(){
                 drawTree(status.$int);
+                reload({ hash: 0, force: true }, function(){
+                    updateStatusMessage();
+                });
                 // updateStatusTree();
-                updateStatusMessage();
             });
             
             // mnuCommit.on("hide", function(){
@@ -288,6 +290,7 @@ define(function(require, exports, module) {
                 scrollMargin: [0, 0],
                 theme: "filetree scmtree",
                 enableDragdrop: true,
+                emptyMessage: "No changes",
             
                 getIconHTML: function(node) {
                     var icon = node.isFolder ? "folder" : "status-icon-" + node.type;
@@ -362,7 +365,8 @@ define(function(require, exports, module) {
                     var nodes = e.selectedNodes;
                     if (e.target == staged) {
                         scm.addFileToStaging(nodes);
-                    } else if (e.target == changed) {
+                    } 
+                    else if (e.target == changed || e.target == untracked) {
                         scm.unstage(nodes);
                     }
                 }   
@@ -404,11 +408,11 @@ define(function(require, exports, module) {
             //     }
             // }, plugin);
             
-            // scm.on("reload", function(options){
-            //     reload(options || { hash: 0, force: true }, function(e, status) {
+            scm.on("reload", function(options){
+                reload(options || { hash: 0, force: true }, function(e, status) {
                     
-            //     });
-            // }, plugin);
+                });
+            }, plugin);
             
             // scm.on("resize", function(){
             //     tree && tree.resize();
@@ -425,8 +429,6 @@ define(function(require, exports, module) {
             //     new MenuItem({ match: "file", caption: "Reveal in File Tree", onclick: reveal }, plugin),
             // ]});
             // opts.aml.setAttribute("contextmenu", menuContext.aml);
-            
-            reload({ hash: 0, force: true }, function(){});
             
             // logTree = new Tree({
             //     container: parentHtml,
@@ -544,7 +546,7 @@ define(function(require, exports, module) {
             label: "ignored",
             className: "heading",
             items: [],
-            isOpen: false,
+            isOpen: true,
             isFolder: true,
             map: {},
             noSelect: true,
@@ -554,7 +556,7 @@ define(function(require, exports, module) {
             label: "untracked",
             className: "heading",
             items: [],
-            isOpen: false,
+            isOpen: true,
             isFolder: true,
             map: {},
             noSelect: true,
@@ -576,121 +578,91 @@ define(function(require, exports, module) {
             if (tree.meta.options.hash == options.hash && tree.meta.options.base == options.base)
                 return;
             
+            options.untracked = "all";
+            
             // TODO: move parsing to git - this is git specific
             scm.getStatus(options, function(e, status) {
                 var root = [];
                 var i, name, x;
-                var twoWay = options.twoWay;
                 
                 status = (status || "").split("\x00");
+                status.shift();
                 console.log(status);
-                if (twoWay) {
-                    status.shift();
-                    changed.items = changed.children = [];
-                    staged.items = staged.children = [];
-                    ignored.items = ignored.children = [];
-                    conflicts.items = conflicts.children = [];
-                    untracked.items = untracked.children = [];
-                    root = {
-                        items: [staged, changed, untracked],
-                        $sorted: true,
-                        isFolder: true
-                    };
-                    for (i = 0; i < status.length; i++) {
-                        x = status[i];
-                        name = x.substr(twoWay ? 3 : 2);
-                        if (!name) continue;
-                        
-                        if (x[0] == "U" || x[1] == "U") {
-                            conflicts.items.push({
-                                label: name,
-                                path: name,
-                                type: x[0] + x[1]
-                            });
-                            continue;
-                        }
-                        if (x[0] == "R") {
-                            i++;
-                            staged.items.push({
-                                label: name,
-                                path: name,
-                                originalPath: status[i],
-                                type: x[0]
-                            });
-                        }
-                        else if (x[0] != " " && x[0] != "?") {
-                            staged.items.push({
-                                label: name,
-                                path: name,
-                                type: x[0]
-                            });
-                        }
-                        if (x[1] == "?") {
-                            untracked.items.push({
-                                label: name,
-                                path: name,
-                                type: x[1],
-                                isFolder: name.slice(-1) == "/"
-                            });
-                        }
-                        if (x[1] == "!") {
-                            ignored.items.push({
-                                label: name,
-                                path: name,
-                                type: x[1],
-                                isFolder: name.slice(-1) == "/"
-                            });
-                        }
-                        else if (x[1] != " ") {
-                            changed.items.push({
-                                label: name,
-                                path: name,
-                                type: x[1]
-                            });
-                        }
-                    }
-                    if (ignored.items.length)
-                        root.items.push(ignored);
-                    if (conflicts.items.length)
-                        root.items.unshift(conflicts);
-                    // label.style.display = "none";
-                } else {
-                    for (i = 0; i < status.length; i += 2) {
-                        x = status[i];
-                        name = status[i + 1];
-                        if (!name) continue;
-                        
-                        if (x[0] == "R") {
-                            i++;
-                            root.push({
-                                label: status[i + 1] + "(from " + name + ")",
-                                path: name,
-                                originalPath: status[i + 1],
-                                type: x[0]
-                            });
-                        } else {
-                            root.push({
-                                label: name,
-                                path: name,
-                                type: x[0]
-                            });
-                        }
-                    }
+                
+                if (status.length == 1 && status[0] == "")
+                    return tree.setRoot(null);
+                
+                changed.items = changed.children = [];
+                staged.items = staged.children = [];
+                ignored.items = ignored.children = [];
+                conflicts.items = conflicts.children = [];
+                untracked.items = untracked.children = [];
+                root = {
+                    items: [staged, changed, untracked],
+                    $sorted: true,
+                    isFolder: true
+                };
+                for (i = 0; i < status.length; i++) {
+                    x = status[i];
+                    name = x.substr(3);
+                    if (!name) continue;
                     
-                    // if (options.commit) {
-                    //     label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span> "
-                    //         + "<span>" + escapeHTML(options.commit.authorname) + "</span>"
-                    //         + "<div>" + escapeHTML(options.commit.label) + "</div>";
-                    // } else {
-                    //     label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span>"
-                    //         + " ... "
-                    //         + "<span class='hash'>" + escapeHTML(options.base) + "</span> ";
-                    // }
-                    // label.style.display = "block";
+                    if (x[0] == "U" || x[1] == "U") {
+                        conflicts.items.push({
+                            label: name,
+                            path: name,
+                            type: x[0] + x[1]
+                        });
+                        continue;
+                    }
+                    if (x[0] == "R") {
+                        i++;
+                        staged.items.push({
+                            label: name,
+                            path: name,
+                            originalPath: status[i],
+                            type: x[0]
+                        });
+                    }
+                    else if (x[0] != " " && x[0] != "?") {
+                        staged.items.push({
+                            label: name,
+                            path: name,
+                            type: x[0]
+                        });
+                    }
+                    if (x[1] == "?") {
+                        untracked.items.push({
+                            label: name,
+                            path: name,
+                            type: x[1],
+                            isFolder: name.slice(-1) == "/"
+                        });
+                    }
+                    else if (x[1] == "!") {
+                        ignored.items.push({
+                            label: name,
+                            path: name,
+                            type: x[1],
+                            isFolder: name.slice(-1) == "/"
+                        });
+                    }
+                    else if (x[1] != " ") {
+                        changed.items.push({
+                            label: name,
+                            path: name,
+                            type: x[1]
+                        });
+                    }
                 }
+                if (ignored.items.length)
+                    root.items.push(ignored);
+                if (conflicts.items.length)
+                    root.items.unshift(conflicts);
+                // label.style.display = "none";
+                    
                 tree.setRoot(root);
                 tree.meta.options = options;
-                tree.model.twoWay = twoWay;
             });
         }
         
@@ -1226,6 +1198,8 @@ define(function(require, exports, module) {
         /**
          */
         plugin.freezePublicAPI({
+            get tree(){ return tree; },
+            
             /**
              * 
              */
