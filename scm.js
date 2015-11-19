@@ -785,6 +785,15 @@ define(function(require, exports, module) {
         function listAllRefs(options, callback){
             scm.listAllRefs(options, callback);
         }
+        function stash(callback){
+            scm.stash(callback);
+        }
+        function stashApply(callback){
+            scm.stashApply(callback);
+        }
+        function resetHard(callback){
+            scm.resetHard(callback);
+        }
         
         /***** Lifecycle *****/
         
@@ -900,7 +909,11 @@ define(function(require, exports, module) {
             /**
              * 
              */
-            resize: resize
+            resize: resize,
+            
+            stash: stash,
+            stashApply: stashApply,
+            resetHard: resetHard,
             
             // TODO all other functions
         });

@@ -1,6 +1,6 @@
 define(function(require, module, exports) {
     main.consumes = ["Dialog", "util"];
-    main.provides = ["dialog.filechange"];
+    main.provides = ["dialog.localchanges"];
     return main;
     
     function main(options, imports, register) {
@@ -12,41 +12,43 @@ define(function(require, module, exports) {
         var plugin = new Dialog("Ajax.org", main.consumes, {
             name: "dialog.localchanges",
             title: "Local changes detected",
-            body: "There are local changes that have not yet been committed. Would you like to stash them, discard them or cancel?",
+            heading: "There are local changes that have not yet been committed.",
+            body: "Would you like to stash them for later use, discard them or cancel?",
             allowClose: true,
             modal: false,
-            width: 600,
+            width: 475,
             elements: [
                 { type: "filler" },
-                { type: "button", id: "keepmine", caption: "Stash", color: "orange" },
-                { type: "button", id: "useremote", caption: "Discard", color: "blue" },
-                { type: "button", id: "mergeboth", caption: "Cancel", "default": true },
+                { type: "button", id: "stash", caption: "Stash", color: "green" },
+                { type: "button", id: "discard", caption: "Discard", color: "red" },
+                { type: "button", id: "cancel", caption: "Cancel", "default": true },
             ]
         });
         
         /***** Methods *****/
         
-        function show(title, header, body, onlocal, onremote, onmerge, options) {
+        function show(changes, onstash, ondiscard, oncancel, options) {
             options = options || {};
             return plugin.queue(function(){
-                plugin.title = title;
-                plugin.heading = util.escapeXml(header);
-                if (body) plugin.body = util.escapeXml(body);
-                
-                var cb = plugin.getElement("applyall");
-                cb.uncheck();
-                cb.setAttribute("visible", options.all !== false);
-                
-                if (options.merge) {
-                    var mergeBoth = plugin.getElement("mergeboth");
-                    if (options.merge.caption) mergeBoth.setAttribute("caption", options.merge.caption);
+                if (changes) {
+                    plugin.body = "These files have been changes\n" 
+                        + util.escapeXml(changes)
+                        + "Would you like to stash them for later use, discard them or cancel?";
                 }
                 
-                
                 plugin.update([
-                    { id: "keepmine",  onclick: function(){ plugin.hide(); onlocal(cb.value); } },
-                    { id: "useremote", onclick: function(){ plugin.hide(); onremote(cb.value); } },
-                    { id: "mergeboth", visible: !!options.merge, onclick: function(){ plugin.hide(); onmerge(cb.value); } }
+                    { id: "cancel", onclick: function(){
+                        plugin.hide(); 
+                        oncancel();
+                    }},
+                    { id: "discard", onclick: function(){
+                        plugin.hide(); 
+                        ondiscard();
+                    }}, 
+                    { id: "stash", onclick: function(){
+                        plugin.hide(); 
+                        onstash();
+                    }}
                 ]);
             });
         }
@@ -54,15 +56,6 @@ define(function(require, module, exports) {
         /***** Register *****/
         
         plugin.freezePublicAPI({
-            /**
-             * 
-             */
-            set all(value) {
-                plugin.update([
-                    { id: "applyall", visible: value}
-                ]);
-            },
-            
             /**
              * 
              */

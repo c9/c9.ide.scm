@@ -182,12 +182,27 @@ define(function(require, exports, module) {
             });
         }
         
-        // error: pathspec 'revert-10609-revert-10468-fix/loading-screen' did not match any file(s) known to git
-        var errors = {};
+        var errors = {
+            detect: function(output){
+                for (var prop in errors) {
+                    var err;
+                    if (prop.substr(0, 2) == "is") {
+                        err = errors[prop](output);
+                        if (err) return err;
+                    }
+                }
+                
+                return false;
+            }
+        };
         [{ 
             name: "LocalChanges", 
             code: 100,
             detect: /Your local changes to the following files would be overwritten/
+        }, {
+            name: "UnknownBranch", 
+            code: 101,
+            detect: /did not match any file\(s\) known to git/
         }].forEach(function(def){
             errors[def.name] = function(msg){ this.message = msg };
             errors[def.name].prototype = new Error();
@@ -195,7 +210,8 @@ define(function(require, exports, module) {
             
             def.error = errors[def.name];
             errors["is" + def.name] = function(output){
-                return output && def.detect.test(output);
+                if (def.detect.test(output))
+                    return new errors[def.name](output);
             };
             
             errors[def.name.toUpperCase()] = def.code;
@@ -204,9 +220,33 @@ define(function(require, exports, module) {
         function checkout(name, callback) {
             name = name.replace(/^refs\/(?:remotes\/[^\/]+|heads)\//, "");
             git(["checkout", "-q", name], function(err, stdout, stderr) {
-                if (errors.isLocalChanges(stderr))
-                    return callback(new errors.LocalChanges(stderr));
+                if (stderr) {
+                    var error = errors.detect(stderr);
+                    if (error)
+                        return callback(error);
+                }
                 
+                if (err || stderr) return callback(err || stderr);
+                return callback();
+            });
+        }
+        
+        function stash(callback) {
+            git(["stash"], function(err, stdout, stderr) {
+                if (err || stderr) return callback(err || stderr);
+                return callback();
+            });
+        }
+        
+        function stashApply(callback) {
+            git(["stash", "apply"], function(err, stdout, stderr) {
+                if (err || stderr) return callback(err || stderr);
+                return callback();
+            });
+        }
+        
+        function resetHard(callback) {
+            git(["reset", "--hard"], function(err, stdout, stderr) {
                 if (err || stderr) return callback(err || stderr);
                 return callback();
             });
@@ -618,6 +658,22 @@ define(function(require, exports, module) {
              * 
              */
             getBlame: getBlame,
+            
+            /**
+             * 
+             */
+            stash: stash,
+             
+            /**
+             * 
+             */
+            stashApply: stashApply,
+             
+            /**
+             * 
+             */
+            resetHard: resetHard
+             
             
         });
         

@@ -3,7 +3,7 @@ define(function(require, exports, module) {
         "Panel", "Menu", "MenuItem", "Divider", "settings", "ui", "c9", 
         "watcher", "panels", "util", "save", "preferences", "commands", "Tree",
         "tabManager", "layout", "preferences.experimental", "scm", "util",
-        "dialog.alert", "dialog.confirm"
+        "dialog.alert", "dialog.confirm", "dialog.localchanges"
     ];
     main.provides = ["scm.branches"];
     return main;
@@ -30,6 +30,7 @@ define(function(require, exports, module) {
         var experimental = imports["preferences.experimental"];
         var alert = imports["dialog.alert"].show;
         var confirm = imports["dialog.confirm"].show;
+        var showLocalChanges = imports["dialog.localchanges"].show;
         
         var async = require("async");
         var timeago = require("timeago");
@@ -552,6 +553,9 @@ define(function(require, exports, module) {
                 new MenuItem({ caption: "Remove All Local Merged Branches", onclick: function(){  alert("Not Implemented"); } }, plugin),
                 new MenuItem({ caption: "Remove All Remote Merged Branches", onclick: function(){  alert("Not Implemented"); } }, plugin), // https://gist.github.com/schacon/942899
                 new Divider(),
+                new MenuItem({ caption: "Stash Changes", onclick: function(){  alert("Not Implemented"); } }, plugin), // https://gist.github.com/schacon/942899
+                new MenuItem({ caption: "Apply Stash", onclick: function(){  alert("Not Implemented"); } }, plugin), // https://gist.github.com/schacon/942899
+                new Divider(),
                 new MenuItem({ caption: "Show Author Name", type: "check", checked: "user/scm/@showauthor" }, plugin)
             ]}, plugin);
             
@@ -875,7 +879,25 @@ define(function(require, exports, module) {
         }
         
         function resolveLocalChanges(callback) {
-            
+            showLocalChanges(null, 
+                // Stash
+                function(){
+                    scm.stash(function(err){
+                        if (err) return handleError(err);
+                        callback();
+                    });
+                }, 
+                // Discard
+                function(){
+                    scm.resetHard(function(err){
+                        if (err) return handleError(err);
+                        callback();
+                    });
+                }, 
+                // Cancel
+                function(){
+                    // Do Nothing
+                })
         }
         
         /***** Lifecycle *****/
