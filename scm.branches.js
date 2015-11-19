@@ -38,6 +38,9 @@ define(function(require, exports, module) {
         
         /*
             TODO:
+            - Add loading state when doing actions on branches
+            - Sort current branch to the top of the list
+            - Sort current user to the top of the list
         */
         
         /***** Initialization *****/
@@ -402,7 +405,7 @@ define(function(require, exports, module) {
                         if (b.authorname && !a.authorname)
                             return 1;
                 
-                        return compare(b.date + "", a.date + "");
+                        return a.date - b.date;
                     });
                 }
             }, plugin);
