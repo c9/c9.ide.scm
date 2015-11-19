@@ -555,13 +555,13 @@ define(function(require, exports, module) {
             mnuSettings = new Menu({ items: [
                 new MenuItem({ caption: "Refresh", onclick: refresh }, plugin),
                 new Divider(),
-                new MenuItem({ caption: "Remove All Local Merged Branches", onclick: function(){
+                new MenuItem({ caption: "Remove Local Merged Branches", onclick: function(){
                     scm.removeAllLocalMerged(function(){
                         refresh();
                     });
                 } }, plugin),
                 new Divider(),
-                new MenuItem({ caption: "Clear All Changes", onclick: function(){  
+                new MenuItem({ caption: "Reset Branch", onclick: function(){  
                     scm.resetHard(function(){});
                 }}, plugin),
                 new MenuItem({ caption: "Stash Changes", onclick: function(){  
