@@ -91,7 +91,7 @@
     background-color: #B1B1B1;
 }
 .ace_button.disabled {
-    color: transparent;
+    display: none !important;
     pointer-events: none;
 }
 
@@ -116,7 +116,8 @@
 
 .conflict-widget-split .ace_button{
     display: inline-block;
-    width: 1.5em;
+    width: 1.85em;
     margin-top: -3px;
     transform: rotate(90deg);
+    text-align: center;
 }
