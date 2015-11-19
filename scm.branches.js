@@ -164,7 +164,16 @@ define(function(require, exports, module) {
             var mnuContext = new Menu({ items: [
                 new MenuItem({ caption: "Checkout Branch", onclick: function(){
                     var node = branchesTree.selectedNode;
-                    scm.checkout(node.path, function(err){
+                    var path = node.path;
+                    
+                    scm.checkout(path, function cb(err){
+                        if (err && err.code == scm.errors.LOCALCHANGES) {
+                            resolveLocalChanges(function(){
+                                scm.checkout(path, cb);
+                            });
+                            return;
+                        }
+                        
                         if (err) {
                             return alert("Could Not Checkout Branch",
                                 "Received Error While Checking out Branch",
@@ -863,6 +872,10 @@ define(function(require, exports, module) {
                     
                 emit("ready");
             });
+        }
+        
+        function resolveLocalChanges(callback) {
+            
         }
         
         /***** Lifecycle *****/

@@ -820,6 +820,11 @@ define(function(require, exports, module) {
             /**
              * 
              */
+            get errors(){ return scm.errors; },
+            
+            /**
+             * 
+             */
             register: registerSCM,
             
             /**

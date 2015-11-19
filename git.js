@@ -182,9 +182,31 @@ define(function(require, exports, module) {
             });
         }
         
+        // error: pathspec 'revert-10609-revert-10468-fix/loading-screen' did not match any file(s) known to git
+        var errors = {};
+        [{ 
+            name: "LocalChanges", 
+            code: 100,
+            detect: /Your local changes to the following files would be overwritten/
+        }].forEach(function(def){
+            errors[def.name] = function(msg){ this.message = msg };
+            errors[def.name].prototype = new Error();
+            errors[def.name].prototype.code = def.code;
+            
+            def.error = errors[def.name];
+            errors["is" + def.name] = function(output){
+                return output && def.detect.test(output);
+            };
+            
+            errors[def.name.toUpperCase()] = def.code;
+        });
+        
         function checkout(name, callback) {
             name = name.replace(/^refs\/(?:remotes\/[^\/]+|heads)\//, "");
             git(["checkout", "-q", name], function(err, stdout, stderr) {
+                if (errors.isLocalChanges(stderr))
+                    return callback(new errors.LocalChanges(stderr));
+                
                 if (err || stderr) return callback(err || stderr);
                 return callback();
             });
@@ -457,6 +479,11 @@ define(function(require, exports, module) {
         /**
          */
         plugin.freezePublicAPI({
+            /**
+             * 
+             */
+            get errors(){ return errors; },
+            
             /**
              * 
              */
