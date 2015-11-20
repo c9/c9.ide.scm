@@ -774,6 +774,9 @@ define(function(require, exports, module) {
         function commit(message, amend, callback){
             scm.commit(message, amend, callback);
         }
+        function reload(){
+            emit("reload");
+        }
         
         /***** Lifecycle *****/
         
@@ -891,6 +894,7 @@ define(function(require, exports, module) {
              */
             resize: resize,
             
+            reload: reload,
             commit: commit,
             stash: stash,
             stashApply: stashApply,

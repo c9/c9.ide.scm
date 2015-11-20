@@ -23,7 +23,7 @@ define(function(require, module, exports) {
             resizable: true
             // elements: []
         });
-        // var emit = plugin.getEmitter();
+        var emit = plugin.getEmitter();
         
         var body, commitBox, ammendCb, commitBtn;
         var scmButtonParent, container, tree;
@@ -121,7 +121,8 @@ define(function(require, module, exports) {
             }, function(err){
                 if (err) return console.error(err);
                 
-                emit("reload");
+                scm.reload();
+                // emit("reload");
                 // getLog();
                 
                 callback && callback();
