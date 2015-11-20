@@ -25,7 +25,7 @@ define(function(require, module, exports) {
         });
         var emit = plugin.getEmitter();
         
-        var body, commitBox, ammendCb, commitBtn;
+        var body, commitBox, ammendCb, commitBtn, onclick;
         var scmButtonParent, container, tree;
         
         function load(){
@@ -70,19 +70,7 @@ define(function(require, module, exports) {
                                     skin: "btn-default-css3",
                                     class: "btn-green",
                                     margin: "5 0 0 0",
-                                    onclick: function() {
-                                        commitBtn.disable();
-                                        commit(commitBox.ace.getValue(), ammendCb.checked, function(err){
-                                            commitBtn.enable();
-                                            
-                                            if (err) 
-                                                return console.error(err);
-                                            
-                                            ammendCb.uncheck();
-                                            commitBox.ace.setValue("");
-                                            plugin.hide();
-                                        });
-                                    }
+                                    onclick: onclick
                                 })
                             ]
                         })
@@ -114,20 +102,7 @@ define(function(require, module, exports) {
         
         /***** Methods *****/
         
-        function commit(message, amend, callback){
-            scm.commit({ 
-                message: message,
-                amend: amend
-            }, function(err){
-                if (err) return console.error(err);
-                
-                scm.reload();
-                // emit("reload");
-                // getLog();
-                
-                callback && callback();
-            });
-        }
+        
         
         /***** Lifecycle *****/
             
@@ -151,7 +126,31 @@ define(function(require, module, exports) {
         
         plugin.freezePublicAPI({
             get tree(){ return tree; },
-            set tree(v){ tree = v; }
+            set tree(v){ tree = v; },
+            
+            get onclick(){ return onclick; },
+            set onclick(v){ onclick = v; },
+            
+            get button(){ return commitBtn; },
+            get message(){ return commitBox.ace.getValue(); },
+            get amend(){ return ammendCb.checked; },
+            
+            enable: function(){
+                ammendCb.enable();
+                commitBox.enable();
+                commitBtn.enable();
+            },
+            
+            disable: function(){
+                ammendCb.disable();
+                commitBox.disable();
+                commitBtn.disable();
+            },
+            
+            clear: function(){
+                ammendCb.uncheck();
+                commitBox.ace.setValue("");
+            }
         });
         
         register("", {

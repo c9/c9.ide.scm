@@ -689,10 +689,11 @@ define(function(require, exports, module) {
             });
         }
         
-        function addAll(){
+        function addAll(callback){
             scm.addAll(function(err){
-                if (err) return console.error(err);
+                if (err) return callback(err);
                 emit("reload");
+                callback();
             });
         }
         function unstageAll(){
@@ -895,6 +896,7 @@ define(function(require, exports, module) {
             resize: resize,
             
             reload: reload,
+            addAll: addAll,
             commit: commit,
             stash: stash,
             stashApply: stashApply,

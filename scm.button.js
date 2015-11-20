@@ -103,7 +103,24 @@ define(function(require, exports, module) {
             
             dialogCommit.once("show", function(){
                 if (!tree) drawTree(status.$int);
+                
+                dialogCommit.button.setCaption(staged.items.length
+                    ? "Commit"
+                    : "Add All and Commit");
             });
+            
+            dialogCommit.onclick = function() {
+                dialogCommit.disable();
+                commit(dialogCommit.message, dialogCommit.amend, function(err){
+                    dialogCommit.enable();
+                    
+                    if (err) 
+                        return console.error(err);
+                    
+                    dialogCommit.clear();
+                    plugin.hide();
+                });
+            };
             
             draw();
         }
@@ -583,7 +600,7 @@ define(function(require, exports, module) {
             if (!tree.meta.options) tree.meta.options = {};
             if (!options.force)
             if (tree.meta.options.hash == options.hash && tree.meta.options.base == options.base)
-                return;
+                return cb(new Error());
             
             options.untracked = "all";
             
@@ -596,8 +613,11 @@ define(function(require, exports, module) {
                 status.shift();
                 console.log(status);
                 
-                if (status.length == 1 && status[0] == "")
-                    return tree.setRoot(null);
+                if (status.length == 1 && status[0] == "") {
+                    tree.setRoot(null);
+                    cb();
+                    return;
+                }
                 
                 changed.items = changed.children = [];
                 staged.items = staged.children = [];
@@ -670,6 +690,42 @@ define(function(require, exports, module) {
                     
                 tree.setRoot(root);
                 tree.meta.options = options;
+                
+                if (dialogCommit.button) 
+                    dialogCommit.button.setCaption(staged.items.length
+                        ? "Commit"
+                        : "Add All and Commit");
+                
+                cb();
+            });
+        }
+        
+        function commit(message, amend, callback){
+            if (!staged.items.length) {
+                scm.addAll(function(err){
+                    if (err) return console.error(err);
+                    
+                    reload({ hash: 0, force: true }, function(e, status) {
+                        if (!staged.items.length)
+                            return callback(new Error("Nothing to do"));
+                        
+                        commit(message, amend, callback);
+                    });
+                });
+                return;
+            }
+            
+            scm.commit({ 
+                message: message,
+                amend: amend
+            }, function(err){
+                if (err) return console.error(err);
+                
+                scm.reload();
+                // emit("reload");
+                // getLog();
+                
+                callback && callback();
             });
         }
         
