@@ -41,6 +41,9 @@ define(function(require, exports, module) {
             - Add loading state when doing actions on branches
             - Sort current branch to the top of the list
             - Sort current user to the top of the list
+            - Do not rename remote branches (single click)
+            - Check out remote branches should show locally
+            - 
         */
         
         /***** Initialization *****/
