@@ -26,7 +26,7 @@ define(function(require, module, exports) {
         var emit = plugin.getEmitter();
         
         var body, commitBox, ammendCb, commitBtn, onclick;
-        var scmButtonParent, container, tree;
+        var container;
         
         function load(){
             commands.addCommand({
@@ -113,23 +113,16 @@ define(function(require, module, exports) {
             draw(options);
         });
         plugin.on("show", function() {
-            scmButtonParent = tree.container.parentNode;
-            container.$int.appendChild(tree.container);
-            
             commitBox.focus();
-        });
-        plugin.on("hide", function() {
-            scmButtonParent.appendChild(tree.container);
         });
         
         /***** Register *****/
         
         plugin.freezePublicAPI({
-            get tree(){ return tree; },
-            set tree(v){ tree = v; },
-            
             get onclick(){ return onclick; },
             set onclick(v){ onclick = v; },
+            
+            get container(){ return container.$int; },
             
             get button(){ return commitBtn; },
             get message(){ return commitBox.ace.getValue(); },

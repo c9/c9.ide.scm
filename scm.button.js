@@ -52,7 +52,7 @@ define(function(require, exports, module) {
         var emit = plugin.getEmitter();
         
         var btnScmClassName = "splitbutton btn-scm";
-        var btnScm, title, tree;
+        var btnScm, title, tree, status;
         var arrayCache = [];
         
         function load() {
@@ -101,12 +101,17 @@ define(function(require, exports, module) {
             //     }
             // }, plugin);
             
-            dialogCommit.once("show", function(){
-                if (!tree) drawTree(status.$int);
+            dialogCommit.on("show", function(){
+                if (!tree) 
+                    drawTree(document.body);
                 
                 dialogCommit.button.setCaption(staged.items.length
                     ? "Commit"
                     : "Add All and Commit");
+                
+                dialogCommit.container.appendChild(tree.container);
+                
+                reload({ hash: 0, force: true }, function(){});
             });
             
             dialogCommit.onclick = function() {
@@ -131,8 +136,6 @@ define(function(require, exports, module) {
             drawn = true;
             
             // ui.insertCss(require("text!./style.css"), options.staticPrefix, plugin);
-            
-            var status;
             
             mnuCommit = new Menu({
                 items: [
@@ -240,6 +243,9 @@ define(function(require, exports, module) {
             
             mnuCommit.on("show", function(){
                 drawTree(status.$int);
+                
+                status.$int.appendChild(tree.container);
+                
                 reload({ hash: 0, force: true }, function(){
                     updateStatusMessage();
                 });
@@ -341,7 +347,6 @@ define(function(require, exports, module) {
                 
                 isLoading: function() {}
             }, plugin);
-            dialogCommit.tree = tree;
             
             // tree.container.style.position = "absolute";
             // tree.container.style.left = "0";
@@ -595,12 +600,22 @@ define(function(require, exports, module) {
             noSelect: true,
             $sorted: true
         };
+        
+        var reloading;
         function reload(options, cb) {
+            if (reloading) return;
+            reloading = true;
+            
+            var callback = function(){
+                reloading = false;
+                cb();
+            }
+            
             if (!options) options = {hash: 0};
             if (!tree.meta.options) tree.meta.options = {};
             if (!options.force)
             if (tree.meta.options.hash == options.hash && tree.meta.options.base == options.base)
-                return cb(new Error());
+                return callback(new Error());
             
             options.untracked = "all";
             
@@ -615,7 +630,7 @@ define(function(require, exports, module) {
                 
                 if (status.length == 1 && status[0] == "") {
                     tree.setRoot(null);
-                    cb();
+                    callback();
                     return;
                 }
                 
@@ -696,7 +711,7 @@ define(function(require, exports, module) {
                         ? "Commit"
                         : "Add All and Commit");
                 
-                cb();
+                callback();
             });
         }
         
