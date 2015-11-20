@@ -346,3 +346,8 @@ body .branch-filter .sbtb_middle{
     border-right: 0;
     border-radius: 3px 0 0 3px !important;
 }
+
+.scm-commit {
+    min-width: 200px !important;
+    min-height: 200px !important;
+}

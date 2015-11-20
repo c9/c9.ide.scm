@@ -217,18 +217,6 @@ define(function(require, exports, module) {
                 group: "scm",
                 exec: function(){ pull({}); }
             }, plugin);
-            
-            commands.addCommand({
-                name: "commit",
-                group: "scm",
-                exec: function(editor, args){ 
-                    if (args.message) commit(args.message, args.amend);
-                    else {
-                        panels.activate("changes");
-                        barCommit.show();
-                    }
-                }
-            }, plugin);
         }
         
         var drawn = false;
@@ -673,20 +661,6 @@ define(function(require, exports, module) {
             });
         }
         
-        function commit(message, amend, callback){
-            scm.commit({ 
-                message: message,
-                amend: amend
-            }, function(err){
-                if (err) return console.error(err);
-                
-                emit("reload");
-                getLog();
-                
-                callback && callback();
-            });
-        }
-        
         function unstage(nodes) {
             // model.root.staging;
             if (!Array.isArray(nodes))
@@ -796,6 +770,9 @@ define(function(require, exports, module) {
         }
         function removeAllLocalMerged(callback){
             scm.removeAllLocalMerged(callback);
+        }
+        function commit(message, amend, callback){
+            scm.commit(message, amend, callback);
         }
         
         /***** Lifecycle *****/
@@ -914,6 +891,7 @@ define(function(require, exports, module) {
              */
             resize: resize,
             
+            commit: commit,
             stash: stash,
             stashApply: stashApply,
             resetHard: resetHard,

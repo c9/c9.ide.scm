@@ -4,7 +4,8 @@ define(function(require, exports, module) {
         "dialog.info", "dialog.confirm", "dialog.error", "fs", "dialog.alert", 
         "Menu", "MenuItem", "Divider", "layout", "Tree", "tabManager", 
         "dialog.question", "dialog.filechange", "tree", "save",
-        "commands", "c9", "scm", "console", "preferences.experimental"
+        "commands", "c9", "scm", "console", "preferences.experimental",
+        "dialog.commit"
     ];
     main.provides = ["scm.button"];
     return main;
@@ -24,6 +25,7 @@ define(function(require, exports, module) {
         var showAlert = imports["dialog.alert"].show;
         var showQuestion = imports["dialog.question"].show;
         var showFileChange = imports["dialog.filechange"].show;
+        var dialogCommit = imports["dialog.commit"];
         var Menu = imports.Menu;
         var MenuItem = imports.MenuItem;
         var Divider = imports.Divider;
@@ -98,6 +100,10 @@ define(function(require, exports, module) {
             //         syncNow();
             //     }
             // }, plugin);
+            
+            dialogCommit.once("show", function(){
+                if (!tree) drawTree(status.$int);
+            });
             
             draw();
         }
@@ -231,10 +237,9 @@ define(function(require, exports, module) {
                 caption: "Commit",
                 skinset: "default",
                 skin: "c9-menu-btn",
-                // icon: "sync.png",
                 submenu: mnuCommit.aml,
                 onclick: function(){
-                    // syncNow();
+                    dialogCommit.show();
                 }
             }), 300, plugin);
             btnScm.$ext.className = btnScmClassName;
@@ -319,6 +324,7 @@ define(function(require, exports, module) {
                 
                 isLoading: function() {}
             }, plugin);
+            dialogCommit.tree = tree;
             
             // tree.container.style.position = "absolute";
             // tree.container.style.left = "0";
@@ -360,6 +366,7 @@ define(function(require, exports, module) {
                     openSelection({ preview: true });
             });
             
+            // TODO: Immediate feedback
             tree.on("drop", function(e) {
                 if (e.target && e.selectedNodes) {
                     var nodes = e.selectedNodes;
