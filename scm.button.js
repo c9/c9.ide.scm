@@ -112,6 +112,10 @@ define(function(require, exports, module) {
                 dialogCommit.container.appendChild(tree.container);
                 
                 reload({ hash: 0, force: true }, function(){});
+                
+                scm.getLastLogMessage(function(err, message){
+                    dialogCommit.lastCommitMessage = err ? "" : message;
+                });
             });
             
             dialogCommit.onclick = function() {
@@ -603,13 +607,18 @@ define(function(require, exports, module) {
         
         var reloading;
         function reload(options, cb) {
-            if (reloading) return;
-            reloading = true;
+            if (reloading) {
+                reloading.push(cb);
+                return;
+            }
+            reloading = [cb];
             
             var callback = function(){
+                for (var i = 0; i < reloading.length; i++) {
+                    reloading[i].apply(this, arguments);
+                }
                 reloading = false;
-                cb();
-            }
+            };
             
             if (!options) options = {hash: 0};
             if (!tree.meta.options) tree.meta.options = {};

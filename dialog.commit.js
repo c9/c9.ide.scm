@@ -26,7 +26,7 @@ define(function(require, module, exports) {
         var emit = plugin.getEmitter();
         
         var body, commitBox, ammendCb, commitBtn, onclick;
-        var container;
+        var container, lastCommitMessage;
         
         function load(){
             commands.addCommand({
@@ -62,7 +62,12 @@ define(function(require, module, exports) {
                                 ammendCb = new ui.checkbox({ 
                                     label: "amend",
                                     skin: "checkbox_black",
-                                    margin: "5 0 0 0"
+                                    margin: "5 0 0 0",
+                                    onafterchange: function(){
+                                        commitBox.ace.setValue(ammendCb.checked
+                                            ? lastCommitMessage || ""
+                                            : "");
+                                    }
                                 }),
                                 new ui.filler(),
                                 commitBtn = new ui.button({
@@ -121,6 +126,14 @@ define(function(require, module, exports) {
         plugin.freezePublicAPI({
             get onclick(){ return onclick; },
             set onclick(v){ onclick = v; },
+            
+            get lastCommitMessage(){ return lastCommitMessage; },
+            set lastCommitMessage(v){ 
+                lastCommitMessage = v;
+                
+                if (ammendCb.checked)
+                    commitBox.ace.setValue(lastCommitMessage);
+            },
             
             get container(){ return container.$int; },
             

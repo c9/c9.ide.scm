@@ -775,6 +775,9 @@ define(function(require, exports, module) {
         function commit(message, amend, callback){
             scm.commit(message, amend, callback);
         }
+        function getLastLogMessage(callback){
+            scm.getLastLogMessage(callback);
+        }
         function reload(){
             emit("reload");
         }
@@ -896,6 +899,7 @@ define(function(require, exports, module) {
             resize: resize,
             
             reload: reload,
+            getLastLogMessage: getLastLogMessage,
             addAll: addAll,
             commit: commit,
             stash: stash,

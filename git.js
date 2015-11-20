@@ -395,6 +395,13 @@ define(function(require, exports, module) {
             });
         }
         
+        function getLastLogMessage(callback){
+            git(["log", "-n", "1", "--pretty=format:%s"], function(err, stdout, stderr) {
+                if (err || stderr) return callback(err || stderr);
+                return callback(null, stdout);
+            });
+        }
+        
         function getFileAtHash(hash, path, cb) {
             var id = hash;
             if (path) {
@@ -691,6 +698,11 @@ define(function(require, exports, module) {
              * 
              */
             stashApply: stashApply,
+             
+            /**
+             * 
+             */
+            getLastLogMessage: getLastLogMessage,
              
             /**
              * 
