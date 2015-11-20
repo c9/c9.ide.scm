@@ -118,7 +118,7 @@ define(function(require, exports, module) {
                         return console.error(err);
                     
                     dialogCommit.clear();
-                    plugin.hide();
+                    dialogCommit.hide();
                 });
             };
             
