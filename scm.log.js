@@ -438,59 +438,30 @@ define(function(require, exports, module) {
             /***** Method *****/
             
             function reload(options, cb) {
-                if (!options) options = {hash: 0};
+                if (!options) options = { hash: 0 };
                 if (!tree.meta.options) tree.meta.options = {};
                 if (!options.force)
-                if (tree.meta.options.hash == options.hash && tree.meta.options.base == options.base)
+                if (tree.meta.options.hash == options.hash 
+                  && tree.meta.options.base == options.base)
                     return;
                 
                 scm.getStatus(options, function(e, status) {
-                    var root = [];
-                    var i, name, x;
-                    // var twoWay = options.twoWay;
+                    if (options.commit) {
+                        label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span> "
+                            + "<span>" + escapeHTML(options.commit.authorname) + "</span>"
+                            + "<div>" + escapeHTML(options.commit.label) + "</div>";
+                    } else {
+                        label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span>"
+                            + " ... "
+                            + "<span class='hash'>" + escapeHTML(options.base) + "</span> ";
+                    }
+                    label.style.display = "block";
                     
-                    status = (status || "").split("\x00");
-                    console.log(status);
-                        for (i = 0; i < status.length; i += 2) {
-                            x = status[i];
-                            name = status[i + 1];
-                            if (!name) continue;
-                            
-                            if (x[0] == "R") {
-                                i++;
-                                root.push({
-                                    label: status[i + 1] + "(from " + name + ")",
-                                    path: name,
-                                    originalPath: status[i + 1],
-                                    type: x[0]
-                                });
-                            } else {
-                                root.push({
-                                    label: name,
-                                    path: name,
-                                    type: x[0]
-                                });
-                            }
-                        }
-                        
-                        if (options.commit) {
-                            label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span> "
-                                + "<span>" + escapeHTML(options.commit.authorname) + "</span>"
-                                + "<div>" + escapeHTML(options.commit.label) + "</div>";
-                        } else {
-                            label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span>"
-                                + " ... "
-                                + "<span class='hash'>" + escapeHTML(options.base) + "</span> ";
-                        }
-                        label.style.display = "block";
-                    
-                    tree.setRoot(root);
+                    tree.setRoot(status.history);
                     tree.select(null);
                     tree.meta.options = options;
-                    // tree.model.twoWay = twoWay;
                 });
             }
-            
             
             /***** Lifecycle *****/
             

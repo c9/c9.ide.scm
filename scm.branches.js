@@ -567,7 +567,7 @@ define(function(require, exports, module) {
                     });
                 } }, plugin),
                 new Divider(),
-                new MenuItem({ caption: "Reset Branch", onclick: function(){  
+                new MenuItem({ caption: "Reset Local Changes", onclick: function(){  
                     scm.resetHard(function(){});
                 }}, plugin),
                 new MenuItem({ caption: "Stash Changes", onclick: function(){  

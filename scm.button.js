@@ -18,7 +18,6 @@ define(function(require, exports, module) {
         var settings = imports.settings;
         var commands = imports.commands;
         var collabWorkspace = imports["collab.workspace"];
-        var sync = imports["salesforce.sync"];
         var showInfo = imports["dialog.info"].show;
         var showError = imports["dialog.error"].show;
         var showConfirm = imports["dialog.confirm"].show;
@@ -163,7 +162,17 @@ define(function(require, exports, module) {
                     new Divider(),
                     
                     new MenuItem({
-                        caption: "Sync Now",
+                        caption: "Sync",
+                        onclick: function() {
+                            sync();
+                        },
+                        isAvailable: function() {
+                            // return sync.isSyncing
+                        }
+                    }),
+                    new MenuItem({
+                        caption: "Abort Syncing",
+                        visible: false,
                         onclick: function() {
                             abortSync();
                         },
@@ -172,9 +181,9 @@ define(function(require, exports, module) {
                         }
                     }),
                     new MenuItem({
-                        caption: "Abort",
+                        caption: "Commit",
                         onclick: function() {
-                            abortSync();
+                            dialogCommit.show();
                         },
                         isAvailable: function() {
                             // return sync.isSyncing
@@ -206,7 +215,17 @@ define(function(require, exports, module) {
                     new MenuItem({
                         caption: "Reset Local Changes...",
                         onclick: function() {
-                            resetHard();
+                            scm.resetHard();
+                        },
+                        isAvailable: function() {
+                            // return collabWorkspace.isAdmin && !sync.isSyncing;
+                        }
+                    }),
+                    
+                    new MenuItem({
+                        caption: "Mark Conflicts As Resolved",
+                        onclick: function() {
+                            
                         },
                         isAvailable: function() {
                             // return collabWorkspace.isAdmin && !sync.isSyncing;
@@ -628,89 +647,26 @@ define(function(require, exports, module) {
             
             options.untracked = "all";
             
-            // TODO: move parsing to git - this is git specific
             scm.getStatus(options, function(e, status) {
-                var root = [];
-                var i, name, x;
-                
-                status = (status || "").split("\x00");
-                status.shift();
-                console.log(status);
-                
-                if (status.length == 1 && status[0] == "") {
+                if (!status) {
                     tree.setRoot(null);
                     callback();
                     return;
                 }
                 
-                changed.items = changed.children = [];
-                staged.items = staged.children = [];
-                ignored.items = ignored.children = [];
-                conflicts.items = conflicts.children = [];
-                untracked.items = untracked.children = [];
-                root = {
+                changed.items = status.changed;
+                staged.items = status.staged;
+                ignored.items = status.ignored;
+                conflicts.items = status.conflicts;
+                untracked.items = status.untracked;
+                
+                var root = {
                     items: [staged, changed, untracked],
                     $sorted: true,
                     isFolder: true
                 };
-                for (i = 0; i < status.length; i++) {
-                    x = status[i];
-                    name = x.substr(3);
-                    if (!name) continue;
-                    
-                    if (x[0] == "U" || x[1] == "U") {
-                        conflicts.items.push({
-                            label: name,
-                            path: name,
-                            type: x[0] + x[1]
-                        });
-                        continue;
-                    }
-                    if (x[0] == "R") {
-                        i++;
-                        staged.items.push({
-                            label: name,
-                            path: name,
-                            originalPath: status[i],
-                            type: x[0]
-                        });
-                    }
-                    else if (x[0] != " " && x[0] != "?") {
-                        staged.items.push({
-                            label: name,
-                            path: name,
-                            type: x[0]
-                        });
-                    }
-                    if (x[1] == "?") {
-                        untracked.items.push({
-                            label: name,
-                            path: name,
-                            type: x[1],
-                            isFolder: name.slice(-1) == "/"
-                        });
-                    }
-                    else if (x[1] == "!") {
-                        ignored.items.push({
-                            label: name,
-                            path: name,
-                            type: x[1],
-                            isFolder: name.slice(-1) == "/"
-                        });
-                    }
-                    else if (x[1] != " ") {
-                        changed.items.push({
-                            label: name,
-                            path: name,
-                            type: x[1]
-                        });
-                    }
-                }
-                if (ignored.items.length)
-                    root.items.push(ignored);
-                if (conflicts.items.length)
-                    root.items.unshift(conflicts);
-                // label.style.display = "none";
+                if (ignored.items.length) root.items.push(ignored);
+                if (conflicts.items.length) root.items.unshift(conflicts);
                     
                 tree.setRoot(root);
                 tree.meta.options = options;

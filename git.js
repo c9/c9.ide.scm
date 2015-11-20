@@ -1,6 +1,6 @@
 define(function(require, exports, module) {
     main.consumes = [
-        "Plugin", "scm", "proc", "c9"
+        "Plugin", "scm", "proc", "c9", "ext"
     ];
     main.provides = ["scm.git"];
     return main;
@@ -9,7 +9,10 @@ define(function(require, exports, module) {
         var Plugin = imports.Plugin;
         var scm = imports.scm;
         var proc = imports.proc;
+        var ext = imports.ext;
         var c9 = imports.c9;
+        
+        var JSONStream = require("json-stream");
         
         var basename = require("path").basename;
         var dirname = require("path").dirname;
@@ -20,6 +23,52 @@ define(function(require, exports, module) {
         // var emit = plugin.getEmitter();
         
         var workspaceDir = c9.workspaceDir;
+        
+        /***** Service *****/
+        
+        var remoteApi;
+        function connect(callback){
+            ext.loadRemotePlugin("scm.git", {
+                code: require("text!./listen-service.js"),
+                redefine: true
+            }, function(err, remote) {
+                if (err)
+                    return console.error(err);
+
+                remoteApi = remote;
+
+                remoteApi.connect(function(err, meta) {
+                    if (err) 
+                        return console.error(err); // this should never happen
+
+                    var stream = new JSONStream(meta.stream);
+                    
+                    stream.on("error", function(err) {
+                        console.error(err);
+                    });
+                        
+                    stream.on("data", function(payload) {
+                        emit("status", { 
+                            message: payload.message,
+                            respond: function(err, message){
+                                stream.write({
+                                    id: payload.id,
+                                    message: message,
+                                    error: err
+                                });
+                            }
+                        });
+                        
+                    });
+
+                    stream.on("close", function(){
+                        load();
+                    });
+                    
+                    emit.sticky("ready");
+                });
+            });
+        }
         
         /***** Methods *****/
         
@@ -321,8 +370,115 @@ define(function(require, exports, module) {
                 }
                 // console.log(err, stdout);
                 // console.log(t-Date.now(), stdout.length);
-                cb(err, stdout);
+                cb(err, parseStatus(stdout, options.twoWay));
             });
+        }
+        
+        function parseStatus(stdout, twoWay) {
+            var status = (stdout || "").split("\x00");
+            var results = {};
+            console.log(status);
+            
+            var i, x, name;
+            if (twoWay) {
+                status.shift();
+                
+                if (status.length == 1 && status[0] == "")
+                    return null;
+                
+                var changed = [];
+                var staged = [];
+                var ignored = [];
+                var conflicts = [];
+                var untracked = [];
+                
+                for (i = 0; i < status.length; i++) {
+                    x = status[i];
+                    name = x.substr(3);
+                    if (!name) continue;
+                    
+                    if (x[0] == "U" || x[1] == "U") {
+                        conflicts.push({
+                            label: name,
+                            path: name,
+                            type: x[0] + x[1]
+                        });
+                        continue;
+                    }
+                    if (x[0] == "R") {
+                        i++;
+                        staged.push({
+                            label: name,
+                            path: name,
+                            originalPath: status[i],
+                            type: x[0]
+                        });
+                    }
+                    else if (x[0] != " " && x[0] != "?") {
+                        staged.push({
+                            label: name,
+                            path: name,
+                            type: x[0]
+                        });
+                    }
+                    if (x[1] == "?") {
+                        untracked.push({
+                            label: name,
+                            path: name,
+                            type: x[1],
+                            isFolder: name.slice(-1) == "/"
+                        });
+                    }
+                    else if (x[1] == "!") {
+                        ignored.push({
+                            label: name,
+                            path: name,
+                            type: x[1],
+                            isFolder: name.slice(-1) == "/"
+                        });
+                    }
+                    else if (x[1] != " ") {
+                        changed.push({
+                            label: name,
+                            path: name,
+                            type: x[1]
+                        });
+                    }
+                }
+                
+                if (changed.length) results["changed"] = changed;
+                if (staged.length) results["staged"] = staged;
+                if (ignored.length) results["ignored"] = ignored;
+                if (conflicts.length) results["conflicts"] = conflicts;
+                if (untracked.length) results["untracked"] = untracked;
+            }
+            else {
+                results.history = [];
+                
+                for (i = 0; i < status.length; i += 2) {
+                    x = status[i];
+                    name = status[i + 1];
+                    if (!name) continue;
+                    
+                    if (x[0] == "R") {
+                        i++;
+                        results.history.push({
+                            label: status[i + 1] + "(from " + name + ")",
+                            path: name,
+                            originalPath: status[i + 1],
+                            type: x[0]
+                        });
+                    } else {
+                        results.history.push({
+                            label: name,
+                            path: name,
+                            type: x[0]
+                        });
+                    }
+                }
+            }
+            
+            return results;
         }
         
         function getLog(options, cb) {
