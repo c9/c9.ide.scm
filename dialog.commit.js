@@ -1,12 +1,11 @@
 define(function(require, module, exports) {
-    main.consumes = ["Dialog", "util", "scm", "ui", "commands"];
+    main.consumes = ["Dialog", "util", "ui", "commands"];
     main.provides = ["dialog.commit"];
     return main;
     
     function main(options, imports, register) {
         var Dialog = imports.Dialog;
         var util = imports.util;
-        var scm = imports.scm;
         var ui = imports.ui;
         var commands = imports.commands;
         

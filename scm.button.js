@@ -30,7 +30,7 @@ define(function(require, exports, module) {
         var Divider = imports.Divider;
         var layout = imports.layout;
         var Tree = imports.Tree;
-        var scm = imports.scm;
+        var scmProvider = imports.scm;
         var save = imports.save;
         var experimental = imports["preferences.experimental"];
         var cnsl = imports.console;
@@ -51,7 +51,7 @@ define(function(require, exports, module) {
         var emit = plugin.getEmitter();
         
         var btnScmClassName = "splitbutton btn-scm";
-        var btnScm, title, tree, status;
+        var btnScm, title, tree, status, scm;
         var arrayCache = [];
         
         function load() {
@@ -104,7 +104,7 @@ define(function(require, exports, module) {
                 if (!tree) 
                     drawTree(document.body);
                 
-                dialogCommit.button.setCaption(staged.items.length
+                dialogCommit.button.setCaption(staged.children.length
                     ? "Commit"
                     : "Add All and Commit");
                 
@@ -130,15 +130,13 @@ define(function(require, exports, module) {
                 });
             };
             
-            draw();
-        }
-        
-        var drawn;
-        function draw(){
-            if (drawn) return;
-            drawn = true;
-            
-            // ui.insertCss(require("text!./style.css"), options.staticPrefix, plugin);
+            scmProvider.on("scm", function(implementation){
+                scm = implementation;
+                
+                scm.on("status", function(e){
+                    updateStatus(e.status);
+                });
+            });
             
             mnuCommit = new Menu({
                 items: [
@@ -416,10 +414,14 @@ define(function(require, exports, module) {
                 if (e.target && e.selectedNodes) {
                     var nodes = e.selectedNodes;
                     if (e.target == staged) {
-                        scm.addFileToStaging(nodes);
+                        scm.addFileToStaging(nodes.map(function(n){
+                            return n.path;
+                        }).filter(Boolean));
                     } 
                     else if (e.target == changed || e.target == untracked) {
-                        scm.unstage(nodes);
+                        scm.unstage(nodes.map(function(n){
+                            return n.path;
+                        }).filter(Boolean));
                     }
                 }   
             });
@@ -557,6 +559,8 @@ define(function(require, exports, module) {
             // sync.on("log", function(e){
             //     updateStatusMessage();
             // }, plugin);
+            
+            emit.sticky("draw");
         }
         
         function updateStatusMessage() {
@@ -579,7 +583,7 @@ define(function(require, exports, module) {
         var changed = {
             label: "unstaged",
             className: "heading",
-            items: [],
+            children: [],
             isOpen: true,
             isFolder: true,
             noSelect: true,
@@ -588,7 +592,7 @@ define(function(require, exports, module) {
         var staged = {
             label: "staged",
             className: "heading",
-            items: [],
+            children: [],
             isOpen: true,
             isFolder: true,
             noSelect: true,
@@ -597,7 +601,7 @@ define(function(require, exports, module) {
         var ignored = {
             label: "ignored",
             className: "heading",
-            items: [],
+            children: [],
             isOpen: true,
             isFolder: true,
             map: {},
@@ -607,7 +611,7 @@ define(function(require, exports, module) {
         var untracked = {
             label: "untracked",
             className: "heading",
-            items: [],
+            children: [],
             isOpen: true,
             isFolder: true,
             map: {},
@@ -617,7 +621,7 @@ define(function(require, exports, module) {
         var conflicts = {
             label: "conflicts",
             className: "heading",
-            items: [],
+            children: [],
             isOpen: true,
             isFolder: true,
             noSelect: true,
@@ -625,68 +629,100 @@ define(function(require, exports, module) {
         };
         
         var reloading;
-        function reload(options, cb) {
-            if (reloading) {
-                reloading.push(cb);
+        function reload(options, cb) { return cb();
+            // if (reloading) {
+            //     reloading.push(cb);
+            //     return;
+            // }
+            // reloading = [cb];
+            
+            // var callback = function(){
+            //     for (var i = 0; i < reloading.length; i++) {
+            //         reloading[i].apply(this, arguments);
+            //     }
+            //     reloading = false;
+            // };
+            
+            // if (!options) options = {hash: 0};
+            // if (!tree.meta.options) tree.meta.options = {};
+            // if (!options.force)
+            // if (tree.meta.options.hash == options.hash && tree.meta.options.base == options.base)
+            //     return callback(new Error());
+            
+            // options.untracked = "all";
+            
+            // scm.getStatus(options, function(e, status) {
+            //     if (!status) {
+            //         tree.setRoot(null);
+            //         callback();
+            //         return;
+            //     }
+                
+            //     changed.children = status.changed;
+            //     staged.children = status.staged;
+            //     ignored.children = status.ignored;
+            //     conflicts.children = status.conflicts;
+            //     untracked.children = status.untracked;
+                
+            //     var root = {
+            //         children: [staged, changed, untracked],
+            //         $sorted: true,
+            //         isFolder: true
+            //     };
+            //     if (ignored.children.length) root.children.push(ignored);
+            //     if (conflicts.children.length) root.children.unshift(conflicts);
+                    
+            //     tree.setRoot(root);
+            //     tree.meta.options = options;
+                
+            //     if (dialogCommit.button) 
+            //         dialogCommit.button.setCaption(staged.children.length
+            //             ? "Commit"
+            //             : "Add All and Commit");
+                
+            //     callback();
+            // });
+        }
+        
+        function updateStatus(status){
+            if (!tree) 
+                return plugin.once("draw", updateStatus.bind(this, status));
+            
+            if (!status) {
+                tree.setRoot(null);
                 return;
             }
-            reloading = [cb];
             
-            var callback = function(){
-                for (var i = 0; i < reloading.length; i++) {
-                    reloading[i].apply(this, arguments);
-                }
-                reloading = false;
+            changed.children = status.changed || [];
+            staged.children = status.staged || [];
+            ignored.children = status.ignored || [];
+            conflicts.children = status.conflicts || [];
+            untracked.children = status.untracked || [];
+            
+            var root = {
+                children: [staged, changed, untracked],
+                $sorted: true,
+                isFolder: true
             };
+            if (ignored.children.length) root.children.push(ignored);
+            if (conflicts.children.length) root.children.unshift(conflicts);
             
-            if (!options) options = {hash: 0};
-            if (!tree.meta.options) tree.meta.options = {};
-            if (!options.force)
-            if (tree.meta.options.hash == options.hash && tree.meta.options.base == options.base)
-                return callback(new Error());
+            tree.setRoot(root);
+            tree.meta.options = options;
             
-            options.untracked = "all";
-            
-            scm.getStatus(options, function(e, status) {
-                if (!status) {
-                    tree.setRoot(null);
-                    callback();
-                    return;
-                }
-                
-                changed.items = status.changed;
-                staged.items = status.staged;
-                ignored.items = status.ignored;
-                conflicts.items = status.conflicts;
-                untracked.items = status.untracked;
-                
-                var root = {
-                    items: [staged, changed, untracked],
-                    $sorted: true,
-                    isFolder: true
-                };
-                if (ignored.items.length) root.items.push(ignored);
-                if (conflicts.items.length) root.items.unshift(conflicts);
-                    
-                tree.setRoot(root);
-                tree.meta.options = options;
-                
-                if (dialogCommit.button) 
-                    dialogCommit.button.setCaption(staged.items.length
-                        ? "Commit"
-                        : "Add All and Commit");
-                
-                callback();
-            });
+            if (dialogCommit.button) 
+                dialogCommit.button.setCaption(staged.children.length
+                    ? "Commit"
+                    : "Add All and Commit");
         }
         
         function commit(message, amend, callback){
-            if (!staged.items.length) {
+            if (!staged.children.length) {
                 scm.addAll(function(err){
                     if (err) return console.error(err);
                     
                     reload({ hash: 0, force: true }, function(e, status) {
-                        if (!staged.items.length)
+                        if (!staged.children.length)
                             return callback(new Error("Nothing to do"));
                         
                         commit(message, amend, callback);
@@ -719,10 +755,10 @@ define(function(require, exports, module) {
         
         // function setConflicts() {
         //     if (!logTree) return sync.conflicts ? true : false;
-        //     conflicts.items.length = 0;		
+        //     conflicts.children.length = 0;		
         //     if (sync.conflicts) { 		
         //         sync.conflicts.forEach(function(x) {		
-        //             conflicts.items.push(x);		
+        //             conflicts.children.push(x);		
         //         });		
         //         return true;		
         //     }		
@@ -733,12 +769,12 @@ define(function(require, exports, module) {
         // function setErrors() {
         //     if (!logTree) return sync.errors ? true : false;
             
-        //     errors.items.length = 0;
+        //     errors.children.length = 0;
             
         //     if (sync.errors) {
         //         if (sync.errors.details)
         //             sync.errors.details.forEach(function(e, i) {
-        //                 errors.items.push(e);
+        //                 errors.children.push(e);
         //             });
         //         return true;
         //     }
@@ -752,11 +788,11 @@ define(function(require, exports, module) {
         //         conflicts, 
         //         errors
         //     ].filter(function(x) {
-        //         return x.items.length;
+        //         return x.children.length;
         //     }));
             
         //     var bar = logTree.container.parentNode.host;
-        //     if (logTree.model.root.items.length) {
+        //     if (logTree.model.root.children.length) {
         //         bar.show();
         //         bar.previousSibling.show();
         //     }
@@ -766,7 +802,7 @@ define(function(require, exports, module) {
         //     }
             
         //     // html.nextSibling.style.display = 
-        //     // html.style.display = logTree.model.root.items.length
+        //     // html.style.display = logTree.model.root.children.length
         //     //     ? "block" : "none";
         // }
         

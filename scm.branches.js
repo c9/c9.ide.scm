@@ -24,7 +24,7 @@ define(function(require, exports, module) {
         // var util = imports.util;
         // var save = imports.save;
         // var layout = imports.layout;
-        var scm = imports.scm;
+        var scmProvider = imports.scm;
         // var prefs = imports.preferences;
         // var commands = imports.commands;
         var experimental = imports["preferences.experimental"];
@@ -76,7 +76,7 @@ define(function(require, exports, module) {
         var displayMode = "branches";
         var mnuSettings, btnSettings;
         // var workspaceDir = c9.workspaceDir; // + "/plugins/c9.ide.scm/mock/git";
-        var ready;
+        var ready, scm;
         
         var loaded = false;
         function load(){
@@ -111,12 +111,18 @@ define(function(require, exports, module) {
                         branchesTree.container.className += " showAuthorName";
                 });
             });
+            
+            scmProvider.on("scm", function(implementation){
+                scm = implementation;
+            });
         }
         
         var drawn = false;
         function draw(opts) {
             if (drawn) return;
             drawn = true;
+            
+            ui.insertCss(require("text!./style.css"), plugin);
             
             var mnuFilter = Menu({ items: [
                 new MenuItem({ type: "radio", caption: "Branches", value: "branches", selected: displayMode == "branches" }),

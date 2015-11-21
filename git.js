@@ -12,15 +12,13 @@ define(function(require, exports, module) {
         var ext = imports.ext;
         var c9 = imports.c9;
         
-        var JSONStream = require("json-stream");
-        
         var basename = require("path").basename;
         var dirname = require("path").dirname;
         
         /***** Initialization *****/
         
         var plugin = new Plugin("Ajax.org", main.consumes);
-        // var emit = plugin.getEmitter();
+        var emit = plugin.getEmitter();
         
         var workspaceDir = c9.workspaceDir;
         
@@ -33,7 +31,7 @@ define(function(require, exports, module) {
                 redefine: true
             }, function(err, remote) {
                 if (err)
-                    return console.error(err);
+                    return callback && callback(err) || console.error(err);
 
                 remoteApi = remote;
 
@@ -41,31 +39,23 @@ define(function(require, exports, module) {
                     if (err) 
                         return console.error(err); // this should never happen
 
-                    var stream = new JSONStream(meta.stream);
+                    var stream = meta.stream;
                     
                     stream.on("error", function(err) {
                         console.error(err);
                     });
-                        
+                    
                     stream.on("data", function(payload) {
                         emit("status", { 
-                            message: payload.message,
-                            respond: function(err, message){
-                                stream.write({
-                                    id: payload.id,
-                                    message: message,
-                                    error: err
-                                });
-                            }
+                            status: parseStatus(payload.status, true),
                         });
-                        
                     });
 
                     stream.on("close", function(){
-                        load();
+                        connect(); // reconnect
                     });
                     
-                    emit.sticky("ready");
+                    callback && callback();
                 });
             });
         }
@@ -320,7 +310,6 @@ define(function(require, exports, module) {
         }
         
         function getStatus(options, cb) {
-            var t = Date.now();
             var args = [];
             var hash = options.hash;
             var base = options.base;
@@ -545,6 +534,7 @@ define(function(require, exports, module) {
                         parents: head
                     });
                     
+                    emit("log", root);
                     cb(null, root);
                 });
                 
@@ -704,6 +694,11 @@ define(function(require, exports, module) {
              * 
              */
             get errors(){ return errors; },
+            
+            /**
+             * 
+             */
+            connect: connect,
             
             /**
              * 
