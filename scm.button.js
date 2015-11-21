@@ -737,7 +737,6 @@ define(function(require, exports, module) {
             }, function(err){
                 if (err) return console.error(err);
                 
-                scm.reload();
                 // emit("reload");
                 // getLog();
                 

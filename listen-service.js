@@ -38,7 +38,7 @@ module.exports = function (vfs, options, register) {
     
     var cache;
     function detectChanges(err, status){
-        if (err) return;
+        if (err || !stream) return;
         
         if (status !== cache) {
             stream.emit("data", { status: status });
