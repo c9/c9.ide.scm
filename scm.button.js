@@ -730,7 +730,11 @@ define(function(require, exports, module) {
                     ? "Commit"
                     : "Add All and Commit");
             
-            updateButton(conflicts.children.length ? "conflict" : "commit");
+            updateButton(conflicts.children.length 
+                ? "conflict" 
+                : (status.changed.length || status.staged.length
+                    ? "commit"
+                    : "sync"));
         }
         
         function updateButton(type){
