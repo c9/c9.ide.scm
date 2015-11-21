@@ -732,7 +732,7 @@ define(function(require, exports, module) {
             
             updateButton(conflicts.children.length 
                 ? "conflict" 
-                : (status.changed.length || status.staged.length
+                : ((status.changed || 0).length || (status.staged || 0).length
                     ? "commit"
                     : "sync"));
         }
