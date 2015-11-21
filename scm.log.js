@@ -24,7 +24,7 @@ define(function(require, exports, module) {
         var cnsl = imports.console;
         var commands = imports.commands;
         var experimental = imports["preferences.experimental"];
-        var scm = imports.scm;
+        var scmProvider = imports.scm;
         
         var GitGraph = require("./log/log");
         
@@ -39,6 +39,7 @@ define(function(require, exports, module) {
             return register(null, { "scm.log": {} });
         
         var extensions = [];
+        var scm;
         
         var handle = editors.register("scmlog", "SCM Log Viewer", LogView, extensions);
         
@@ -68,6 +69,10 @@ define(function(require, exports, module) {
             //         }
             //     }
             // }, handle);
+            
+            scmProvider.on("scm", function(implementation){
+                scm = implementation;
+            });
         });
                           
         function LogView(){
@@ -87,6 +92,10 @@ define(function(require, exports, module) {
                 "dark-gray": "#3D3D3D" 
             };
             
+            scm.on("log", function(node){
+                datagrid.model.loadData(node);
+            }, plugin);
+            
             plugin.on("draw", function(e) {
                 var container = new ui.bar();
                 detail = new ui.bar({
@@ -105,6 +114,11 @@ define(function(require, exports, module) {
                 
                 drawLog(container.$int);
                 drawDetail(detail.$int.lastChild);
+                
+                // TODO move to a better place
+                scm.getLog({}, function(err, root) {
+                    if (err) return console.error(err);
+                });
             });
             
             function drawDetail(parentHtml) {
@@ -244,16 +258,6 @@ define(function(require, exports, module) {
                 //         tree.refresh();
                 //     }
                 // }, plugin);
-                
-                scm.on("reload", function(options){
-                    reload(options || { hash: 0, force: true }, function(e, status) {
-                        
-                    });
-                }, plugin);
-                
-                scm.on("resize", function(){
-                    tree && tree.resize();
-                });
                 
                 plugin.on("select", function(options){
                     if (options && detail.visible) 
@@ -399,10 +403,6 @@ define(function(require, exports, module) {
                 //     }
                 // }, plugin);
                 
-                scm.on("log", function(node){
-                    datagrid.model.loadData(node);
-                }, plugin);
-                    
                     // scm.on("resize", function(){
                     //     tree && datagrid.resize();
                     // });
