@@ -9,6 +9,13 @@ define(function(require, exports, module) {
     ];
     main.provides = ["scm.button"];
     return main;
+    
+    /*
+        TODO:
+        - Test amend
+        - Test nothing to do
+        - Add setting to not depend on the status listener
+    */
 
     function main(options, imports, register) {
         var Plugin = imports.Plugin;
@@ -49,6 +56,13 @@ define(function(require, exports, module) {
         
         var plugin = new Plugin("Ajax.org", main.consumes);
         var emit = plugin.getEmitter();
+        
+        var CAPTION = {
+            "commit": "Commit",
+            "sync": "Sync",
+            "conflict": "Resolve Conflicts",
+            "rebase": "????"
+        }
         
         var btnScmClassName = "splitbutton btn-scm";
         var btnScm, title, tree, status, scm;
@@ -690,6 +704,7 @@ define(function(require, exports, module) {
             
             if (!status) {
                 tree.setRoot(null);
+                updateButton("sync");
                 return;
             }
             
@@ -714,6 +729,12 @@ define(function(require, exports, module) {
                 dialogCommit.button.setCaption(staged.children.length
                     ? "Commit"
                     : "Add All and Commit");
+            
+            updateButton(conflicts.children.length ? "conflict" : "commit");
+        }
+        
+        function updateButton(type){
+            btnScm.setAttribute("caption", CAPTION[type]);
         }
         
         function commit(message, amend, callback){
@@ -721,12 +742,7 @@ define(function(require, exports, module) {
                 scm.addAll(function(err){
                     if (err) return console.error(err);
                     
-                    reload({ hash: 0, force: true }, function(e, status) {
-                        if (!staged.children.length)
-                            return callback(new Error("Nothing to do"));
-                        
-                        commit(message, amend, callback);
-                    });
+                    commit(message, amend, callback);
                 });
                 return;
             }
