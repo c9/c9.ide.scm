@@ -69,7 +69,6 @@ function GitGraph(editor) {
             });
             d.row = i;
         }
-
         
         
         var lines = [];
@@ -116,14 +115,13 @@ function GitGraph(editor) {
                 var p = d.parent2;
                 var k = 0;
                 for (var j = 0; k < p.length; j++) {
-                    while (k < p.length) {
+                    while (k <= p.length) {
                         var parent = p[k];
                         if (parent) {
                             if (parent.row - d.row < MAX_GAP) {
-                                break;
-                            }
-                            if (!parent.firstChild || parent.cogap) {
-                                break;
+                                if (!parent.firstChild /*|| parent.cogap*/) {
+                                    break;
+                                }
                             }
                         }
                         k++;
@@ -184,7 +182,7 @@ function GitGraph(editor) {
 
             var col = d.column;
             var path = lines[col];
-            if (!path || path.last.row > d.row) {
+            if (!path || path.last.row > d.row || path.last.gap) {
                 lines[col] = path = {};
                 path.el = createSvg("path");
                 path.last = d;
@@ -219,6 +217,7 @@ function GitGraph(editor) {
                     var el = createSvg("path");
                     var pathd = lineTo(d, x, -1, "", offset, columnWidth, lineHeight);
                     el.setAttribute("d", pathd);
+                    el.setAttribute("stroke", d.color);
                     lineGroup.appendChild(el);
                     
                     if (!lines[x.column]) {
@@ -256,11 +255,12 @@ function GitGraph(editor) {
                 circle.setAttribute("height", 2 * w);
                 circle.setAttribute("x", x - w);
                 circle.setAttribute("y", y - w);
+                circle.style.opacity = 0.6
             } else {
                 var circle = circleGroup.appendChild(createSvg("circle"));
                 circle.setAttribute("r", config.circleRadius);
                 circle.setAttribute("cx", x);
-                circle.setAttribute("cy", y);            
+                circle.setAttribute("cy", y);
             }
             circle.setAttribute("fill", d.color);
             
