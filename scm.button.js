@@ -317,7 +317,9 @@ define(function(require, exports, module) {
                     if (btnMode == "commit")
                         dialogCommit.show();
                     else if (btnMode == "sync")
-                        sync();
+                        sync(function(){
+                            debugger;
+                        });
                     else if (btnMode == "conflict") {
                         
                     }
