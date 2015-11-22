@@ -57,7 +57,7 @@ define(function(require, exports, module) {
         var cnsl = imports.console;
         var tabManager = imports.tabManager;
         
-        // var async = require("async");
+        var async = require("async");
         var basename = require("path").basename;
         var dirname = require("path").dirname;
         var escapeHTML = require("ace/lib/lang").escapeHTML;
@@ -194,28 +194,18 @@ define(function(require, exports, module) {
                         caption: "Sync",
                         onclick: function() {
                             sync();
-                        },
-                        isAvailable: function() {
-                            // return sync.isSyncing
                         }
                     }),
                     new MenuItem({
-                        caption: "Abort Syncing",
-                        visible: false,
+                        caption: "Push",
                         onclick: function() {
-                            abortSync();
-                        },
-                        isAvailable: function() {
-                            // return sync.isSyncing
+                            push();
                         }
                     }),
                     new MenuItem({
-                        caption: "Commit",
+                        caption: "Pull",
                         onclick: function() {
-                            dialogCommit.show();
-                        },
-                        isAvailable: function() {
-                            // return sync.isSyncing
+                            pull();
                         }
                     }),
                     
@@ -234,7 +224,7 @@ define(function(require, exports, module) {
                     new MenuItem({
                         caption: "Merge Master Into This Branch",
                         onclick: function() {
-                            
+                            mergeMaster();
                         },
                         isAvailable: function() {
                             // return collabWorkspace.isAdmin && sync.conflicts;
@@ -244,20 +234,17 @@ define(function(require, exports, module) {
                     new MenuItem({
                         caption: "Reset Local Changes...",
                         onclick: function() {
-                            scm.resetHard();
-                        },
-                        isAvailable: function() {
-                            // return collabWorkspace.isAdmin && !sync.isSyncing;
+                            resetHard();
                         }
                     }),
                     
                     new MenuItem({
                         caption: "Mark Conflicts As Resolved",
                         onclick: function() {
-                            
+                            markResolved();
                         },
                         isAvailable: function() {
-                            // return collabWorkspace.isAdmin && !sync.isSyncing;
+                            // return collabWorkspace.isAdmin && sync.conflicts;
                         }
                     }),
                     
@@ -317,9 +304,7 @@ define(function(require, exports, module) {
                     if (btnMode == "commit")
                         dialogCommit.show();
                     else if (btnMode == "sync")
-                        sync(function(){
-                            debugger;
-                        });
+                        sync();
                     else if (btnMode == "conflict") {
                         
                     }
@@ -770,13 +755,42 @@ define(function(require, exports, module) {
             btnMode = type;
         }
         
-        function sync(callback){
+        // TODO update UI somehow - maybe big 3 dots from earlier version of salesforce sync button
+        function sync(){
             scm.pull(function(err){
-                if (err) return callback(err); // TODO
+                if (err) return; // TODO
                 
                 scm.push(function(err){
-                    if (err) return callback(err); // TODO
+                    if (err) return; // TODO
                 });
+            });
+        }
+        
+        function push(){
+            scm.push(function(err){
+                if (err) return; // TODO
+            });
+        }
+        function pull(){
+            scm.pull(function(err){
+                if (err) return; // TODO
+            });
+        }
+        function mergeMaster(){
+            scm.pull({ branch: "origin master" }, function(err){
+                if (err) return; // TODO
+            });
+        }
+        function resetHard(){
+            scm.resetHard(function(err){
+                if (err) return; // TODO
+            });
+        }
+        function markResolved(){
+            async.each(conflicts.children, function(n, next){
+                scm.addFileToStaging(n.path, next);
+            }, function(err){
+                if (err) return; // TODO
             });
         }
         
