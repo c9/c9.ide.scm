@@ -178,27 +178,7 @@ define(function(require, exports, module) {
             
             var mnuContext = new Menu({ items: [
                 new MenuItem({ caption: "Checkout Branch", onclick: function(){
-                    var node = branchesTree.selectedNode;
-                    var path = node.path;
-                    
-                    scm.checkout(path, function cb(err){
-                        if (err && err.code == scm.errors.LOCALCHANGES) {
-                            resolveLocalChanges(function(){
-                                scm.checkout(path, cb);
-                            });
-                            return;
-                        }
-                        
-                        if (err) {
-                            return alert("Could Not Checkout Branch",
-                                "Received Error While Checking out Branch",
-                                err.message || err);
-                        }
-                        
-                        CURBRANCH = node.path;
-                        
-                        branchesTree.refresh();
-                    });
+                    checkout(branchesTree.selectedNode);
                 }, isAvailable: function(){
                     return branchesTree.selectedNodes.length == 1
                         && branchesTree.selectedNode.hash;
@@ -442,6 +422,9 @@ define(function(require, exports, module) {
                     node.label = "Show All (" + p.cache.length + ")...";
                     branchesTree.refresh();
                 }
+                else if (node.hash) {
+                    checkout(node);
+                }
             });
             
             branchesTree.on("beforeRename", function(e) {
@@ -620,6 +603,27 @@ define(function(require, exports, module) {
         }
         
         /***** Methods *****/
+        
+        function checkout(node){
+            scm.checkout(node.path, function cb(err){
+                if (err && err.code == scm.errors.LOCALCHANGES) {
+                    resolveLocalChanges(function(){
+                        scm.checkout(node.path, cb);
+                    });
+                    return;
+                }
+                
+                if (err) {
+                    return alert("Could Not Checkout Branch",
+                        "Received Error While Checking out Branch",
+                        err.message || err);
+                }
+                
+                CURBRANCH = node.path;
+                
+                branchesTree.refresh();
+            });
+        }
         
         var recentLocal = {
             label: "recent local branches",

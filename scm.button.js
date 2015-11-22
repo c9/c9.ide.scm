@@ -15,6 +15,17 @@ define(function(require, exports, module) {
         - Test amend
         - Test nothing to do
         - Add setting to not depend on the status listener
+        
+        Add:
+        - Pull / Push
+        - Undo Last Commit
+        - Unstage All
+        - Clean All
+        - On Hover:
+            - Unstage (-)
+            - Stage (+)
+            - Clean (undo)
+            
     */
 
     function main(options, imports, register) {
