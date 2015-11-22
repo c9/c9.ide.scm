@@ -15,6 +15,7 @@ define(function(require, exports, module) {
         - Test amend
         - Test nothing to do
         - Add setting to not depend on the status listener
+        - Cmd-Enter to commit
         
         Add:
         - Pull / Push
@@ -25,7 +26,9 @@ define(function(require, exports, module) {
             - Unstage (-)
             - Stage (+)
             - Clean (undo)
-            
+        
+        BUG:
+        - Why does tree not update after commit (have to wait a while)
     */
 
     function main(options, imports, register) {
@@ -76,6 +79,7 @@ define(function(require, exports, module) {
         }
         
         var btnScmClassName = "splitbutton btn-scm";
+        var btnMode = "commit";
         var btnScm, title, tree, status, scm;
         var arrayCache = [];
         
@@ -162,6 +166,8 @@ define(function(require, exports, module) {
                     updateStatus(e.status);
                 });
             });
+            
+            /**** Main UI ****/
             
             mnuCommit = new Menu({
                 items: [
@@ -308,7 +314,16 @@ define(function(require, exports, module) {
                 skin: "c9-menu-btn",
                 submenu: mnuCommit.aml,
                 onclick: function(){
-                    dialogCommit.show();
+                    if (btnMode == "commit")
+                        dialogCommit.show();
+                    else if (btnMode == "sync")
+                        sync();
+                    else if (btnMode == "conflict") {
+                        
+                    }
+                    else if (btnMode == "rebase") {
+                        
+                    }
                 }
             }), 300, plugin);
             btnScm.$ext.className = btnScmClassName;
@@ -750,6 +765,17 @@ define(function(require, exports, module) {
         
         function updateButton(type){
             btnScm.setAttribute("caption", CAPTION[type]);
+            btnMode = type;
+        }
+        
+        function sync(callback){
+            scm.pull(function(err){
+                if (err) return callback(err); // TODO
+                
+                scm.push(function(err){
+                    if (err) return callback(err); // TODO
+                });
+            });
         }
         
         function commit(message, amend, callback){
