@@ -142,7 +142,9 @@ function GitGraph(editor) {
     };
     
     
-    this.draw = function(start, end) {
+    this.draw = function(start, end, provider) {
+        var columns = provider.columns;
+        
         var config = this.config;
         var lineHeight = config.lineHeight;
         var columnWidth = config.columnWidth;
@@ -270,15 +272,29 @@ function GitGraph(editor) {
                 // p.textContent = d.hash + " " ;
                 p.className = this.getRowClass(d, d.row);
                 p.style.height = this.vsize + "px";
-                if (d.branches) {
-                    var s = document.createElement("span");
-                    s.textContent = d.branches;
-                    s.className = "branch";
-                    p.appendChild(s);
-                }
-                s = document.createElement("span");
+                if (columns) p.style.paddingRight = columns.$fixedWidth;
+                var s = document.createElement("span");
+                s.className = "tree-column";
                 s.textContent = d.row + " " + d.label;
+                if (columns)
+                    s.style.width = columns[0].$width;
+                if (d.branches) {
+                    var b = document.createElement("span");
+                    b.textContent = d.branches;
+                    b.className = "branch";
+                    s.insertBefore(b, s.firstChild);
+                }
                 p.appendChild(s);
+                if (columns) {
+                    for (var col = columns[0].type == "tree" ? 1 : 0; col < columns.length; col++) {
+                        var column = columns[col];
+                        var c = document.createElement("span");
+                        c.className = "tree-column";
+                        c.textContent = column.getText(d);
+                        c.style.width = column.$width;
+                        p.appendChild(c);
+                    }
+                }
                 
                 p.style.marginLeft = (1+d.w) * columnWidth+"px";
                 prevLength = lines.length;
@@ -297,6 +313,25 @@ function GitGraph(editor) {
         
         svg.style.left = (columnWidth / 2) + "px";
         container.appendChild(svg);
+    };
+    
+    
+    this.update = function(config) {
+        var provider = this.provider;
+        var graph = this.graph;
+        
+        var row, html = [], view = config.view, datarow;
+        var firstRow = config.firstRow, lastRow = config.lastRow + 1;
+        var vsize = provider.rowHeightInner || provider.rowHeight;
+        
+        if (firstRow === 0 && lastRow === 0) {
+            this.renderPlaceHolder(provider, html, config);
+        } else {
+            graph.getRowClass = this.getRowClass.bind(this);
+            graph.vsize = vsize;
+            graph.setLineHeight(provider.rowHeight);
+            graph.draw(firstRow, lastRow, provider);
+        }
     };
     
     this.attachToTree = function(tree) {
@@ -328,23 +363,6 @@ function GitGraph(editor) {
         };
     };
     
-    this.update = function(config) {
-        var provider = this.provider;
-        var graph = this.graph;
-        
-        var row, html = [], view = config.view, datarow;
-        var firstRow = config.firstRow, lastRow = config.lastRow + 1;
-        var vsize = provider.rowHeightInner || provider.rowHeight;
-        
-        if (firstRow === 0 && lastRow === 0) {
-            this.renderPlaceHolder(provider, html, config);
-        } else {
-            graph.getRowClass = this.getRowClass.bind(this);
-            graph.vsize = vsize;
-            graph.setLineHeight(provider.rowHeight);
-            graph.draw(firstRow, lastRow);
-        }
-    };
     
 }).call(GitGraph.prototype);
 
