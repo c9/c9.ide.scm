@@ -86,6 +86,9 @@ define(function(require, exports, module) {
         }
         
         function fetch(options, callback){
+            if (typeof options == "function")
+                callback = options, options = {};
+            
             var args = ["fetch"];
             if (options.prune) args.push("--prune");
             if (options.branch) args.push(options.branch);
@@ -93,6 +96,9 @@ define(function(require, exports, module) {
         }
         
         function pull(options, callback){
+            if (typeof options == "function")
+                callback = options, options = {};
+            
             var args = ["pull"];
             if (options.prune) args.push("--prune");
             if (options.branch) args.push(options.branch);
@@ -100,6 +106,9 @@ define(function(require, exports, module) {
         }
         
         function push(options, callback){
+            if (typeof options == "function")
+                callback = options, options = {};
+            
             var args = ["push"];
             if (options.force) args.push("--force");
             if (options.branch) args.push(options.branch);
