@@ -283,6 +283,12 @@ define(function(require, exports, module) {
                     
                     columns : [
                         {
+                            caption: "Commit Message",
+                            value: "label",
+                            width: "100%",
+                            type: "tree"
+                        }, 
+                        {
                             caption: "Date",
                             width: "100",
                             getText: function(node){
@@ -291,15 +297,9 @@ define(function(require, exports, module) {
                         }, 
                         {
                             caption: "User",
-                            value: "test",
+                            value: "authorname",
                             width: "100"
                         },
-                        {
-                            caption: "Commit Message",
-                            value: "label",
-                            width: "100%",
-                            type: "tree"
-                        }, 
                     ],
                 
                     isLoading: function() {},
