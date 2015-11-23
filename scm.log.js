@@ -283,16 +283,12 @@ define(function(require, exports, module) {
                     
                     columns : [
                         {
-                            caption: "Commit Message",
-                            value: "label",
-                            width: "100%",
-                            type: "tree"
-                        }, 
-                        {
                             caption: "Date",
                             width: "100",
                             getText: function(node){
-                                return "Today";
+                                if (!node.$uiDate && node.date)
+                                    node.$uiDate = new Date(parseInt(node.date)*1000).toString("hh:mm dd.MM.yyyy");
+                                return node.$uiDate || "";
                             }
                         }, 
                         {
@@ -300,6 +296,12 @@ define(function(require, exports, module) {
                             value: "authorname",
                             width: "100"
                         },
+                        {
+                            caption: "Commit Message",
+                            value: "label",
+                            width: "100%",
+                            type: "tree"
+                        }, 
                     ],
                 
                     isLoading: function() {},

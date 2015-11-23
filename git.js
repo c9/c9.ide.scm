@@ -531,8 +531,8 @@ define(function(require, exports, module) {
                             label: line[3].substring(0, line[3].indexOf("\n") + 1 || undefined),
                             branches: branches || undefined, // set to undefined to not keep in JSON.stringify
                             authorname: line[4],
-                            authoremail: line[5],
-                            date: line[6],
+                            date: line[5],
+                            authoremail: line[6],
                         });
                     }
                     // console.log(err, x);

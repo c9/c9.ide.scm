@@ -272,12 +272,15 @@ function GitGraph(editor) {
                 // p.textContent = d.hash + " " ;
                 p.className = this.getRowClass(d, d.row);
                 p.style.height = this.vsize + "px";
-                if (columns) p.style.paddingRight = columns.$fixedWidth;
+                var graphW = (1+d.w) * columnWidth;
+                if (columns)
+                    p.style.paddingRight = columns.fixedWidth + graphW + "px";
+                else
+                    p.style.marginLeft = graphW + "px";
                 var s = document.createElement("span");
                 s.className = "tree-column";
                 s.textContent = d.row + " " + d.label;
-                if (columns)
-                    s.style.width = columns[0].$width;
+                    
                 if (d.branches) {
                     var b = document.createElement("span");
                     b.textContent = d.branches;
@@ -286,8 +289,14 @@ function GitGraph(editor) {
                 }
                 p.appendChild(s);
                 if (columns) {
-                    for (var col = columns[0].type == "tree" ? 1 : 0; col < columns.length; col++) {
+                    for (var col = 0; col < columns.length; col++) {
                         var column = columns[col];
+                        if (column.type == "tree") {
+                            p.appendChild(s);
+                            s.style.width = column.$width;
+                            s.style.marginLeft = graphW + "px";
+                            continue;
+                        }
                         var c = document.createElement("span");
                         c.className = "tree-column";
                         c.textContent = column.getText(d);
@@ -296,7 +305,6 @@ function GitGraph(editor) {
                     }
                 }
                 
-                p.style.marginLeft = (1+d.w) * columnWidth+"px";
                 prevLength = lines.length;
                 desc.appendChild(p);
             }
@@ -311,7 +319,7 @@ function GitGraph(editor) {
             }
         });
         
-        svg.style.left = (columnWidth / 2) + "px";
+        svg.style.left = (columnWidth / 2) + (columns ? columns.fixedWidth : 0) + "px";
         container.appendChild(svg);
     };
     
