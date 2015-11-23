@@ -755,7 +755,9 @@ define(function(require, exports, module) {
             btnMode = type;
         }
         
-        // TODO update UI somehow - maybe big 3 dots from earlier version of salesforce sync button
+        // TODO update UI somehow 
+        // - maybe big 3 dots from earlier version of salesforce sync button
+        // + a small dropdown below the button stating what the new hash is
         function sync(){
             scm.pull(function(err){
                 if (err) return; // TODO
