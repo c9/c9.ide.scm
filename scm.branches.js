@@ -219,8 +219,13 @@ define(function(require, exports, module) {
                 }, isAvailable: function(){
                     return branchesTree.selectedNodes.length == 1
                         && branchesTree.selectedNode.hash;
-                } }),
-                new MenuItem({ caption: "Compare With Master" }),
+                }}),
+                new MenuItem({ caption: "Compare", onclick: function(){
+                    showCompareView(branchesTree.selectedNode.path);
+                }, isAvailable: function(){
+                    return branchesTree.selectedNodes.length == 1
+                        && branchesTree.selectedNode.hash;
+                }}),
                 new Divider(),
                 new MenuItem({ caption: "Remove Remote", onclick: function(){
                     var node = branchesTree.selectedNode;
@@ -1084,6 +1089,35 @@ define(function(require, exports, module) {
                 editor.on("ready", function(){
                     editor.showBranch(hash);
                 });
+            });
+        }
+        
+        function showCompareView(path){
+            tabManager.open({
+                newfile: true,
+                value: -1,
+                editorType: "ace",
+                focus: true,
+                document: {
+                    title: "Compare View",
+                    ace: {
+                        customSyntax: "diff"
+                    }
+                }
+                // path: "/compare.diff"
+            }, function(ignore, tab, done){
+                
+                scm.loadDiff({
+                    oldPath: "refs/remotes/origin/master",
+                    newPath: path,
+                    context: false,
+                }, function(err, info){
+                    if (err) return console.error(err); // TODO 
+                
+                    tab.document.value = info.patch;
+                    done();
+                });
+                
             });
         }
         

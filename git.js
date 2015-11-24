@@ -582,11 +582,20 @@ define(function(require, exports, module) {
         
         function loadDiff(options, callback) {
             var req = {};
-            var args = ["diff",  "-U20000", options.oldPath, options.newPath];
-            proc.execFile("git", {
-                args: args,
-                cwd: workspaceDir
-            }, function(err, stdout, stderr) {
+            var args = ["diff"];
+            
+            if (options.context !== false)
+                args.push("-U" + (options.context || 20000))
+            
+            var oldPath = options.oldPath;
+            var newPath = options.newPath;
+            
+            if (!~oldPath.indexOf(":")) oldPath += ":";
+            if (!~newPath.indexOf(":")) newPath += ":";
+            
+            args.push(newPath, oldPath);
+            
+            git(args, function(err, stdout, stderr) {
                 if (err || !stdout) {
                     return getFileAtHash(options.oldPath, "", function(err, orig) {
                         getFileAtHash(options.newPath, "", function(err, edit) {
