@@ -178,21 +178,22 @@ define(function(require, exports, module) {
                 : ICON_PERSON) + displayMode.uCaseFirst() + "<span> </span>";
             
             var mnuContext = new Menu({ items: [
-                new MenuItem({ caption: "Checkout Branch", onclick: function(){
+                new MenuItem({ caption: "Checkout", onclick: function(){
                     checkout(branchesTree.selectedNode);
                 }, isAvailable: function(){
                     return branchesTree.selectedNodes.length == 1
                         && branchesTree.selectedNode.hash;
                 }}),
-                new MenuItem({ caption: "Delete Branch", onclick: function(){
+                new MenuItem({ caption: "Delete", onclick: function(){
                     var nodes = branchesTree.selectedNodes;
                     removeBranches(nodes);
                 }, isAvailable: function(){
-                    return branchesTree.selectedNode 
-                        && branchesTree.selectedNode.hash
-                        && branchesTree.selectedNode.path !== CURBRANCH;
+                    var node = branchesTree.selectedNode;
+                    return node 
+                        && (node.hash && node.path !== CURBRANCH
+                        || node.parent.isRemote ? true : false);
                 }}),
-                new MenuItem({ caption: "Rename Branch", onclick: function(){
+                new MenuItem({ caption: "Rename", onclick: function(){
                     branchesTree.startRename(branchesTree.selectedNode);
                 }, isAvailable: function(){
                     var node = branchesTree.selectedNode;
@@ -225,16 +226,7 @@ define(function(require, exports, module) {
                 }, isAvailable: function(){
                     return branchesTree.selectedNodes.length == 1
                         && branchesTree.selectedNode.hash;
-                }}),
-                new Divider(),
-                new MenuItem({ caption: "Remove Remote", onclick: function(){
-                    var node = branchesTree.selectedNode;
-                    removeRemote(node);
-                }, isAvailable: function(){
-                    var node = branchesTree.selectedNode;
-                    return branchesTree.selectedNodes.length == 1
-                      && node && node.parent.isRemote ? true : false;
-                }}),
+                }})
                 // new Divider(),
                 // new MenuItem({ caption: "Merge Into Current Branch" })
             ]}, plugin);
@@ -933,6 +925,9 @@ define(function(require, exports, module) {
             nodes.forEach(function(node){
                 if (node.path == CURBRANCH) return;
                 
+                if (node.parent.isRemote)
+                    return removeRemote(node);
+                
                 confirm("Delete Branch",
                     "Are you sure you want to delete '" + node.name + "'",
                     "Click OK to delete this branch or click Cancel to cancel this action.",
@@ -1029,20 +1024,26 @@ define(function(require, exports, module) {
         }
         
         function removeRemote(node){
-            scm.removeRemote(node.label, function(err){
-                if (err) {
-                    return alert("Could Not Remove Remote",
-                        "Received Error While Removing Remote",
-                        err.message || err);
-                }
-                
-                delete REMOTES[name];
-                
-                if (node.parent.map)
-                    delete node.parent.map[node.label];
-                node.parent.children.remove(node);
-                branchesTree.refresh();
-            });
+            confirm("Delete Remote",
+                "Are you sure you want to delete '" + node.label + "'",
+                "Click OK to delete this remote or click Cancel to cancel this action.",
+                function(){
+                    scm.removeRemote(node.label, function(err){
+                        if (err) {
+                            return alert("Could Not Remove Remote",
+                                "Received Error While Removing Remote",
+                                err.message || err);
+                        }
+                        
+                        delete REMOTES[name];
+                        
+                        if (node.parent.map)
+                            delete node.parent.map[node.label];
+                        node.parent.children.remove(node);
+                        branchesTree.refresh();
+                    });
+                }, 
+                function(){});
         }
         
         function expand(node){
