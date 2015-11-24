@@ -351,3 +351,11 @@ body .branch-filter .sbtb_middle{
     min-width: 200px !important;
     min-height: 200px !important;
 }
+
+.versionlog .tree-row > .tree-column {
+    padding: 4px 0 4px 7px !important;
+}
+
+.versionlog .tree-headings > .tree-column {
+    padding: 4px 4px 5px 7px;
+}

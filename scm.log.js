@@ -282,15 +282,15 @@ define(function(require, exports, module) {
                 datagrid = new Datagrid({
                     container: parentHtml,
                     scrollMargin: [10, 0],
-                    theme: "blackdg",
+                    theme: "blackdg versionlog",
                     
                     columns : [
                         {
                             caption: "Date",
-                            width: "100",
+                            width: "110",
                             getText: function(node){
                                 if (!node.$uiDate && node.date)
-                                    node.$uiDate = new Date(parseInt(node.date)*1000).toString("hh:mm dd.MM.yyyy");
+                                    node.$uiDate = new Date(parseInt(node.date)*1000).toString("yyyy-MM-dd hh:mm");
                                 return node.$uiDate || "";
                             }
                         }, 
