@@ -3,7 +3,7 @@ define(function(require, exports, module) {
         "Panel", "Menu", "MenuItem", "Divider", "settings", "ui", "c9", 
         "watcher", "panels", "util", "save", "preferences", "commands", "Tree",
         "tabManager", "layout", "preferences.experimental", "scm", "util",
-        "dialog.alert", "dialog.confirm", "dialog.localchanges"
+        "dialog.alert", "dialog.confirm", "dialog.localchanges", "console"
     ];
     main.provides = ["scm.branches"];
     return main;
@@ -17,7 +17,8 @@ define(function(require, exports, module) {
         var settings = imports.settings;
         var ui = imports.ui;
         var c9 = imports.c9;
-        // var tabs = imports.tabManager;
+        var tabManager = imports.tabManager;
+        var cnsl = imports.console;
         // var watcher = imports.watcher;
         var util = imports.util;
         // var panels = imports.panels;
@@ -185,31 +186,11 @@ define(function(require, exports, module) {
                 }}),
                 new MenuItem({ caption: "Delete Branch", onclick: function(){
                     var nodes = branchesTree.selectedNodes;
-                    nodes.forEach(function(node){
-                        confirm("Delete Branch",
-                            "Are you sure you want to delete '" + node.name + "'",
-                            "Click OK to delete this branch or click Cancel to cancel this action.",
-                            function(){
-                                scm.removeBranch(node.path, function(err){
-                                    if (err) {
-                                        return alert("Could Not Remove Branch",
-                                            "Received Error While Removing Branch",
-                                            err.message || err);
-                                    }
-                                    
-                                    if (node.parent.map)
-                                        delete node.parent.map[node.label];
-                                    node.parent.children.remove(node);
-                                    branchesTree.refresh();
-                                    
-                                    refresh();
-                                });
-                            }, 
-                            function(){});
-                    });
+                    removeBranches(nodes);
                 }, isAvailable: function(){
                     return branchesTree.selectedNode 
-                        && branchesTree.selectedNode.hash;
+                        && branchesTree.selectedNode.hash
+                        && branchesTree.selectedNode.path !== CURBRANCH;
                 }}),
                 new MenuItem({ caption: "Rename Branch", onclick: function(){
                     branchesTree.startRename(branchesTree.selectedNode);
@@ -219,56 +200,31 @@ define(function(require, exports, module) {
                       && node.path && node.path.match(/^refs\/heads/);
                 }}),
                 new Divider(),
+                new MenuItem({ caption: "Create Branch", onclick: function(){
+                    newBranch(branchesTree.selectedNode);
+                }, isAvailable: function(){
+                    return branchesTree.selectedNodes.length == 1
+                        && branchesTree.selectedNode.hash;
+                }}),
                 // new MenuItem({ caption: "Create Pull Request" }),
-                new MenuItem({ caption: "New Workspace From This Branch", onclick: function(){
+                new MenuItem({ caption: "Create Workspace", onclick: function(){
                     
                 }, isAvailable: function(){
                     return branchesTree.selectedNodes.length == 1
                         && branchesTree.selectedNode.hash;
                 }}),
-                new MenuItem({ caption: "New Branch From This Branch", onclick: function(){
-                    var node = branchesTree.selectedNode;
-                    scm.addBranch("refs/heads/newbranche", node.path, function(err){
-                        if (err) {
-                            return alert("Could Not Add Branch",
-                                "Received Error While Adding Branch",
-                                err.message || err);
-                        }
-                        
-                        // Todo add branch with info of node
-                        // Todo select New Branch
-                        // Todo start renaming New Branch
-                        // Todo Remove refresh
-                        
-                        refresh();
-                    });
+                new Divider(),
+                new MenuItem({ caption: "Show In Version Log", onclick: function(){
+                    showBranchInLog(branchesTree.selectedNode.hash)
                 }, isAvailable: function(){
                     return branchesTree.selectedNodes.length == 1
                         && branchesTree.selectedNode.hash;
-                }}),
-                new Divider(),
-                new MenuItem({ caption: "Show In Version Log" }),
+                } }),
                 new MenuItem({ caption: "Compare With Master" }),
                 new Divider(),
                 new MenuItem({ caption: "Remove Remote", onclick: function(){
                     var node = branchesTree.selectedNode;
-                    
-                    scm.removeRemote(node.label, function(err){
-                        if (err) {
-                            return alert("Could Not Remove Remote",
-                                "Received Error While Removing Remote",
-                                err.message || err);
-                        }
-                        
-                        delete REMOTES[name];
-                        
-                        if (node.parent.map)
-                            delete node.parent.map[node.label];
-                        node.parent.children.remove(node);
-                        branchesTree.refresh();
-                        
-                        refresh();
-                    });
+                    removeRemote(node);
                 }, isAvailable: function(){
                     var node = branchesTree.selectedNode;
                     return branchesTree.selectedNodes.length == 1
@@ -361,7 +317,7 @@ define(function(require, exports, module) {
                 getEmptyMessage: function(){
                     return branchesTree.filterKeyword
                         ? "No branches found for '" + branchesTree.filterKeyword + "'"
-                        : "Loading...";
+                        : (branchesTree.emptyMessage || "Loading...");
                 },
                 
                 getClassName: function(node) {
@@ -401,26 +357,15 @@ define(function(require, exports, module) {
             
             branchesTree.renderer.scrollBarV.$minWidth = 10;
             
-            branchesTree.emptyMessage = "loading...";
-            
             branchesTree.on("afterChoose", function(e){
                 var node = branchesTree.selectedNode;
                 if (!node) return;
                 
                 if (node.showall) {
-                    var p = node.parent;
-                    p.children = p.children = p.cache;
-                    node.showall = false;
-                    node.label = "Show Less...";
-                    branchesTree.refresh();
+                    expand(node.parent);
                 }
                 else if (node.showall === false) {
-                    var p = node.parent;
-                    p.children = p.children = p.cache.slice(0, p.limit);
-                    p.children.push(node);
-                    node.showall = true;
-                    node.label = "Show All (" + p.cache.length + ")...";
-                    branchesTree.refresh();
+                    collapse(node.parent);
                 }
                 else if (node.hash) {
                     checkout(node);
@@ -442,6 +387,7 @@ define(function(require, exports, module) {
                 scm.renameBranch(e.node.path, newPath, function(err){
                     if (err) return;
                     
+                    e.node.name =
                     e.node.label = e.value;
                     e.node.path = newPath;
                     branchesTree.refresh();
@@ -604,27 +550,6 @@ define(function(require, exports, module) {
         
         /***** Methods *****/
         
-        function checkout(node){
-            scm.checkout(node.path, function cb(err){
-                if (err && err.code == scm.errors.LOCALCHANGES) {
-                    resolveLocalChanges(function(){
-                        scm.checkout(node.path, cb);
-                    });
-                    return;
-                }
-                
-                if (err) {
-                    return alert("Could Not Checkout Branch",
-                        "Received Error While Checking out Branch",
-                        err.message || err);
-                }
-                
-                CURBRANCH = node.path;
-                
-                branchesTree.refresh();
-            });
-        }
-        
         var recentLocal = {
             label: "recent local branches",
             className: "heading first",
@@ -714,51 +639,10 @@ define(function(require, exports, module) {
             });
             root.map = {};
             
-            function isPrimary(path){
-                var primary = ["origin/master"]; //TODO settings.getJson("project/scm/@primary");
-                return ~primary.indexOf(path.replace(/^refs\/remotes\//, ""));
-            }
-            function copyNode(x){
-                var y = util.extend({ className: "root-branch" }, x);
-                y.name = x.path.replace(/^refs\/(?:(?:remotes|tags|heads)\/)?/, "");
-                return y;
-            }
-            
             // Store all branches in all
             data.forEach(function(x) {
-                x.date = parseInt(x.committerdate) * 1000;
-                x.path = x.name;
-                
-                var parts = x.path.replace(/^refs\//, "").split("/");
-                x.name = parts.pop(); // disregard the name
-                
-                if (parts[0] == "remotes") {
-                    if (isPrimary(x.path))
-                        primaryRemote.children.push(copyNode(x));
-                }
-                
-                var node = all;
-                parts.forEach(function(p) {
-                    var items = node.children || (node.children = []);
-                    var map = node.map || (node.map = {});
-                    if (map[p]) node = map[p];
-                    else {
-                        node = map[p] = {
-                            label: p,
-                            path: (node.path || "") + p + "/"
-                        };
-                        if (p == "remotes") {
-                            node.isOpen = true;
-                            node.isRemote = true;
-                            nodeRemote = node;
-                        }
-                        items.push(node);
-                    }
-                });
-                var items = node.children || (node.children = []);
-                var map = node.map || (node.map = {});
-                map[x.name] = x;
-                items.push(x);
+                var parts = parseRawBranch(x);
+                addToAll(parts, x);
             });
             
             // Check for empty remotes
@@ -779,11 +663,7 @@ define(function(require, exports, module) {
             }
             
             // Sort by date
-            data.sort(function(a, b){
-                if (a.date == b.date) return 0;
-                if (a.date < b.date) return 1;
-                if (a.date > b.date) return -1;
-            });
+            data.sort(function(a, b){ return b.date - a.date; });
             
             var local = [], remote = [], threshold = Date.now() - RECENT_THRESHOLD;
             for (var i = 0, l = data.length; i < l; i++) {
@@ -797,30 +677,110 @@ define(function(require, exports, module) {
             
             // TODO add current branch to top of recent local and make bold
             // TODO in committers view move current user to the top and auto expand, show current branch in bold
-            var n;
             
             recentLocal.limit = ITEM_THRESHOLD_LOCAL;
             recentLocal.cache = local;
-            recentLocal.children = 
-            recentLocal.children = local.slice(0, ITEM_THRESHOLD_LOCAL);
-            if (local.length > ITEM_THRESHOLD_LOCAL) {
-                n = { showall: true, label: "Show All (" + local.length + ")..." };
-                recentLocal.children.push(n);
-                local.push(n);
-            }
+            local.sort(function(a, b){ return b.date - a.date; });
             
             recentActive.limit = ITEM_THRESHOLD_REMOTE;
             recentActive.cache = remote;
-            recentActive.children = 
-            recentActive.children = remote.slice(0, ITEM_THRESHOLD_REMOTE);
-            if (remote.length > ITEM_THRESHOLD_REMOTE) {
-                n = { showall: true, label: "Show All (" + remote.length + ")..." };
+            remote.sort(function(a, b){ return b.date - a.date; });
+            
+            updateTreeState();
+        }
+        
+        function isPrimary(path){
+            var primary = ["origin/master"]; //TODO settings.getJson("project/scm/@primary");
+            return ~primary.indexOf(path.replace(/^refs\/remotes\//, ""));
+        }
+        
+        function copyNode(x){
+            var y = util.extend({ className: "root-branch" }, x);
+            y.name = x.path.replace(/^refs\/(?:(?:remotes|tags|heads)\/)?/, "");
+            return y;
+        }
+        
+        function parseRawBranch(x){
+            x.date = parseInt(x.committerdate) * 1000;
+            x.path = x.name;
+            
+            var parts = x.path.replace(/^refs\//, "").split("/");
+            x.name = parts.pop(); // disregard the name
+            
+            if (parts[0] == "remotes") {
+                if (isPrimary(x.path))
+                    primaryRemote.children.push(copyNode(x));
+            }
+            
+            return parts;
+        }
+        
+        function addToAll(parts, x) {
+            var node = all;
+            parts.forEach(function(p) {
+                var items = node.children || (node.children = []);
+                var map = node.map || (node.map = {});
+                if (map[p]) node = map[p];
+                else {
+                    node = map[p] = {
+                        label: p,
+                        path: (node.path || "") + p + "/"
+                    };
+                    if (p == "remotes") {
+                        node.isOpen = true;
+                        node.isRemote = true;
+                        nodeRemote = node;
+                    }
+                    items.push(node);
+                }
+            });
+            var items = node.children || (node.children = []);
+            var map = node.map || (node.map = {});
+            map[x.name] = x;
+            items.push(x);
+        }
+        
+        function updateTreeState(){
+            var n, cur, isOpen, isOverflow, local, remote;
+            
+            local = recentLocal.cache;
+            cur = recentLocal.children;
+            isOpen = cur.length && cur[cur.length - 1].showall === false;
+            isOverflow = local.length > ITEM_THRESHOLD_LOCAL;
+            
+            if (!isOverflow) 
+                recentLocal.children = local.slice();
+            else if (isOpen) {
+                n = { showall: false, label: "Show Less..." };
+                recentLocal.children = local.slice();
+                recentLocal.children.push(n);
+            }
+            else {
+                n = { showall: true, label: "Show All (" + local.length + ")..." };
+                recentLocal.children = local.slice(0, ITEM_THRESHOLD_LOCAL);
+                recentLocal.children.push(n);
+            }
+            
+            remote = recentActive.cache;
+            cur = recentActive.children;
+            isOpen = cur.length && cur[cur.length - 1].showall === false;
+            isOverflow = remote.length > ITEM_THRESHOLD_REMOTE;
+            
+            if (!isOverflow) 
+                recentActive.children = remote.slice();
+            else if (isOpen) {
+                n = { showall: false, label: "Show Less..." };
+                recentActive.children = remote.slice();
                 recentActive.children.push(n);
-                remote.push(n);
+            }
+            else {
+                n = { showall: true, label: "Show All (" + remote.length + ")..." };
+                recentActive.children = remote.slice(0, ITEM_THRESHOLD_REMOTE);
+                recentActive.children.push(n);
             }
             
             // Remove empty blocks
-            root.children = root.children.filter(function(n){
+            branchesRoot.children = branchesRoot.children.filter(function(n){
                 if (n == all) return true;
                 if (n.isPR) return n.children[0].length + n.children[1].length;
                 return n.children.length;
@@ -940,7 +900,191 @@ define(function(require, exports, module) {
                 // Cancel
                 function(){
                     // Do Nothing
-                })
+                });
+        }
+        
+        function checkout(node){
+            scm.checkout(node.path, function cb(err){
+                if (err && err.code == scm.errors.LOCALCHANGES) {
+                    resolveLocalChanges(function(){
+                        scm.checkout(node.path, cb);
+                    });
+                    return;
+                }
+                
+                if (err) {
+                    return alert("Could Not Checkout Branch",
+                        "Received Error While Checking out Branch",
+                        err.message || err);
+                }
+                
+                CURBRANCH = node.path;
+                
+                branchesTree.refresh();
+            });
+        }
+        
+        function removeBranches(nodes){
+            nodes.forEach(function(node){
+                if (node.path == CURBRANCH) return;
+                
+                confirm("Delete Branch",
+                    "Are you sure you want to delete '" + node.name + "'",
+                    "Click OK to delete this branch or click Cancel to cancel this action.",
+                    function(){
+                        scm.removeBranch(node.path, function(err){
+                            if (err) {
+                                return alert("Could Not Remove Branch",
+                                    "Received Error While Removing Branch",
+                                    err.message || err);
+                            }
+                            
+                            if (node.parent.map)
+                                delete node.parent.map[node.label];
+                            if (node.parent.cache)
+                                node.parent.cache.remove(node);
+                            node.parent.children.remove(node);
+                            
+                            updateTreeState();
+                            
+                            branchesTree.refresh();
+                        });
+                    }, 
+                    function(){});
+            });
+        }
+        
+        function findNewName(c){
+            var name = "refs/heads/newbranche" + (c || "");
+            if (all.map.heads.children.some(function(n){ return n.path == name; }))
+                return findNewName(2);
+            return name;
+        }
+        
+        function newBranch(node){
+            var name = findNewName();
+            
+            scm.addBranch(name, node.path, function(err){
+                if (err) {
+                    return alert("Could Not Add Branch",
+                        "Received Error While Adding Branch",
+                        err.message || err);
+                }
+                
+                updateBranch(name, null, function(err, node){
+                    if (err) console.error(err); // TODO
+                    
+                    if (recentLocal.children.indexOf(node) == -1)
+                        expand(recentLocal);
+                    
+                    // Select New Branch
+                    branchesTree.select(node);
+                    
+                    // Start renaming New Branch
+                    branchesTree.startRename();
+                });
+            });
+        }
+        
+        function updateBranch(name, node, callback) {
+            scm.listRef(name, function(err, data){
+                if (err) return callback(err);
+                
+                var parts = parseRawBranch(data);
+                
+                // Existing branch
+                if (node) {
+                    for (var prop in data) {
+                        node[prop] = data[prop];
+                    }
+                }
+                // New branch
+                else {
+                    // Add to all
+                    addToAll(parts, data);
+                    
+                    if (data.date > Date.now() - RECENT_THRESHOLD) {
+                        if (data.path.indexOf("refs/remotes") === 0 && !isPrimary(data.path)) {
+                            recentActive.cache.push(node = copyNode(data));
+                            recentActive.cache.sort(function(a, b){ return b.date - a.date; });
+                        }
+                        else if (data.path.indexOf("refs/heads") === 0) {
+                            recentLocal.cache.push(node = copyNode(data));
+                            recentLocal.cache.sort(function(a, b){ return b.date - a.date; });
+                        }
+                    }
+                    
+                    updateTreeState();
+                }
+                
+                branchesTree.refresh();
+                
+                callback(null, node || data);
+            });
+        }
+        
+        function removeRemote(node){
+            scm.removeRemote(node.label, function(err){
+                if (err) {
+                    return alert("Could Not Remove Remote",
+                        "Received Error While Removing Remote",
+                        err.message || err);
+                }
+                
+                delete REMOTES[name];
+                
+                if (node.parent.map)
+                    delete node.parent.map[node.label];
+                node.parent.children.remove(node);
+                branchesTree.refresh();
+            });
+        }
+        
+        function expand(node){
+            var more = node.children[node.children.length - 1];
+            if (!more || !more.hasOwnProperty("showall")) return;
+            node.children = node.cache.slice();
+            node.children.push(more);
+            more.showall = false;
+            more.label = "Show Less...";
+            branchesTree.refresh();
+        }
+        
+        function collapse(node){
+            var more = node.children[node.children.length - 1];
+            if (!more || !more.hasOwnProperty("showall")) return;
+            node.children = node.cache.slice(0, node.limit);
+            node.children.push(more);
+            more.showall = true;
+            more.label = "Show All (" + node.cache.length + ")...";
+            branchesTree.refresh();
+        }
+        
+        function openLog(callback){
+            var tabs = tabManager.getTabs();
+            var tab;
+            if (tabs.some(function(t){ return (tab = t).editorType == "scmlog"; }))
+                return callback(null, tabManager.focusTab(tab));
+            
+            cnsl.show();
+            tabManager.open({
+                editorType: "scmlog", 
+                focus: true,
+                pane: cnsl.getPanes()[0]
+            }, function(err, tab){
+                callback(err, tab);
+            });
+        }
+        
+        function showBranchInLog(hash) {
+            openLog(function(err, tab){
+                if (err) return;
+                
+                var editor = tab.editor;
+                editor.on("ready", function(){
+                    editor.showBranch(hash);
+                });
+            });
         }
         
         /***** Lifecycle *****/

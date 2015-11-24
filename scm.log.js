@@ -39,7 +39,7 @@ define(function(require, exports, module) {
             return register(null, { "scm.log": {} });
         
         var extensions = [];
-        var scm;
+        var scm, ready;
         
         var handle = editors.register("scmlog", "SCM Log Viewer", LogView, extensions);
         
@@ -118,6 +118,9 @@ define(function(require, exports, module) {
                 // TODO move to a better place
                 scm.getLog({}, function(err, root) {
                     if (err) return console.error(err);
+                    
+                    ready = true;
+                    emit.sticky("ready");
                 });
             });
             
@@ -439,6 +442,19 @@ define(function(require, exports, module) {
             
             /***** Method *****/
             
+            function showBranch(hash) {
+                var node;
+                if (datagrid.model.visibleItems.some(function(b){
+                    if (b.hash == hash) {
+                        node = b;
+                        return true;
+                    }
+                })) {
+                    datagrid.select(node);
+                    datagrid.scrollIntoView(node, 0.5);
+                }
+            }
+            
             function reload(options, cb) {
                 if (!options) options = { hash: 0 };
                 if (!tree.meta.options) tree.meta.options = {};
@@ -494,9 +510,27 @@ define(function(require, exports, module) {
                 datagrid && datagrid.resize();
             });
             
+            plugin.on("focus", function(e) {
+                datagrid && datagrid.focus();
+            });
+            
             /***** Register and define API *****/
             
-            plugin.freezePublicAPI({});
+            plugin.freezePublicAPI({
+                /**
+                 * 
+                 */
+                get ready(){ return ready; },
+                /**
+                 * 
+                 */
+                get tree(){ return tree; },
+                
+                /**
+                 * 
+                 */
+                showBranch: showBranch
+            });
             
             plugin.load(null, "scmlog");
             

@@ -225,8 +225,8 @@ define(function(require, exports, module) {
             git(["branch"], function(err, stdout, stderr) {
                 if (err || stderr) return callback(err || stderr);
                 
-                var current = stdout.match(/^\* ([^\s]+)/m)[1];
-                return callback(null, current);
+                var current = (stdout.match(/^\* ([^\s]+)/m) || 0)[1];
+                return callback(null, current || null);
             });
         }
         
@@ -646,8 +646,9 @@ define(function(require, exports, module) {
             git(args, callback);
         }
         
-        function listAllRefs(cb) {
+        function listAllRefs(cb, name) {
             var args = ["for-each-ref", "--count=3000", "--sort=*objecttype", "--sort=-committerdate"];
+            if (name) args.push(name);
             args.push(
                 '--format=%(objectname:short) %(refname) %(upstream:trackshort) %(objecttype) %(subject) %(authorname) %(authoremail) %(committerdate:raw)'.replace(/ /g, "%00")
             );
@@ -669,6 +670,13 @@ define(function(require, exports, module) {
                 });
                 cb && cb(null, data);
             });
+        }
+        
+        function listRef(name, cb){
+            listAllRefs(function(err, data){
+                if (err) return cb(err);
+                cb(null, data[0]);
+            }, name);
         }
         
         function getBlame(path, callback){
@@ -838,6 +846,11 @@ define(function(require, exports, module) {
              * 
              */
             listAllRefs: listAllRefs,
+            
+            /**
+             * 
+             */
+            listRef: listRef,
             
             /**
              * 

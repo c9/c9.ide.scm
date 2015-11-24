@@ -253,13 +253,7 @@ define(function(require, exports, module) {
                     new MenuItem({
                         caption: "Show Log...",
                         onclick: function() {
-                            // tabManager.openFile("/package.xml", true, function(){});
-                            cnsl.show();
-                            tabManager.open({
-                                editorType: "scmlog", 
-                                focus: true,
-                                pane: cnsl.getPanes()[0]
-                            }, function(){});
+                            openLog();
                         }
                     }),
                     
@@ -711,9 +705,14 @@ define(function(require, exports, module) {
             // });
         }
         
+        var queue;
         function updateStatus(status){
-            if (!tree) 
-                return plugin.once("draw", updateStatus.bind(this, status));
+            if (!tree) {
+                if (!queue)
+                    plugin.once("draw", function(){ updateStatus(queue); });
+                queue = status;
+                return;
+            }
             
             if (!status) {
                 tree.setRoot(null);
@@ -816,6 +815,22 @@ define(function(require, exports, module) {
                 // getLog();
                 
                 callback && callback();
+            });
+        }
+        
+        function openLog(callback){
+            var tabs = tabManager.getTabs();
+            var tab;
+            if (tabs.some(function(t){ return (tab = t).editorType == "scmlog"; }))
+                return tabManager.focusTab(tab);
+            
+            cnsl.show();
+            tabManager.open({
+                editorType: "scmlog", 
+                focus: true,
+                pane: cnsl.getPanes()[0]
+            }, function(err, tab){
+                callback(err, tab);
             });
         }
         
