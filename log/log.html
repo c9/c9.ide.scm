@@ -65,7 +65,7 @@
     <script src="./data.json"></script>
     <script>
         function describe() {}
-        require(["lib/chai/chai", "text!/vfs-root", "ace_tree/tree",
+        require(["lib/chai/chai", "/vfs-root", "ace_tree/tree",
             "ace_tree/data_provider", "plugins/c9.ide.scm/log/log"
         ], function(chai, baseProc, Tree, DataProvider, GitGraph) {
             var expect = require("lib/chai/chai").expect;

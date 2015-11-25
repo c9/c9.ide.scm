@@ -1,6 +1,6 @@
 define(function(require, exports, module) {
     main.consumes = [
-        "Plugin", "scm", "proc", "c9", "ext"
+        "Plugin", "scm", "proc", "c9"
     ];
     main.provides = ["scm.git"];
     return main;
@@ -9,7 +9,6 @@ define(function(require, exports, module) {
         var Plugin = imports.Plugin;
         var scm = imports.scm;
         var proc = imports.proc;
-        var ext = imports.ext;
         var c9 = imports.c9;
         
         var basename = require("path").basename;
@@ -18,47 +17,9 @@ define(function(require, exports, module) {
         /***** Initialization *****/
         
         var plugin = new Plugin("Ajax.org", main.consumes);
-        var emit = plugin.getEmitter();
+        // var emit = plugin.getEmitter();
         
         var workspaceDir = c9.workspaceDir;
-        
-        /***** Service *****/
-        
-        var remoteApi;
-        function connect(callback){
-            ext.loadRemotePlugin("scm.git", {
-                code: require("text!./listen-service.js"),
-                redefine: true
-            }, function(err, remote) {
-                if (err)
-                    return callback && callback(err) || console.error(err);
-
-                remoteApi = remote;
-
-                remoteApi.connect(function(err, meta) {
-                    if (err) 
-                        return console.error(err); // this should never happen
-
-                    var stream = meta.stream;
-                    
-                    stream.on("error", function(err) {
-                        console.error(err);
-                    });
-                    
-                    stream.on("data", function(payload) {
-                        emit("status", { 
-                            status: parseStatus(payload.status, true),
-                        });
-                    });
-
-                    stream.on("close", function(){
-                        connect(); // reconnect
-                    });
-                    
-                    callback && callback();
-                });
-            });
-        }
         
         /***** Methods *****/
         
@@ -86,9 +47,6 @@ define(function(require, exports, module) {
         }
         
         function fetch(options, callback){
-            if (typeof options == "function")
-                callback = options, options = {};
-            
             var args = ["fetch"];
             if (options.prune) args.push("--prune");
             if (options.branch) args.push(options.branch);
@@ -96,9 +54,6 @@ define(function(require, exports, module) {
         }
         
         function pull(options, callback){
-            if (typeof options == "function")
-                callback = options, options = {};
-            
             var args = ["pull"];
             if (options.prune) args.push("--prune");
             if (options.branch) args.push(options.branch);
@@ -106,9 +61,6 @@ define(function(require, exports, module) {
         }
         
         function push(options, callback){
-            if (typeof options == "function")
-                callback = options, options = {};
-            
             var args = ["push"];
             if (options.force) args.push("--force");
             if (options.branch) args.push(options.branch);
@@ -146,179 +98,8 @@ define(function(require, exports, module) {
             });
         }
         
-        function getRemotes(callback){
-            git(["remote", "-v"], function(err, stdout, stderr) {
-                if (err || stderr) return callback(err || stderr);
-                
-                var remotes = {};
-                stdout.split("\n").forEach(function(line){
-                    var parts = line.split(/\s+/);
-                    if (remotes[parts[0]] || !parts[0]) return;
-                    remotes[parts[0]] = parts[1];
-                });
-                
-                callback(null, remotes);
-            });
-        }
-        
-        function addRemote(name, url, callback) {
-            git(["remote", "add", name, url], function(err, stdout, stderr) {
-                if (err || stderr) return callback(err || stderr);
-                return callback();
-            });
-        }
-        
-        function removeRemote(name, callback) {
-            git(["remote", "remove", name], function(err, stdout, stderr) {
-                if (err || stderr) return callback(err || stderr);
-                return callback();
-            });
-        }
-        
-        function addBranch(name, basedOn, callback) {
-            git(["update-ref", name, basedOn], function(err, stdout, stderr) {
-                if (err || stderr) return callback(err || stderr);
-                return callback();
-            });
-        }
-        
-        function removeBranch(name, callback) {
-            // detect remote: git push origin :master
-            var m;
-            if (name.indexOf("refs/heads") === 0 || name.indexOf("refs/tags") === 0) {
-                git(["update-ref", name, "-d"], function(err, stdout, stderr) {
-                    if (err || stderr) return callback(err || stderr);
-                    return callback();
-                });
-            }
-            else if ((m = name.match(/refs\/remotes\/([^\/]+)\/(.*)/))) {
-                git(["push", m[1], ":" + m[2], "-q"], function(err, stdout, stderr) {
-                    // It was already deleted, so intent is success
-                    if (stderr.indexOf("remote ref does not exist") > -1) {
-                        git(["update-ref", name, "-d"], function(err, stdout, stderr) {
-                            if (err || stderr) return callback(err || stderr);
-                            return callback();
-                        });
-                        return;
-                    }
-                    
-                    callback(err || stderr);
-                });
-            }
-            else callback(new Error("Not Supported"));
-        }
-        
-        function renameBranch(fromName, toName, callback) {
-            if (fromName.indexOf("refs/heads") !== 0)
-                return callback(new Error("Unable to rename remote branches"));
-            
-            addBranch(toName, fromName, function(err){
-                if (err) return callback(err);
-                
-                removeBranch(fromName, function(err){
-                    callback(err);
-                });
-            });
-        }
-        
-        function getCurrentBranch(callback) {
-            git(["branch"], function(err, stdout, stderr) {
-                if (err || stderr) return callback(err || stderr);
-                
-                var current = (stdout.match(/^\* ([^\s]+)/m) || 0)[1];
-                return callback(null, current || null);
-            });
-        }
-        
-        var errors = {
-            detect: function(output){
-                for (var prop in errors) {
-                    var err;
-                    if (prop.substr(0, 2) == "is") {
-                        err = errors[prop](output);
-                        if (err) return err;
-                    }
-                }
-                
-                return false;
-            }
-        };
-        [{ 
-            name: "LocalChanges", 
-            code: 100,
-            detect: /Your local changes to the following files would be overwritten/
-        }, {
-            name: "UnknownBranch", 
-            code: 101,
-            detect: /did not match any file\(s\) known to git/
-        }].forEach(function(def){
-            errors[def.name] = function(msg){ this.message = msg };
-            errors[def.name].prototype = new Error();
-            errors[def.name].prototype.code = def.code;
-            
-            def.error = errors[def.name];
-            errors["is" + def.name] = function(output){
-                if (def.detect.test(output))
-                    return new errors[def.name](output);
-            };
-            
-            errors[def.name.toUpperCase()] = def.code;
-        });
-        
-        function checkout(name, callback) {
-            name = name.replace(/^refs\/(?:remotes\/[^\/]+|heads)\//, "");
-            git(["checkout", "-q", name], function(err, stdout, stderr) {
-                if (stderr) {
-                    var error = errors.detect(stderr);
-                    if (error)
-                        return callback(error);
-                }
-                
-                if (err || stderr) return callback(err || stderr);
-                return callback();
-            });
-        }
-        
-        function stash(callback) {
-            git(["stash"], function(err, stdout, stderr) {
-                if (err || stderr) return callback(err || stderr);
-                return callback();
-            });
-        }
-        
-        function stashApply(callback) {
-            git(["stash", "apply"], function(err, stdout, stderr) {
-                if (err || stderr) return callback(err || stderr);
-                return callback();
-            });
-        }
-        
-        function resetHard(callback) {
-            git(["reset", "--hard"], function(err, stdout, stderr) {
-                if (err || stderr) return callback(err || stderr);
-                return callback();
-            });
-        }
-        
-        function removeAllLocalMerged(callback){
-            var script = 
-                'git checkout master || { echo "Failed to switch to master. Aborting"; exit 1; }\n'
-                + 'git branch --merged | grep -v "\*" | xargs -n 1 git branch -d';
-            
-            proc.spawn("bash", {
-                args: ["-l", "-c", script],
-                cwd: workspaceDir
-            }, function(e, p) {
-                if (e) return callback(e);
-                
-                buffer(p, function(stdout, stderr){
-                    if (stderr) return callback(stderr);
-                    callback();
-                });
-            });
-        }
-        
         function getStatus(options, cb) {
+            var t = Date.now();
             var args = [];
             var hash = options.hash;
             var base = options.base;
@@ -368,115 +149,8 @@ define(function(require, exports, module) {
                 }
                 // console.log(err, stdout);
                 // console.log(t-Date.now(), stdout.length);
-                cb(err, parseStatus(stdout, options.twoWay));
+                cb(err, stdout);
             });
-        }
-        
-        function parseStatus(stdout, twoWay) {
-            var status = (stdout || "").split("\x00");
-            var results = {};
-            console.log(status);
-            
-            var i, x, name;
-            if (twoWay) {
-                status.shift();
-                
-                if (status.length == 1 && status[0] == "")
-                    return null;
-                
-                var changed = [];
-                var staged = [];
-                var ignored = [];
-                var conflicts = [];
-                var untracked = [];
-                
-                for (i = 0; i < status.length; i++) {
-                    x = status[i];
-                    name = x.substr(3);
-                    if (!name) continue;
-                    
-                    if (x[0] == "U" || x[1] == "U") {
-                        conflicts.push({
-                            label: name,
-                            path: name,
-                            type: x[0] + x[1]
-                        });
-                        continue;
-                    }
-                    if (x[0] == "R") {
-                        i++;
-                        staged.push({
-                            label: name,
-                            path: name,
-                            originalPath: status[i],
-                            type: x[0]
-                        });
-                    }
-                    else if (x[0] != " " && x[0] != "?") {
-                        staged.push({
-                            label: name,
-                            path: name,
-                            type: x[0]
-                        });
-                    }
-                    if (x[1] == "?") {
-                        untracked.push({
-                            label: name,
-                            path: name,
-                            type: x[1],
-                            isFolder: name.slice(-1) == "/"
-                        });
-                    }
-                    else if (x[1] == "!") {
-                        ignored.push({
-                            label: name,
-                            path: name,
-                            type: x[1],
-                            isFolder: name.slice(-1) == "/"
-                        });
-                    }
-                    else if (x[1] != " ") {
-                        changed.push({
-                            label: name,
-                            path: name,
-                            type: x[1]
-                        });
-                    }
-                }
-                
-                if (changed.length) results["changed"] = changed;
-                if (staged.length) results["staged"] = staged;
-                if (ignored.length) results["ignored"] = ignored;
-                if (conflicts.length) results["conflicts"] = conflicts;
-                if (untracked.length) results["untracked"] = untracked;
-            }
-            else {
-                results.history = [];
-                
-                for (i = 0; i < status.length; i += 2) {
-                    x = status[i];
-                    name = status[i + 1];
-                    if (!name) continue;
-                    
-                    if (x[0] == "R") {
-                        i++;
-                        results.history.push({
-                            label: status[i + 1] + "(from " + name + ")",
-                            path: name,
-                            originalPath: status[i + 1],
-                            type: x[0]
-                        });
-                    } else {
-                        results.history.push({
-                            label: name,
-                            path: name,
-                            type: x[0]
-                        });
-                    }
-                }
-            }
-            
-            return results;
         }
         
         function getLog(options, cb) {
@@ -531,8 +205,8 @@ define(function(require, exports, module) {
                             label: line[3].substring(0, line[3].indexOf("\n") + 1 || undefined),
                             branches: branches || undefined, // set to undefined to not keep in JSON.stringify
                             authorname: line[4],
-                            date: line[5],
-                            authoremail: line[6],
+                            authoremail: line[5],
+                            date: line[6],
                         });
                     }
                     // console.log(err, x);
@@ -543,17 +217,9 @@ define(function(require, exports, module) {
                         parents: head
                     });
                     
-                    emit("log", root);
                     cb(null, root);
                 });
                 
-            });
-        }
-        
-        function getLastLogMessage(callback){
-            git(["log", "-n", "1", "--pretty=format:%s"], function(err, stdout, stderr) {
-                if (err || stderr) return callback(err || stderr);
-                return callback(null, stdout);
             });
         }
         
@@ -582,20 +248,11 @@ define(function(require, exports, module) {
         
         function loadDiff(options, callback) {
             var req = {};
-            var args = ["diff"];
-            
-            if (options.context !== false)
-                args.push("-U" + (options.context || 20000))
-            
-            var oldPath = options.oldPath;
-            var newPath = options.newPath;
-            
-            if (!~oldPath.indexOf(":")) oldPath += ":";
-            if (!~newPath.indexOf(":")) newPath += ":";
-            
-            args.push(newPath, oldPath);
-            
-            git(args, function(err, stdout, stderr) {
+            var args = ["diff",  "-U20000", options.oldPath, options.newPath];
+            proc.execFile("git", {
+                args: args,
+                cwd: workspaceDir
+            }, function(err, stdout, stderr) {
                 if (err || !stdout) {
                     return getFileAtHash(options.oldPath, "", function(err, orig) {
                         getFileAtHash(options.newPath, "", function(err, edit) {
@@ -655,9 +312,8 @@ define(function(require, exports, module) {
             git(args, callback);
         }
         
-        function listAllRefs(cb, name) {
+        function listAllRefs(cb) {
             var args = ["for-each-ref", "--count=3000", "--sort=*objecttype", "--sort=-committerdate"];
-            if (name) args.push(name);
             args.push(
                 '--format=%(objectname:short) %(refname) %(upstream:trackshort) %(objecttype) %(subject) %(authorname) %(authoremail) %(committerdate:raw)'.replace(/ /g, "%00")
             );
@@ -679,13 +335,6 @@ define(function(require, exports, module) {
                 });
                 cb && cb(null, data);
             });
-        }
-        
-        function listRef(name, cb){
-            listAllRefs(function(err, data){
-                if (err) return cb(err);
-                cb(null, data[0]);
-            }, name);
         }
         
         function getBlame(path, callback){
@@ -716,16 +365,6 @@ define(function(require, exports, module) {
         /**
          */
         plugin.freezePublicAPI({
-            /**
-             * 
-             */
-            get errors(){ return errors; },
-            
-            /**
-             * 
-             */
-            connect: connect,
-            
             /**
              * 
              */
@@ -779,46 +418,6 @@ define(function(require, exports, module) {
             /**
              * 
              */
-            getRemotes: getRemotes,
-            
-            /**
-             * 
-             */
-            addRemote: addRemote,
-            
-            /**
-             * 
-             */
-            addBranch: addBranch,
-            
-            /**
-             * 
-             */
-            removeBranch: removeBranch,
-            
-            /**
-             * 
-             */
-            renameBranch: renameBranch,
-            
-            /**
-             * 
-             */
-            getCurrentBranch: getCurrentBranch,
-            
-            /**
-             * 
-             */
-            checkout: checkout,
-            
-            /**
-             * 
-             */
-            removeRemote: removeRemote,
-            
-            /**
-             * 
-             */
             getStatus: getStatus,
             
             /**
@@ -859,37 +458,8 @@ define(function(require, exports, module) {
             /**
              * 
              */
-            listRef: listRef,
-            
-            /**
-             * 
-             */
             getBlame: getBlame,
             
-            /**
-             * 
-             */
-            removeAllLocalMerged: removeAllLocalMerged,
-            
-            /**
-             * 
-             */
-            stash: stash,
-             
-            /**
-             * 
-             */
-            stashApply: stashApply,
-             
-            /**
-             * 
-             */
-            getLastLogMessage: getLastLogMessage,
-             
-            /**
-             * 
-             */
-            resetHard: resetHard
         });
         
         register(null, {

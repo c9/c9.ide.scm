@@ -66,9 +66,10 @@ function GitGraph(editor) {
                 d.parent.firstChild = d;
             d.parent2 = parents.length > 1 && parents.slice(1).map(function(x) {
                 return bySha[x];
-            });
+            })
             d.row = i;
         }
+
         
         
         var lines = [];
@@ -79,7 +80,7 @@ function GitGraph(editor) {
             var emptyLine = lines.length;
             for (var j = 0; j < lines.length; j++) {
                 var path = lines[j];
-                if (!path && emptyLine > j|| path && path.last == d) {
+                if (!path && emptyLine > j) {
                     emptyLine = j;
                 }
                 if (path && path.last.parent == d) {
@@ -88,6 +89,7 @@ function GitGraph(editor) {
                     } else {
                         path.last = d;
                         found = true;
+                        d.row = i;
                         d.column = j;
                         d.color = colors[j%colors.length];
                     }
@@ -103,48 +105,19 @@ function GitGraph(editor) {
                         lines[j] = null;
                 }
             }
-
             if (!found) {
                 lines[emptyLine] = ({
                     last: d
                 });
+                d.row = i;
                 d.column = emptyLine;
                 d.color = colors[emptyLine%colors.length];
             }
-            if (d.parent2) {
-                var p = d.parent2;
-                var k = 0;
-                for (var j = 0; k < p.length; j++) {
-                    while (k <= p.length) {
-                        var parent = p[k];
-                        if (parent) {
-                            if (parent.row - d.row < MAX_GAP) {
-                                if (!parent.firstChild /*|| parent.cogap*/) {
-                                    break;
-                                }
-                            }
-                        }
-                        k++;
-                    }
-                    var path = lines[j];
-                    if (!path && p[k]) {
-                        lines[j] = {
-                            last: p[k]
-                        };
-                        k++;
-                    }
-                }
-            }
-            d.w = lines.length;
-            while (lines[lines.length - 1] === null)
-                lines.length = lines.length -1;
         }
     };
     
     
-    this.draw = function(start, end, provider) {
-        var columns = provider.columns;
-        
+    this.draw = function(start, end) {
         var config = this.config;
         var lineHeight = config.lineHeight;
         var columnWidth = config.columnWidth;
@@ -171,26 +144,18 @@ function GitGraph(editor) {
         
         var offset = start;
         var lines = [], prevLength;
-        start = Math.max(start - MAX_GAP, 0);
+        start = Math.max(start - 2, 0);
         for (var i = start; i < end; i++) {
             var d = data[i];
             
-            if (i == start && !lines[0] && d.column != 0) {
-                lines[0] = path = {};
-                path.el = createSvg("path");
-                path.last = {row: 0, column: 0};
-                path.last.parent = {row: end + MAX_GAP, column: 0};
-            }
-
             var col = d.column;
             var path = lines[col];
-            if (!path || path.last.row > d.row || path.last.gap) {
+            if (!path || path.last.row > d.row) {
                 lines[col] = path = {};
                 path.el = createSvg("path");
                 path.last = d;
             }
             
-
             if (lines.length > prevLength)
                 prevLength = lines.length;
             
@@ -210,7 +175,6 @@ function GitGraph(editor) {
                 lineGroup.appendChild(path.el);
             }
             path.el.setAttribute("d", path.d);
-            path.el.setAttribute("stroke", d.color);
             lineGroup.appendChild(path.el);
             
             if (d.parent2) {
@@ -219,7 +183,6 @@ function GitGraph(editor) {
                     var el = createSvg("path");
                     var pathd = lineTo(d, x, -1, "", offset, columnWidth, lineHeight);
                     el.setAttribute("d", pathd);
-                    el.setAttribute("stroke", d.color);
                     lineGroup.appendChild(el);
                     
                     if (!lines[x.column]) {
@@ -257,12 +220,11 @@ function GitGraph(editor) {
                 circle.setAttribute("height", 2 * w);
                 circle.setAttribute("x", x - w);
                 circle.setAttribute("y", y - w);
-                circle.style.opacity = 0.6
             } else {
                 var circle = circleGroup.appendChild(createSvg("circle"));
                 circle.setAttribute("r", config.circleRadius);
                 circle.setAttribute("cx", x);
-                circle.setAttribute("cy", y);
+                circle.setAttribute("cy", y);            
             }
             circle.setAttribute("fill", d.color);
             
@@ -272,74 +234,34 @@ function GitGraph(editor) {
                 // p.textContent = d.hash + " " ;
                 p.className = this.getRowClass(d, d.row);
                 p.style.height = this.vsize + "px";
-                var graphW = (1+d.w) * columnWidth;
-                if (columns)
-                    p.style.paddingRight = columns.fixedWidth + graphW + "px";
-                else
-                    p.style.marginLeft = graphW + "px";
-                var s = document.createElement("span");
-                s.className = "tree-column";
-                s.textContent = d.row + " " + d.label;
-                    
                 if (d.branches) {
-                    var b = document.createElement("span");
-                    b.textContent = d.branches;
-                    b.className = "branch";
-                    s.insertBefore(b, s.firstChild);
+                    var s = document.createElement("span");
+                    s.textContent = d.branches;
+                    s.className = "branch";
+                    p.appendChild(s);
                 }
+                s = document.createElement("span");
+                s.textContent = d.label;
                 p.appendChild(s);
-                if (columns) {
-                    for (var col = 0; col < columns.length; col++) {
-                        var column = columns[col];
-                        if (column.type == "tree") {
-                            p.appendChild(s);
-                            s.style.width = column.$width;
-                            s.style.marginLeft = graphW + "px";
-                            continue;
-                        }
-                        var c = document.createElement("span");
-                        c.className = "tree-column";
-                        c.textContent = column.getText(d);
-                        c.style.width = column.$width;
-                        p.appendChild(c);
-                    }
-                }
                 
+                p.style.paddingLeft = (Math.max(lines.length, prevLength || 0) + 0)*columnWidth+"px";
                 prevLength = lines.length;
                 desc.appendChild(p);
             }
         }
         
         lines.forEach(function(path) {
-            if (path) {
-                if (path.last.row < end && path.last.parent)                    
-                    path.d = lineTo(path.last, path.last.parent, -1, path.d, offset, columnWidth, lineHeight);
+            if (path) {            
                 path.el.setAttribute("d", path.d);
                 lineGroup.appendChild(path.el);
             }
         });
         
-        svg.style.left = (columnWidth / 2) + (columns ? columns.fixedWidth : 0) + "px";
+        svg.style.left = (columnWidth / 2) + "px";
         container.appendChild(svg);
-    };
-    
-    
-    this.update = function(config) {
-        var provider = this.provider;
-        var graph = this.graph;
         
-        var row, html = [], view = config.view, datarow;
-        var firstRow = config.firstRow, lastRow = config.lastRow + 1;
-        var vsize = provider.rowHeightInner || provider.rowHeight;
-        
-        if (firstRow === 0 && lastRow === 0) {
-            this.renderPlaceHolder(provider, html, config);
-        } else {
-            graph.getRowClass = this.getRowClass.bind(this);
-            graph.vsize = vsize;
-            graph.setLineHeight(provider.rowHeight);
-            graph.draw(firstRow, lastRow, provider);
-        }
+        svg.setAttribute("width", 1000);
+        svg.setAttribute("height", 100*1000);
     };
     
     this.attachToTree = function(tree) {
@@ -371,6 +293,23 @@ function GitGraph(editor) {
         };
     };
     
+    this.update = function(config) {
+        var provider = this.provider;
+        var graph = this.graph;
+        
+        var row, html = [], view = config.view, datarow;
+        var firstRow = config.firstRow, lastRow = config.lastRow + 1;
+        var vsize = provider.rowHeightInner || provider.rowHeight;
+        
+        if (firstRow === 0 && lastRow === 0) {
+            this.renderPlaceHolder(provider, html, config);
+        } else {
+            graph.getRowClass = this.getRowClass.bind(this);
+            graph.vsize = vsize;
+            graph.setLineHeight(provider.rowHeight);
+            graph.draw(firstRow, lastRow);
+        }
+    };
     
 }).call(GitGraph.prototype);
 
@@ -380,29 +319,27 @@ function createSvg(type) {
 }
 
 function lineTo(from, to, curv, path, offset, columnWidth, lineHeight) {
-    var collOffset = 0;
-    var x = (from.column + 0.5 + collOffset) * columnWidth;
+    var x = (from.column + 0.5) * columnWidth;
     var y = (from.row - offset + 0.5) * lineHeight;
     
-    var x1 = (to.column + 0.5 + collOffset) * columnWidth;
+    var x1 = (to.column + 0.5) * columnWidth;
     var y1 = (to.row - offset + 0.5) * lineHeight;
     
     if (!path)
         path = "M " + x + "," + y;
     
-    if (to.row - from.row > MAX_GAP && (from.column != 0 || to.column != 0)) {
+    if (to.row - from.row > MAX_GAP && from.column != 0) {
         if (to.column == from.column) {
             y1 = y + lineHeight / 2;
             x1 = x;
         } else {
-            y1 = y + 0.5 * lineHeight;
-            x1 = x; // x1 > x ? x + 0.5 * columnWidth : x - 0.5 * columnWidth;
+            y1 = y;
+            x1 = x1 > x ? x + 0.5 * columnWidth : x - 0.5 * columnWidth;
             path += " L" + x1 + ',' + y1;
             return path;
         }
     }
     
-    var dr = 4;
     if (x1 == x) {
         if (y1 != y)
             path += " L" + x1 + ',' + y1;
@@ -411,16 +348,16 @@ function lineTo(from, to, curv, path, offset, columnWidth, lineHeight) {
         if (curv > 0) {
             if (y1 - lineHeight > y)
                 path += " L" + x + ',' + (y1 - lineHeight);
-            path += " C" + x + ',' + (y1 - dr)
-                + " " + (x - dr) + ',' + y1
+            path += " C" + x + ',' + (y1 - 5)
+                + " " + (x - 5) + ',' + y1
                 + " " + (x + sign * columnWidth) + ',' + y1;
             if (x1 != x + sign * columnWidth)
                 path += " L" + x1 + ',' + y1;
         } else {
             if (x1 - sign * columnWidth != x)
                 path += " L" + (x1 - sign * columnWidth) + ',' + y;                
-            path += " C" + (x1 - sign * dr) + ',' + y
-                + " " + x1 + ',' + (y + dr)
+            path += " C" + (x1 - sign * 5) + ',' + y
+                + " " + x1 + ',' + (y + 5)
                 + " " + x1 + ',' + (y + lineHeight);
             if (y + lineHeight < y1)
                 path += " L" + x1 + ',' + y1;
@@ -434,4 +371,36 @@ function lineTo(from, to, curv, path, offset, columnWidth, lineHeight) {
 module.exports = GitGraph;
 
 });
+/*
 
+
+
+var config = setConfig(20, 0);
+
+
+
+var colors = config.color_list;
+
+
+
+
+    
+
+
+
+
+setColumns(data);
+draw(0, 1000);
+var o = 0;
+window.addEventListener("wheel", function(e) {
+    console.log(e.deltaY);
+    e.preventDefault();
+    f(e.deltaY);
+});
+var f = function(x) {
+    o += x > 0 ? 3 : -3;
+    draw(o, o + 30);
+};
+detail.addEventListener("mousemove", function(e) {
+   //  console.log(e)
+});*/
