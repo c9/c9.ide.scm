@@ -25,7 +25,7 @@ define(function(require, exports, module) {
         /***** Service *****/
         
         var remoteApi;
-        function connect(callback){
+        function connect(callback){return;
             ext.loadRemotePlugin("scm.git", {
                 code: require("text!./listen-service.js"),
                 redefine: true
