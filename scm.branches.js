@@ -216,7 +216,7 @@ define(function(require, exports, module) {
                 }}),
                 new Divider(),
                 new MenuItem({ caption: "Show In Version Log", onclick: function(){
-                    showBranchInLog(branchesTree.selectedNode.hash)
+                    showBranchInLog(branchesTree.selectedNode)
                 }, isAvailable: function(){
                     return branchesTree.selectedNodes.length == 1
                         && branchesTree.selectedNode.hash;
@@ -245,6 +245,9 @@ define(function(require, exports, module) {
                 getIconHTML: function(node) {
                     if (node.isFolder || !node.path || !node.subject) return "";
                     
+                    if (node.status == "loading")
+                        return "<span class='filetree-icon'></span>";
+                    
                     var icon;
                     if (node.path.indexOf("refs/tags/") === 0)
                         icon = ICON_TAG;
@@ -253,7 +256,7 @@ define(function(require, exports, module) {
                     else
                         icon = ICON_BRANCH; // todo diff between local, remote, stash
                     
-                    return icon;
+                    return "<span class='filetree-icon'>" + icon + "</span>";
                 },
                 
                 getCaptionHTML: function(node) {
@@ -615,7 +618,7 @@ define(function(require, exports, module) {
         var committersRoot = { 
             path: "",
             children: []
-        }
+        };
         
         var nodeRemote;
         function loadBranches(data){
@@ -868,12 +871,13 @@ define(function(require, exports, module) {
             });
         }
         
-        function resolveLocalChanges(callback) {
+        function resolveLocalChanges(callback, onCancel) {
             showLocalChanges(null, 
                 // Stash
                 function(){
                     scm.stash(function(err){
                         if (err) {
+                            onCancel();
                             return alert("Could Not Stash Branch",
                                 "Received Error While Stashing Changes",
                                 err.message || err);
@@ -886,6 +890,7 @@ define(function(require, exports, module) {
                 function(){
                     scm.resetHard(function(err){
                         if (err) {
+                            onCancel();
                             return alert("Could Not Discard Changes",
                                 "Received Error While Discarding Changes",
                                 err.message || err);
@@ -897,17 +902,24 @@ define(function(require, exports, module) {
                 // Cancel
                 function(){
                     // Do Nothing
+                    onCancel();
                 });
         }
         
         function checkout(node){
+            setLoading(node);
+            
             scm.checkout(node.path, function cb(err){
                 if (err && err.code == scm.errors.LOCALCHANGES) {
                     resolveLocalChanges(function(){
                         scm.checkout(node.path, cb);
+                    }, function(){
+                        clearLoading(node);
                     });
                     return;
                 }
+                
+                clearLoading(node);
                 
                 if (err) {
                     return alert("Could Not Checkout Branch",
@@ -932,7 +944,10 @@ define(function(require, exports, module) {
                     "Are you sure you want to delete '" + node.name + "'",
                     "Click OK to delete this branch or click Cancel to cancel this action.",
                     function(){
+                        setLoading(node);
                         scm.removeBranch(node.path, function(err){
+                            clearLoading(node);
+                            
                             if (err) {
                                 return alert("Could Not Remove Branch",
                                     "Received Error While Removing Branch",
@@ -964,21 +979,25 @@ define(function(require, exports, module) {
         function newBranch(node){
             var name = findNewName();
             
+            setLoading(node);
             scm.addBranch(name, node.path, function(err){
                 if (err) {
+                    clearLoading(node);
                     return alert("Could Not Add Branch",
                         "Received Error While Adding Branch",
                         err.message || err);
                 }
                 
-                updateBranch(name, null, function(err, node){
+                updateBranch(name, null, function(err, newNode){
+                    clearLoading(node);
+                    
                     if (err) console.error(err); // TODO
                     
-                    if (recentLocal.children.indexOf(node) == -1)
+                    if (recentLocal.children.indexOf(newNode) == -1)
                         expand(recentLocal);
                     
                     // Select New Branch
-                    branchesTree.select(node);
+                    branchesTree.select(newNode);
                     
                     // Start renaming New Branch
                     branchesTree.startRename();
@@ -1028,7 +1047,10 @@ define(function(require, exports, module) {
                 "Are you sure you want to delete '" + node.label + "'",
                 "Click OK to delete this remote or click Cancel to cancel this action.",
                 function(){
+                    setLoading(node);
                     scm.removeRemote(node.label, function(err){
+                        clearLoading(node);
+                        
                         if (err) {
                             return alert("Could Not Remove Remote",
                                 "Received Error While Removing Remote",
@@ -1082,13 +1104,16 @@ define(function(require, exports, module) {
             });
         }
         
-        function showBranchInLog(hash) {
+        function showBranchInLog(node) {
+            setLoading(node);
+            
             openLog(function(err, tab){
-                if (err) return;
+                if (err) return clearLoading(node);
                 
                 var editor = tab.editor;
                 editor.on("ready", function(){
-                    editor.showBranch(hash);
+                    clearLoading(node);
+                    editor.showBranch(node.hash);
                 });
             });
         }
@@ -1120,6 +1145,15 @@ define(function(require, exports, module) {
                 });
                 
             });
+        }
+        
+        function setLoading(node){
+            node.status = "loading";
+            branchesTree.refresh();
+        }
+        function clearLoading(node){
+            node.status = "loaded";
+            branchesTree.refresh();
         }
         
         /***** Lifecycle *****/

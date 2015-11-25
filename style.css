@@ -252,9 +252,16 @@
 /*    height: 37px !important;*/
 /*}*/
 
-.branches .tree-row svg{
+.branches .tree-row .filetree-icon{
     vertical-align: top;
-    margin-top: 3px;
+    margin: 0 -2px 0 -2px;
+    text-align: center;
+}
+.branches .tree-row.loading .filetree-icon{
+    background-position-y: 4px;
+}
+.branches .tree-row .filetree-icon svg{
+    margin-top: 1px;
 }
 
 .branches .tree-row .caption img {
