@@ -147,28 +147,16 @@ define(function(require, exports, module) {
             //     }
             // }, plugin);
             
-            // dialogCommit.on("show", function(){
-            //     if (!tree) 
-            //         drawTree(document.body);
-                
-            //     dialogCommit.button.setCaption(staged.children.length
-            //         ? "Commit"
-            //         : "Add All and Commit");
-                
-            //     dialogCommit.container.appendChild(tree.container);
-                
-            //     reload({ hash: 0, force: true }, function(){});
-                
-            //     scm.getLastLogMessage(function(err, message){
-            //         dialogCommit.lastCommitMessage = err ? "" : message;
-            //     });
-            // });
-            
             scmProvider.on("scm", function(implementation){
                 scm = implementation;
                 
                 scm.on("status", function(e){
                     updateStatus(e.status);
+                });
+                
+                scm.on("log.dirty", function(){
+                    if (!plugin.active) return;
+                    updateLastCommit();
                 });
                 
                 scm.on("status.dirty", reload);
@@ -183,6 +171,11 @@ define(function(require, exports, module) {
             watcher.on("directory.all", function(e){
                 if (plugin.active && !isChanged(e.path))
                     reload();
+            });
+            
+            plugin.on("show", function(){
+                reload();
+                updateLastCommit();
             });
         }
         
@@ -238,6 +231,9 @@ define(function(require, exports, module) {
                 bindKey: "Ctrl-Enter|Cmd-Enter",
                 name: "commit",
                 exec: function(editor) {
+                    if (!commitBox.getValue())
+                        return; // TODO
+                    
                     ammendCb.disable();
                     commitBox.disable();
                     commit(commitBox.getValue(), ammendCb.checked, function(err){
@@ -857,6 +853,12 @@ define(function(require, exports, module) {
             })) return true;
             
             return false;
+        }
+        
+        function updateLastCommit(){
+            scm.getLastLogMessage(function(err, message){
+                lastCommitMessage = err ? "" : message;
+            });
         }
         
         // function trimLongStatus(output) {

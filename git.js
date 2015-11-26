@@ -22,44 +22,6 @@ define(function(require, exports, module) {
         
         var workspaceDir = c9.workspaceDir;
         
-        /***** Service *****/
-        
-        var remoteApi;
-        function connect(callback){return;
-            ext.loadRemotePlugin("scm.git", {
-                code: require("text!./listen-service.js"),
-                redefine: true
-            }, function(err, remote) {
-                if (err)
-                    return callback && callback(err) || console.error(err);
-
-                remoteApi = remote;
-
-                remoteApi.connect(function(err, meta) {
-                    if (err) 
-                        return console.error(err); // this should never happen
-
-                    var stream = meta.stream;
-                    
-                    stream.on("error", function(err) {
-                        console.error(err);
-                    });
-                    
-                    stream.on("data", function(payload) {
-                        emit("status", { 
-                            status: parseStatus(payload.status, true),
-                        });
-                    });
-
-                    stream.on("close", function(){
-                        connect(); // reconnect
-                    });
-                    
-                    callback && callback();
-                });
-            });
-        }
-        
         /***** Methods *****/
         
         /**
@@ -742,11 +704,6 @@ define(function(require, exports, module) {
              * 
              */
             get errors(){ return errors; },
-            
-            /**
-             * 
-             */
-            connect: connect,
             
             /**
              * 

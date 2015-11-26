@@ -207,10 +207,6 @@ define(function(require, exports, module) {
             
             // TODO generalize this - currently this only works for the first scm plugin
             emit.sticky("scm", scmPlugin);
-            
-            scmPlugin.connect(function(){
-                // TODO
-            }, plugin);
         }
         
         function unregisterSCM(name, scmPlugin){
