@@ -771,7 +771,7 @@ define(function(require, exports, module) {
                 scm.addAll(function(err){
                     if (err) return console.error(err);
                     
-                    commit(message, amend, callback, true);
+                    commit(message, amend, callback, true); 
                 });
                 return;
             }

@@ -634,7 +634,7 @@ define(function(require, exports, module) {
         
         function commit(options, callback) {
             if (!options.message) return;
-            var args = ["commit", options.ammend && "--amend", "-m", options.message].filter(Boolean);
+            var args = ["commit", options.amend && "--amend", "-m", options.message].filter(Boolean);
             
             git(args, callback);
         }
