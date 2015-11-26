@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Ace-diff - Simple Demo #1</title>
+    
+    <script src="/static/mini_require.js"></script>
+    <script src="/configs/require_config.js"></script>
+    
+    <style type="text/css">
+        .ace_diff-container, body {
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            position: absolute!important;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="ace_diff-container"></div>
+
+<script>
+    require(["plugins/c9.ide.scm/diff/unified", "ace/ace"], function() {
+        var DiffView = require("plugins/c9.ide.scm/diff/unified").DiffView;
+        var ace = require("ace/ace");
+        var editor = ace.edit(document.querySelector(".ace_diff-container"), {});
+        window.editor = editor;
+        
+        require("ace/lib/net").get("./diff/example.diff", function(v) {
+            var d = new DiffView(editor);
+            d.attachToEditor(editor);
+            
+            d.setValueFromPatch(v);
+        });
+    });
+
+</script>
+
+
+
+</body>
+</html>
