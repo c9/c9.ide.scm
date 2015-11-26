@@ -4,7 +4,8 @@ define(function(require, exports, module) {
         "dialog.info", "dialog.confirm", "dialog.error", "fs", "dialog.alert", 
         "Menu", "MenuItem", "Divider", "layout", "Tree", "tabManager", 
         "dialog.question", "dialog.filechange", "tree", "save",
-        "commands", "c9", "scm", "console", "preferences.experimental"
+        "commands", "c9", "scm", "console", "preferences.experimental",
+        "watcher"
     ];
     main.provides = ["scm.button"];
     return main;
@@ -51,6 +52,7 @@ define(function(require, exports, module) {
         var Tree = imports.Tree;
         var scmProvider = imports.scm;
         var save = imports.save;
+        var watcher = imports.watcher;
         var experimental = imports["preferences.experimental"];
         var cnsl = imports.console;
         var tabManager = imports.tabManager;
@@ -102,7 +104,7 @@ define(function(require, exports, module) {
             
             settings.on("read", function(e) {
                 settings.setDefaults("state/scm", [
-                    ["auto", "true"]
+                    ["auto", false]
                 ]);
             }, plugin);
             
@@ -162,6 +164,31 @@ define(function(require, exports, module) {
             //     });
             // });
             
+            function reload(e){
+                scm.getStatus({ 
+                    hash: 0, 
+                    force: true,
+                    untracked: "all"
+                }, function(){});
+            }
+            
+            function isChanged(path){
+                if (changed.children.some(function(n){
+                    if (n.path == path) return;
+                })) return true;
+                if (untracked.children.some(function(n){
+                    if (n.path == path) return;
+                })) return true;
+                if (conflicts.children.some(function(n){
+                    if (n.path == path) return;
+                })) return true;
+                if (ignored.children.some(function(n){
+                    if (n.path == path) return;
+                })) return true;
+                
+                return false;
+            }
+            
             scmProvider.on("scm", function(implementation){
                 scm = implementation;
                 
@@ -169,9 +196,18 @@ define(function(require, exports, module) {
                     updateStatus(e.status);
                 });
                 
-                reload({ hash: 0, force: true }, function(e, status) {
-                    
-                });
+                scm.on("reload", reload);
+                reload();
+            });
+            
+            watcher.on("change.all", function(e){
+                if (plugin.active && !isChanged(e.path))
+                    reload();
+            });
+            
+            watcher.on("directory.all", function(e){
+                if (plugin.active && !isChanged(e.path))
+                    reload();
             });
         }
         
@@ -213,30 +249,7 @@ define(function(require, exports, module) {
                     commitBox = new apf.codebox({
                         "initial-message": "Message (Press " 
                             + (apf.isMac ? "Cmd-Enter" : "Ctrl-Enter") + " to commit)"
-                    }),
-                    // new ui.hbox({
-                    //     padding: 5,
-                    //     childNodes: [
-                    //         ammendCb = new ui.checkbox({ 
-                    //             label: "amend",
-                    //             skin: "checkbox_black",
-                    //             margin: "5 0 0 0",
-                    //             onafterchange: function(){
-                    //                 commitBox.ace.setValue(ammendCb.checked
-                    //                     ? lastCommitMessage || ""
-                    //                     : "");
-                    //             }
-                    //         }),
-                    //         new ui.filler(),
-                    //         commitBtn = new ui.button({
-                    //             caption: "Commit",
-                    //             skin: "btn-default-css3",
-                    //             class: "btn-green",
-                    //             margin: "5 0 0 0",
-                    //             onclick: onclick
-                    //         })
-                    //     ]
-                    // })
+                    })
                 ]
             }));
             
@@ -246,12 +259,6 @@ define(function(require, exports, module) {
             
             commitBox.ace.setOption("minLines", 1);
             commitBox.ace.setOption("wrap", true);
-            commitBox.ace.commands.addCommand({
-                bindKey: "Esc",
-                exec: function() {
-                    plugin.hide();
-                }
-            });
             commitBox.ace.commands.addCommand({
                 bindKey: "Ctrl-Enter|Cmd-Enter",
                 name: "commit",
@@ -456,7 +463,7 @@ define(function(require, exports, module) {
                             + dirname(path) + "</span>"
                             + (node.parent == staged
                                 ? "<span class='min'>-</span>"
-                                : "<span class='revert'>}</span>"
+                                : "<span class='revert'>-</span>"
                                     + "<span class='plus'>+</span>");
                     }
                     return escapeHTML(node.label || node.name);
@@ -469,12 +476,6 @@ define(function(require, exports, module) {
                 isLoading: function() {}
             }, plugin);
             
-            // tree.container.style.position = "absolute";
-            // tree.container.style.left = "0";
-            // tree.container.style.top = "0";
-            // tree.container.style.right = "0";
-            // tree.container.style.bottom = "0";
-            // tree.container.style.height = "";
             tree.renderer.scrollBarV.$minWidth = 10;
             
             tree.commands.bindKey("Space", function(e) {
@@ -709,37 +710,6 @@ define(function(require, exports, module) {
             noSelect: true,
             $sorted: true
         };
-        
-        var reloading;
-        function reload(options, cb) {
-            if (reloading) {
-                reloading.push(cb);
-                return;
-            }
-            reloading = [cb];
-            
-            var callback = function(){
-                for (var i = 0; i < reloading.length; i++) {
-                    reloading[i].apply(this, arguments);
-                }
-                reloading = false;
-            };
-            
-            if (!options) options = {hash: 0};
-            if (!tree.meta.options) tree.meta.options = {};
-            if (!options.force)
-            if (tree.meta.options.hash == options.hash && tree.meta.options.base == options.base)
-                return callback(new Error());
-            
-            options.untracked = "all";
-            
-            scm.getStatus(options, function(e, status) {
-                if (e) return callback(e);
-                
-                updateStatus(status);
-                callback();
-            });
-        }
         
         var queue;
         function updateStatus(status){

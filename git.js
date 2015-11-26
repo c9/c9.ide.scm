@@ -375,7 +375,9 @@ define(function(require, exports, module) {
                 }
                 // console.log(err, stdout);
                 // console.log(t-Date.now(), stdout.length);
-                cb(err, parseStatus(stdout, options.twoWay));
+                var status = parseStatus(stdout, options.twoWay);
+                emit("status", { status: status });
+                cb(err, status);
             });
         }
         
