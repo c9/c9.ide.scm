@@ -69,6 +69,50 @@ define(function(require, exports, module) {
             
         }
         
+        var ACTIONS = {
+            "add": ["status.dirty"],
+            "reset": ["status.dirty"],
+            "pull": ["status.dirty", "log.dirty"],
+            "checkout": ["status.dirty"],
+            "stash": ["status.dirty"],
+            "apply": ["status.dirty"],
+            "commit": ["status.dirty", "log.dirty"]
+        }
+        
+        function git(args, cb) {
+            if (typeof args == "string")
+                args = args.split(/\s+/);
+                
+            proc.spawn("git", {
+                args: args,
+                cwd: workspaceDir
+            }, function(e, p) {
+                // if (e) console.error(e);
+                
+                buffer(p, function(stdout, stderr){
+                    // console.log(e, stdout);
+                    
+                    var action = ACTIONS[args[0]];
+                    if (action) action.forEach(emit);
+                    
+                    cb && cb(e, stdout, stderr);
+                });
+            });
+        }
+        
+        function buffer(process, callback){
+            var stdout = "", stderr = "";
+            process.stdout.on("data", function(c){
+                stdout += c;
+            });
+            process.stderr.on("data", function(c){
+                stderr += c;
+            });
+            process.on("exit", function(c){
+                callback(stdout, stderr);
+            });
+        }
+        
         function addAll(callback){
             git("add -u", callback);
         }
@@ -113,37 +157,6 @@ define(function(require, exports, module) {
             if (options.force) args.push("--force");
             if (options.branch) args.push(options.branch);
             git(args, callback);
-        }
-        
-        function git(args, cb) {
-            if (typeof args == "string")
-                args = args.split(/\s+/);
-                
-            proc.spawn("git", {
-                args: args,
-                cwd: workspaceDir
-            }, function(e, p) {
-                // if (e) console.error(e);
-                
-                buffer(p, function(stdout, stderr){
-                    // console.log(e, stdout);
-                    
-                    cb && cb(e, stdout, stderr);
-                });
-            });
-        }
-        
-        function buffer(process, callback){
-            var stdout = "", stderr = "";
-            process.stdout.on("data", function(c){
-                stdout += c;
-            });
-            process.stderr.on("data", function(c){
-                stderr += c;
-            });
-            process.on("exit", function(c){
-                callback(stdout, stderr);
-            });
         }
         
         function getRemotes(callback){

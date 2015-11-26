@@ -171,7 +171,7 @@ define(function(require, exports, module) {
                     updateStatus(e.status);
                 });
                 
-                scm.on("reload", reload);
+                scm.on("status.dirty", reload);
                 reload();
             });
             
@@ -785,9 +785,6 @@ define(function(require, exports, module) {
                 amend: amend
             }, function(err){
                 if (err) return console.error(err);
-                
-                // emit("reload");
-                // getLog();
                 
                 callback && callback();
             });
