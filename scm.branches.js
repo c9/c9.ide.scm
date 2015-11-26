@@ -948,7 +948,7 @@ define(function(require, exports, module) {
                             clearLoading(node);
                             
                             if (err) {
-                                return alert("Could Not Remove Branch",
+                                return alert("Could Not Remove Branch", 
                                     "Received Error While Removing Branch",
                                     err.message || err);
                             }
