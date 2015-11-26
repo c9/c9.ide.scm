@@ -212,7 +212,7 @@ define(function(require, exports, module) {
                 childNodes: [
                     commitBox = new apf.codebox({
                         "initial-message": "Message (Press " 
-                            + (apf.isMac ? "Cmd-Enter" : "Ctrl-Enter") + "to commit)"
+                            + (apf.isMac ? "Cmd-Enter" : "Ctrl-Enter") + " to commit)"
                     }),
                     // new ui.hbox({
                     //     padding: 5,
@@ -266,7 +266,7 @@ define(function(require, exports, module) {
                             return console.error(err);
                         
                         ammendCb.uncheck();
-                        commitBox.clear();
+                        commitBox.setValue("");
                         
                         reload({ hash: 0, force: true }, function(e, status) {
                             
@@ -831,12 +831,12 @@ define(function(require, exports, module) {
             });
         }
         
-        function commit(message, amend, callback){
-            if (!staged.children.length) {
+        function commit(message, amend, callback, force){
+            if (!staged.children.length && !force) {
                 scm.addAll(function(err){
                     if (err) return console.error(err);
                     
-                    commit(message, amend, callback);
+                    commit(message, amend, callback, true);
                 });
                 return;
             }
