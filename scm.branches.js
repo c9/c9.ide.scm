@@ -114,6 +114,7 @@ define(function(require, exports, module) {
             
             scmProvider.on("scm", function(implementation){
                 scm = implementation;
+                refresh();
             });
         }
         
@@ -830,6 +831,8 @@ define(function(require, exports, module) {
         }
         
         function refresh(){
+            if (!scm) return;
+            
             async.parallel([
                 function (next) {
                     scm.listAllRefs(function(err, data) {
