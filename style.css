@@ -115,9 +115,9 @@
 .form-bar{
     padding: @form-bar-padding;
     box-sizing: border-box;
-    border-bottom: @form-bar-border-bottom;
+    /*border-bottom: @form-bar-border-bottom;*/
     margin: 0px;
-    background-color: @form-bar-background;
+    /*background-color: @form-bar-background;*/
     box-shadow: @form-bar-box-shadow;
 }
 

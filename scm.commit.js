@@ -1,11 +1,10 @@
 define(function(require, exports, module) {
     main.consumes = [
-        "Plugin", "ui", "settings", "collab.workspace", 
+        "Panel", "ui", "settings", "collab.workspace", 
         "dialog.info", "dialog.confirm", "dialog.error", "fs", "dialog.alert", 
         "Menu", "MenuItem", "Divider", "layout", "Tree", "tabManager", 
         "dialog.question", "dialog.filechange", "tree", "save",
-        "commands", "c9", "scm", "console", "preferences.experimental",
-        "dialog.commit"
+        "commands", "c9", "scm", "console", "preferences.experimental"
     ];
     main.provides = ["scm.button"];
     return main;
@@ -32,7 +31,7 @@ define(function(require, exports, module) {
     */
 
     function main(options, imports, register) {
-        var Plugin = imports.Plugin;
+        var Panel = imports.Panel;
         var ui = imports.ui;
         var fs = imports.fs;
         var c9 = imports.c9;
@@ -45,7 +44,6 @@ define(function(require, exports, module) {
         var showAlert = imports["dialog.alert"].show;
         var showQuestion = imports["dialog.question"].show;
         var showFileChange = imports["dialog.filechange"].show;
-        var dialogCommit = imports["dialog.commit"];
         var Menu = imports.Menu;
         var MenuItem = imports.MenuItem;
         var Divider = imports.Divider;
@@ -68,7 +66,12 @@ define(function(require, exports, module) {
         if (!ENABLED)
             return register(null, { "scm.button": {} });
         
-        var plugin = new Plugin("Ajax.org", main.consumes);
+        var plugin = new Panel("Ajax.org", main.consumes, {
+            index: options.index || 400,
+            caption: "Commit",
+            minWidth: 150,
+            where: options.where || "left"
+        });
         var emit = plugin.getEmitter();
         
         var CAPTION = {
@@ -83,7 +86,20 @@ define(function(require, exports, module) {
         var btnScm, title, tree, status, scm;
         var arrayCache = [];
         
+        var body, commitBox, ammendCb, commitBtn, onclick;
+        var container, lastCommitMessage;
+        
         function load() {
+            plugin.setCommand({
+                name: "showcommit",
+                group: "scm",
+                bindKey: { mac: "Cmd-Shift-C", win: "Ctrl-Shift-C" }
+                // exec: function(editor, args){ 
+                //     if (args.message) commit(args.message, args.amend);
+                //     else plugin.show();
+                // }
+            }, plugin);
+            
             settings.on("read", function(e) {
                 settings.setDefaults("state/scm", [
                     ["auto", "true"]
@@ -129,35 +145,35 @@ define(function(require, exports, module) {
             //     }
             // }, plugin);
             
-            dialogCommit.on("show", function(){
-                if (!tree) 
-                    drawTree(document.body);
+            // dialogCommit.on("show", function(){
+            //     if (!tree) 
+            //         drawTree(document.body);
                 
-                dialogCommit.button.setCaption(staged.children.length
-                    ? "Commit"
-                    : "Add All and Commit");
+            //     dialogCommit.button.setCaption(staged.children.length
+            //         ? "Commit"
+            //         : "Add All and Commit");
                 
-                dialogCommit.container.appendChild(tree.container);
+            //     dialogCommit.container.appendChild(tree.container);
                 
-                reload({ hash: 0, force: true }, function(){});
+            //     reload({ hash: 0, force: true }, function(){});
                 
-                scm.getLastLogMessage(function(err, message){
-                    dialogCommit.lastCommitMessage = err ? "" : message;
-                });
-            });
+            //     scm.getLastLogMessage(function(err, message){
+            //         dialogCommit.lastCommitMessage = err ? "" : message;
+            //     });
+            // });
             
-            dialogCommit.onclick = function() {
-                dialogCommit.disable();
-                commit(dialogCommit.message, dialogCommit.amend, function(err){
-                    dialogCommit.enable();
+            // dialogCommit.onclick = function() {
+            //     dialogCommit.disable();
+            //     commit(dialogCommit.message, dialogCommit.amend, function(err){
+            //         dialogCommit.enable();
                     
-                    if (err) 
-                        return console.error(err);
+            //         if (err) 
+            //             return console.error(err);
                     
-                    dialogCommit.clear();
-                    dialogCommit.hide();
-                });
-            };
+            //         dialogCommit.clear();
+            //         dialogCommit.hide();
+            //     });
+            // };
             
             scmProvider.on("scm", function(implementation){
                 scm = implementation;
@@ -165,37 +181,113 @@ define(function(require, exports, module) {
                 scm.on("status", function(e){
                     updateStatus(e.status);
                 });
+                
+                reload({ hash: 0, force: true }, function(e, status) {
+                    
+                });
+            });
+        }
+        
+        function draw(opts) {
+            // Splitbox
+            var vbox = opts.aml.appendChild(new ui.vbox({ 
+                anchors: "0 0 0 0" 
+            }));
+            
+            // Toolbar
+            var toolbar = vbox.appendChild(new ui.hbox({
+                id: "toolbar",
+                class: "toolbar-top",
+                align: "center",
+                edge: "0 2 0 0",
+                // padding: 3
+                // class: "fakehbox aligncenter debugger_buttons basic",
+                // style: "white-space:nowrap !important;"
+                style: "border-top:0"
+            }));
+            plugin.addElement(toolbar);
+            
+            ui.insertByIndex(toolbar, new ui.filler(), 150, plugin);
+            
+            ammendCb = ui.insertByIndex(toolbar, new ui.checkbox({ 
+                label: "amend",
+                skin: "checkbox_black",
+                margin: "-2px 0 0 0",
+                onafterchange: function(){
+                    commitBox.ace.setValue(ammendCb.checked
+                        ? lastCommitMessage || ""
+                        : "");
+                }
+            }), 200, plugin);
+            
+            vbox.appendChild(new ui.bar({
+                class: "form-bar", 
+                childNodes: [
+                    commitBox = new apf.codebox({
+                        "initial-message": "Message (Press Cmd-Enter commit)"
+                    }),
+                    // new ui.hbox({
+                    //     padding: 5,
+                    //     childNodes: [
+                    //         ammendCb = new ui.checkbox({ 
+                    //             label: "amend",
+                    //             skin: "checkbox_black",
+                    //             margin: "5 0 0 0",
+                    //             onafterchange: function(){
+                    //                 commitBox.ace.setValue(ammendCb.checked
+                    //                     ? lastCommitMessage || ""
+                    //                     : "");
+                    //             }
+                    //         }),
+                    //         new ui.filler(),
+                    //         commitBtn = new ui.button({
+                    //             caption: "Commit",
+                    //             skin: "btn-default-css3",
+                    //             class: "btn-green",
+                    //             margin: "5 0 0 0",
+                    //             onclick: onclick
+                    //         })
+                    //     ]
+                    // })
+                ]
+            }));
+            
+            container = vbox.appendChild(new ui.bar({
+                style: "padding: 10px 0 10px 0;overflow:auto;flex:1"
+            }));
+            
+            commitBox.ace.setOption("minLines", 1);
+            commitBox.ace.setOption("wrap", true);
+            commitBox.ace.commands.addCommand({
+                bindKey: "Esc",
+                exec: function() {
+                    plugin.hide();
+                }
+            });
+            commitBox.ace.commands.addCommand({
+                bindKey: "Ctrl-Enter|Cmd-Enter",
+                name: "commit",
+                exec: function(editor) {
+                    commands.exec("commit", null, {
+                        message: commitBox.ace.getValue(),
+                        ammend: ammendCb.checked
+                    });
+                }
             });
             
             /**** Main UI ****/
             
             mnuCommit = new Menu({
                 items: [
-                    {
-                        aml: title = new ui.bar({ 
-                            style: "max-width:100%",
-                            class: "scm-title" 
-                        }),
-                        plugin: plugin
-                    },
-                    
-                    new Divider(),
-                    
-                    {
-                        aml: status = new ui.bar({ 
-                            style: "padding: 2px 0 0 9px" 
-                        }),
-                        plugin: plugin
-                    },
-                    
-                    new Divider(),
-                    
                     new MenuItem({
-                        caption: "Sync",
+                        caption: "Refresh",
                         onclick: function() {
-                            sync();
+                            push();
                         }
                     }),
+                    
+                    new Divider(),
+                    
                     new MenuItem({
                         caption: "Push",
                         onclick: function() {
@@ -274,23 +366,8 @@ define(function(require, exports, module) {
                 ]
             }, plugin);
             
-            mnuCommit.on("show", function(){
-                drawTree(status.$int);
-                
-                status.$int.appendChild(tree.container);
-                
-                reload({ hash: 0, force: true }, function(){
-                    updateStatusMessage();
-                });
-                // updateStatusTree();
-            });
-            
-            // mnuCommit.on("hide", function(){
-            //     showDetails(null);
-            // });
-            
-            btnScm = ui.insertByIndex(layout.getElement("barTools"), new ui.splitbutton({
-                caption: "Commit",
+            btnScm = ui.insertByIndex(toolbar, new ui.splitbutton({
+                caption: "Sync",
                 skinset: "default",
                 skin: "c9-menu-btn",
                 submenu: mnuCommit.aml,
@@ -306,7 +383,7 @@ define(function(require, exports, module) {
                         
                     }
                 }
-            }), 300, plugin);
+            }), 100, plugin);
             btnScm.$ext.className = btnScmClassName;
             
             // sync.on("conflicts", function(e){
@@ -350,13 +427,9 @@ define(function(require, exports, module) {
             // setTheme({ theme: settings.get("user/general/@skin") });
             
             // updateStatusTree();
-        }
-        
-        function drawTree(parentHtml){
-            if (tree) return;
             
             tree = new Tree({
-                container: parentHtml,
+                container: container.$int,
                 scrollMargin: [0, 0],
                 theme: "filetree scmtree",
                 enableDragdrop: true,
@@ -483,11 +556,11 @@ define(function(require, exports, module) {
             //     }
             // }, plugin);
             
-            scm.on("reload", function(options){
-                reload(options || { hash: 0, force: true }, function(e, status) {
+            // scm.on("reload", function(options){
+            //     reload(options || { hash: 0, force: true }, function(e, status) {
                     
-                });
-            }, plugin);
+            //     });
+            // }, plugin);
             
             // scm.on("resize", function(){
             //     tree && tree.resize();
@@ -580,23 +653,6 @@ define(function(require, exports, module) {
             // sync.on("log", function(e){
             //     updateStatusMessage();
             // }, plugin);
-            
-            emit.sticky("draw");
-        }
-        
-        function updateStatusMessage() {
-            if (!title || !title.$int) return;
-            
-            var state = "Idle" /*sync.getState()*/, color = "";
-            // if (state == "not synced") {
-            //     if (sync.errors.message)
-            //         state = sync.errors.message;
-            //     color = "#EE686A";
-            // }
-                
-            title.$int.innerHTML = "<div style='color:" + color + "'>"
-                + ("Status: " + state)
-                + "</div>";
         }
         
         /***** Helper Methods *****/
@@ -650,59 +706,34 @@ define(function(require, exports, module) {
         };
         
         var reloading;
-        function reload(options, cb) { return cb();
-            // if (reloading) {
-            //     reloading.push(cb);
-            //     return;
-            // }
-            // reloading = [cb];
+        function reload(options, cb) {
+            if (reloading) {
+                reloading.push(cb);
+                return;
+            }
+            reloading = [cb];
             
-            // var callback = function(){
-            //     for (var i = 0; i < reloading.length; i++) {
-            //         reloading[i].apply(this, arguments);
-            //     }
-            //     reloading = false;
-            // };
+            var callback = function(){
+                for (var i = 0; i < reloading.length; i++) {
+                    reloading[i].apply(this, arguments);
+                }
+                reloading = false;
+            };
             
-            // if (!options) options = {hash: 0};
-            // if (!tree.meta.options) tree.meta.options = {};
-            // if (!options.force)
-            // if (tree.meta.options.hash == options.hash && tree.meta.options.base == options.base)
-            //     return callback(new Error());
+            if (!options) options = {hash: 0};
+            if (!tree.meta.options) tree.meta.options = {};
+            if (!options.force)
+            if (tree.meta.options.hash == options.hash && tree.meta.options.base == options.base)
+                return callback(new Error());
             
-            // options.untracked = "all";
+            options.untracked = "all";
             
-            // scm.getStatus(options, function(e, status) {
-            //     if (!status) {
-            //         tree.setRoot(null);
-            //         callback();
-            //         return;
-            //     }
+            scm.getStatus(options, function(e, status) {
+                if (e) return callback(e);
                 
-            //     changed.children = status.changed;
-            //     staged.children = status.staged;
-            //     ignored.children = status.ignored;
-            //     conflicts.children = status.conflicts;
-            //     untracked.children = status.untracked;
-                
-            //     var root = {
-            //         children: [staged, changed, untracked],
-            //         $sorted: true,
-            //         isFolder: true
-            //     };
-            //     if (ignored.children.length) root.children.push(ignored);
-            //     if (conflicts.children.length) root.children.unshift(conflicts);
-                    
-            //     tree.setRoot(root);
-            //     tree.meta.options = options;
-                
-            //     if (dialogCommit.button) 
-            //         dialogCommit.button.setCaption(staged.children.length
-            //             ? "Commit"
-            //             : "Add All and Commit");
-                
-            //     callback();
-            // });
+                updateStatus(status);
+                callback();
+            });
         }
         
         var queue;
@@ -737,10 +768,10 @@ define(function(require, exports, module) {
             tree.setRoot(root);
             tree.meta.options = options;
             
-            if (dialogCommit.button) 
-                dialogCommit.button.setCaption(staged.children.length
-                    ? "Commit"
-                    : "Add All and Commit");
+            // if (dialogCommit.button) 
+            //     dialogCommit.button.setCaption(staged.children.length
+            //         ? "Commit"
+            //         : "Add All and Commit");
             
             updateButton(conflicts.children.length 
                 ? "conflict" 
@@ -750,8 +781,8 @@ define(function(require, exports, module) {
         }
         
         function updateButton(type){
-            btnScm.setAttribute("caption", CAPTION[type]);
-            btnMode = type;
+            // btnScm.setAttribute("caption", CAPTION[type]);
+            // btnMode = type;
         }
         
         // TODO update UI somehow 
@@ -1342,6 +1373,9 @@ define(function(require, exports, module) {
         
         plugin.on("load", function() {
             load();
+        });
+        plugin.on("draw", function(options) {
+            draw(options);
         });
         plugin.on("unload", function() {
             clearTimeout(syncTimeout);
