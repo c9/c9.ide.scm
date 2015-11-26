@@ -1,6 +1,6 @@
 define(function(require, exports, module) {
     main.consumes = [
-        "Panel", "ui", "settings", "collab.workspace", 
+        "Panel", "ui", "settings", "collab.workspace", "dialog.confirm",
         "dialog.info", "dialog.confirm", "dialog.error", "fs", "dialog.alert", 
         "Menu", "MenuItem", "Divider", "layout", "Tree", "tabManager", 
         "dialog.question", "dialog.filechange", "tree", "save",
@@ -40,7 +40,7 @@ define(function(require, exports, module) {
         var collabWorkspace = imports["collab.workspace"];
         var showInfo = imports["dialog.info"].show;
         var showError = imports["dialog.error"].show;
-        var showConfirm = imports["dialog.confirm"].show;
+        var confirm = imports["dialog.confirm"].show;
         var showAlert = imports["dialog.alert"].show;
         var showQuestion = imports["dialog.question"].show;
         var showFileChange = imports["dialog.filechange"].show;
@@ -162,19 +162,6 @@ define(function(require, exports, module) {
             //     });
             // });
             
-            // dialogCommit.onclick = function() {
-            //     dialogCommit.disable();
-            //     commit(dialogCommit.message, dialogCommit.amend, function(err){
-            //         dialogCommit.enable();
-                    
-            //         if (err) 
-            //             return console.error(err);
-                    
-            //         dialogCommit.clear();
-            //         dialogCommit.hide();
-            //     });
-            // };
-            
             scmProvider.on("scm", function(implementation){
                 scm = implementation;
                 
@@ -224,7 +211,8 @@ define(function(require, exports, module) {
                 class: "form-bar", 
                 childNodes: [
                     commitBox = new apf.codebox({
-                        "initial-message": "Message (Press Cmd-Enter commit)"
+                        "initial-message": "Message (Press " 
+                            + (apf.isMac ? "Cmd-Enter" : "Ctrl-Enter") + "to commit)"
                     }),
                     // new ui.hbox({
                     //     padding: 5,
@@ -268,9 +256,21 @@ define(function(require, exports, module) {
                 bindKey: "Ctrl-Enter|Cmd-Enter",
                 name: "commit",
                 exec: function(editor) {
-                    commands.exec("commit", null, {
-                        message: commitBox.ace.getValue(),
-                        ammend: ammendCb.checked
+                    ammendCb.disable();
+                    commitBox.disable();
+                    commit(commitBox.getValue(), ammendCb.checked, function(err){
+                        ammendCb.enable();
+                        commitBox.enable();
+                        
+                        if (err) 
+                            return console.error(err);
+                        
+                        ammendCb.uncheck();
+                        commitBox.clear();
+                        
+                        reload({ hash: 0, force: true }, function(e, status) {
+                            
+                        });
                     });
                 }
             });
@@ -282,7 +282,9 @@ define(function(require, exports, module) {
                     new MenuItem({
                         caption: "Refresh",
                         onclick: function() {
-                            push();
+                            reload({ hash: 0, force: true }, function(e, status) {
+                                
+                            });
                         }
                     }),
                     
@@ -451,7 +453,11 @@ define(function(require, exports, module) {
                         var path = node.labelPath || node.path;
                         return basename(path) 
                             + "<span class='extrainfo'> - " 
-                            + dirname(path) + "</span>";
+                            + dirname(path) + "</span>"
+                            + (node.parent == staged
+                                ? "<span class='min'>-</span>"
+                                : "<span class='revert'>}</span>"
+                                    + "<span class='plus'>+</span>");
                     }
                     return escapeHTML(node.label || node.name);
                 },
@@ -507,29 +513,28 @@ define(function(require, exports, module) {
             tree.on("drop", function(e) {
                 if (e.target && e.selectedNodes) {
                     var nodes = e.selectedNodes;
-                    if (e.target == staged) {
-                        scm.addFileToStaging(nodes.map(function(n){
-                            return n.path;
-                        }).filter(Boolean));
-                    } 
-                    else if (e.target == changed || e.target == untracked) {
-                        scm.unstage(nodes.map(function(n){
-                            return n.path;
-                        }).filter(Boolean));
-                    }
+                    if (e.target == staged)
+                        addToStaging(nodes);
+                    else if (e.target == changed || e.target == untracked)
+                        removeFromStaging(nodes);
                 }   
             });
             
             tree.on("click", function(e) {
-                if (e.domEvent.target.classList.contains("status-icon")) {
-                    var node = e.getNode();
-                    if (node.parent == staged) {
-                        scm.unstage(node);
-                    } else if (node.parent == changed || node.parent == ignored) {
-                        scm.addFileToStaging(node);
-                    } else if (node.parent == conflicts) {
-                        scm.addFileToStaging(node);
-                    }
+                var classList = e.domEvent.target.classList;
+                var node;
+                
+                if (classList.contains("plus")) {
+                    node = e.getNode();
+                    addToStaging([node]);
+                }
+                else if (classList.contains("min")) {
+                    node = e.getNode();
+                    removeFromStaging([node]);
+                }
+                else if (classList.contains("revert")) {
+                    node = e.getNode();
+                    revertFile(node.path);
                 }
             });
             
@@ -863,6 +868,34 @@ define(function(require, exports, module) {
             }, function(err, tab){
                 callback(err, tab);
             });
+        }
+        
+        function addToStaging(nodes){
+            scm.addFileToStaging(nodes.map(function(n){
+                return n.path;
+            }).filter(Boolean));
+        }
+        
+        function removeFromStaging(nodes){
+            scm.unstage(nodes.map(function(n){
+                return n.path;
+            }).filter(Boolean));
+        }
+        
+        function revertFile(path) {
+            confirm("Revert File",
+                "Are you sure you want to revert all changes in '" + path + "'",
+                "Click OK to revert all changes or click Cancel to cancel this action.",
+                function(){
+                    scm.revert(path, function(err){
+                        if (err) {
+                            return alert("Could Not Revert Changes",
+                                "Received Error While Reverting Changes",
+                                err.message || err);
+                        }
+                    });
+                }, 
+                function(){});
         }
         
         // function trimLongStatus(output) {

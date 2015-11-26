@@ -279,6 +279,13 @@ define(function(require, exports, module) {
             });
         }
         
+        function revert(path, callback){
+            git(["checkout", path], function(err, stdout, stderr) {
+                if (err || stderr) return callback(err || stderr);
+                return callback();
+            });
+        }
+        
         function stash(callback) {
             git(["stash"], function(err, stdout, stderr) {
                 if (err || stderr) return callback(err || stderr);
@@ -889,7 +896,12 @@ define(function(require, exports, module) {
             /**
              * 
              */
-            resetHard: resetHard
+            resetHard: resetHard,
+             
+            /**
+             * 
+             */
+            revert: revert
         });
         
         register(null, {

@@ -57,7 +57,6 @@ define(function(require, exports, module) {
             index: options.index || 350,
             caption: "Branches",
             minWidth: 130,
-            autohide: true,
             where: options.where || "left"
         });
         var emit = plugin.getEmitter();
