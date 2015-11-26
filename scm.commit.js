@@ -164,31 +164,6 @@ define(function(require, exports, module) {
             //     });
             // });
             
-            function reload(e){
-                scm.getStatus({ 
-                    hash: 0, 
-                    force: true,
-                    untracked: "all"
-                }, function(){});
-            }
-            
-            function isChanged(path){
-                if (changed.children.some(function(n){
-                    if (n.path == path) return;
-                })) return true;
-                if (untracked.children.some(function(n){
-                    if (n.path == path) return;
-                })) return true;
-                if (conflicts.children.some(function(n){
-                    if (n.path == path) return;
-                })) return true;
-                if (ignored.children.some(function(n){
-                    if (n.path == path) return;
-                })) return true;
-                
-                return false;
-            }
-            
             scmProvider.on("scm", function(implementation){
                 scm = implementation;
                 
@@ -274,10 +249,6 @@ define(function(require, exports, module) {
                         
                         ammendCb.uncheck();
                         commitBox.setValue("");
-                        
-                        reload({ hash: 0, force: true }, function(e, status) {
-                            
-                        });
                     });
                 }
             });
@@ -289,9 +260,7 @@ define(function(require, exports, module) {
                     new MenuItem({
                         caption: "Refresh",
                         onclick: function() {
-                            reload({ hash: 0, force: true }, function(e, status) {
-                                
-                            });
+                            reload();
                         }
                     }),
                     
@@ -866,6 +835,31 @@ define(function(require, exports, module) {
                     });
                 }, 
                 function(){});
+        }
+        
+        function reload(e){
+            scm.getStatus({ 
+                hash: 0, 
+                force: true,
+                untracked: "all"
+            }, function(){});
+        }
+        
+        function isChanged(path){
+            if (changed.children.some(function(n){
+                if (n.path == path) return;
+            })) return true;
+            if (untracked.children.some(function(n){
+                if (n.path == path) return;
+            })) return true;
+            if (conflicts.children.some(function(n){
+                if (n.path == path) return;
+            })) return true;
+            if (ignored.children.some(function(n){
+                if (n.path == path) return;
+            })) return true;
+            
+            return false;
         }
         
         // function trimLongStatus(output) {
