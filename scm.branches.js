@@ -114,7 +114,11 @@ define(function(require, exports, module) {
             
             scmProvider.on("scm", function(implementation){
                 scm = implementation;
-                refresh();
+                if (plugin.active) refresh();
+            });
+            
+            plugin.once("show", function(){
+                if (!ready) refresh();
             });
         }
         
@@ -122,8 +126,6 @@ define(function(require, exports, module) {
         function draw(opts) {
             if (drawn) return;
             drawn = true;
-            
-            ui.insertCss(require("text!./style.css"), plugin);
             
             var mnuFilter = Menu({ items: [
                 new MenuItem({ type: "radio", caption: "Branches", value: "branches", selected: displayMode == "branches" }),
@@ -622,7 +624,8 @@ define(function(require, exports, module) {
         
         var nodeRemote;
         function loadBranches(data){
-            if (!data) return;
+            if (!data || data.length == 1 && !data[0].hash) 
+                return purgeTree();
             
             var root = branchesRoot;
             root.children.forEach(function(n){
@@ -780,14 +783,18 @@ define(function(require, exports, module) {
             }
             
             // Remove empty blocks
+            purgeTree();
+            
+            // Reset committers root
+            committersRoot.children.length = 0;
+        }
+        
+        function purgeTree(){
             branchesRoot.children = branchesRoot.children.filter(function(n){
                 if (n == all) return true;
                 if (n.isPR) return n.children[0].length + n.children[1].length;
                 return n.children.length;
             });
-            
-            // Reset committers root
-            committersRoot.children.length = 0;
         }
         
         function showBranches(){

@@ -7,7 +7,7 @@ define(function(require, exports, module) {
         "commands", "c9", "scm", "console", "preferences.experimental",
         "watcher"
     ];
-    main.provides = ["scm.button"];
+    main.provides = ["scm.commit"];
     return main;
     
     /*
@@ -42,7 +42,7 @@ define(function(require, exports, module) {
         var showInfo = imports["dialog.info"].show;
         var showError = imports["dialog.error"].show;
         var confirm = imports["dialog.confirm"].show;
-        var showAlert = imports["dialog.alert"].show;
+        var alert = imports["dialog.alert"].show;
         var showQuestion = imports["dialog.question"].show;
         var showFileChange = imports["dialog.filechange"].show;
         var Menu = imports.Menu;
@@ -66,7 +66,7 @@ define(function(require, exports, module) {
         
         var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Source Control Management")
         if (!ENABLED)
-            return register(null, { "scm.button": {} });
+            return register(null, { "scm.commit": {} });
         
         var plugin = new Panel("Ajax.org", main.consumes, {
             index: options.index || 400,
@@ -83,8 +83,8 @@ define(function(require, exports, module) {
             "rebase": "????"
         }
         
-        var btnScmClassName = "splitbutton btn-scm";
-        var btnMode = "commit";
+        var btnScmClassName = "splitbutton btn-scm-sync";
+        var btnMode = "sync";
         var btnScm, title, tree, status, scm;
         var arrayCache = [];
         
@@ -92,6 +92,8 @@ define(function(require, exports, module) {
         var container, lastCommitMessage;
         
         function load() {
+            ui.insertCss(require("text!./style.css"), options.staticPrefix, plugin);
+            
             plugin.setCommand({
                 name: "showcommit",
                 group: "scm",
@@ -160,7 +162,11 @@ define(function(require, exports, module) {
                 });
                 
                 scm.on("status.dirty", reload);
-                reload();
+                
+                if (plugin.active) {
+                    reload();
+                    updateLastCommit();
+                }
             });
             
             watcher.on("change.all", function(e){
@@ -176,6 +182,7 @@ define(function(require, exports, module) {
             plugin.on("show", function(){
                 reload();
                 updateLastCommit();
+                commitBox.focus();
             });
         }
         
@@ -341,17 +348,19 @@ define(function(require, exports, module) {
             }, plugin);
             
             btnScm = ui.insertByIndex(toolbar, new ui.splitbutton({
-                caption: "Sync",
+                icon: "syncing.gif",
+                class: "btn-scm-sync",
                 skinset: "default",
                 skin: "c9-menu-btn",
                 submenu: mnuCommit.aml,
                 onclick: function(){
-                    if (btnMode == "commit")
-                        dialogCommit.show();
-                    else if (btnMode == "sync")
+                    // if (btnMode == "commit")
+                    //     dialogCommit.show();
+                    // else 
+                    if (btnMode == "sync")
                         sync();
                     else if (btnMode == "conflict") {
-                        
+                        markResolved();
                     }
                     else if (btnMode == "rebase") {
                         
@@ -428,10 +437,18 @@ define(function(require, exports, module) {
                             + dirname(path) + "</span>"
                             + (node.parent == staged
                                 ? "<span class='min'>-</span>"
-                                : "<span class='revert'>-</span>"
-                                    + "<span class='plus'>+</span>");
+                                : (node.parent == conflicts
+                                    ? "<span class='plus'>+</span>"
+                                    : "<span class='revert'>-</span>"
+                                        + "<span class='plus'>+</span>"));
                     }
                     return escapeHTML(node.label || node.name);
+                },
+                
+                getClassName: function(node) {
+                    return (node.className || "") 
+                        + (node.status == "loading" ? " loading" : "")
+                        + (node.type && ~node.type.indexOf("D") ? " deleted" : "");
                 },
                 
                 getRowIndent: function(node) {
@@ -492,6 +509,24 @@ define(function(require, exports, module) {
                 
                 if (classList.contains("plus")) {
                     node = e.getNode();
+                    
+                    if (node.parent === conflicts && node.type.indexOf("D") === -1) {
+                        fs.readFile(node.path, function(err, data){
+                            if (err || data.indexOf("<<<<<<<") === -1) 
+                                return addToStaging([node]);
+                            
+                            confirm("Conflict Not Resolves",
+                                "The merge conflict is not yet resolved",
+                                "The file '" + node.path + "' still has an "
+                                  + "unresolved merge conflict. Click OK to mark "
+                                  + "the conflict as resolved.",
+                                function(){
+                                    addToStaging([node]);
+                                });
+                        });
+                        return;
+                    }
+                    
                     addToStaging([node]);
                 }
                 else if (classList.contains("min")) {
@@ -716,59 +751,121 @@ define(function(require, exports, module) {
             updateButton(conflicts.children.length 
                 ? "conflict" 
                 : ((status.changed || 0).length || (status.staged || 0).length
-                    ? "commit"
+                    ? "sync"
                     : "sync"));
         }
         
         function updateButton(type){
             // btnScm.setAttribute("caption", CAPTION[type]);
-            // btnMode = type;
+            btnMode = type;
+            removeLoading();
         }
         
         // TODO update UI somehow 
         // - maybe big 3 dots from earlier version of salesforce sync button
         // + a small dropdown below the button stating what the new hash is
+        var isSyncing;
         function sync(){
-            scm.pull(function(err){
+            if (isSyncing) return;
+            
+            isSyncing = true;
+            setLoading();
+            
+            function done(err){
+                isSyncing = true;
+                removeLoading();
                 if (err) return; // TODO
+            }
+            
+            scm.pull(function(err){
+                if (err) return done(err);
                 
                 scm.push(function(err){
-                    if (err) return; // TODO
+                    done(err);
                 });
             });
         }
         
         function push(){
+            if (isSyncing) return;
+            
+            isSyncing = true;
+            setLoading();
+            
             scm.push(function(err){
+                removeLoading();
                 if (err) return; // TODO
             });
         }
         function pull(){
+            if (isSyncing) return;
+            
+            isSyncing = true;
+            setLoading();
+            
             scm.pull(function(err){
+                removeLoading();
                 if (err) return; // TODO
             });
         }
         function mergeMaster(){
+            if (isSyncing) return;
+            
+            isSyncing = true;
+            setLoading();
+            
             scm.pull({ branch: "origin master" }, function(err){
+                removeLoading();
                 if (err) return; // TODO
             });
         }
         function resetHard(){
+            if (isSyncing) return;
+            
+            isSyncing = true;
+            setLoading();
+            
             scm.resetHard(function(err){
+                removeLoading();
                 if (err) return; // TODO
             });
         }
         function markResolved(){
-            async.each(conflicts.children, function(n, next){
-                scm.addFileToStaging(n.path, next);
-            }, function(err){
-                if (err) return; // TODO
-            });
+            if (isSyncing || !conflicts.children.length) return;
+            
+            confirm("Resolve Conflicts",
+                "Would you like to resolve all conflicts?",
+                "Click OK to resolve all conflicts",
+                function(){
+                    isSyncing = true;
+                    setLoading();
+                    
+                    async.each(conflicts.children, function(n, next){
+                        scm.addFileToStaging(n.path, next);
+                    }, function(err){
+                        removeLoading();
+                        if (err) return; // TODO
+                    });
+                });
         }
         
         function commit(message, amend, callback, force){
+            if (conflicts.children.length) {
+                alert("Unresolved Conflicts",
+                    "There are unresolved conflicts.",
+                    "Please resolve the conflicts before committing.");
+                return callback(new Error("Unresolved Conflicts"));
+            }
+                    
+            if (!staged.children.length && !changed.children.length) {
+                alert("Nothing to do",
+                    "There is nothing to commit",
+                    "Please make some changes to commit and try again.");
+                return callback(new Error("Nothing to do"));
+            }
+            
             if (!staged.children.length && !force) {
-                scm.addAll(function(err){
+                scm.addFileToStaging(function(err){
                     if (err) return console.error(err);
                     
                     commit(message, amend, callback, true); 
@@ -781,6 +878,9 @@ define(function(require, exports, module) {
                 amend: amend
             }, function(err){
                 if (err) return console.error(err);
+                
+                if (settings.getBool("state/scm/@auto"))
+                    sync();
                 
                 callback && callback();
             });
@@ -859,6 +959,14 @@ define(function(require, exports, module) {
             scm.getLastLogMessage(function(err, message){
                 lastCommitMessage = err ? "" : message;
             });
+        }
+        
+        function setLoading(){
+            setSyncStatus("syncing" + (conflicts.children.length ? " conflict" : ""));
+        }
+        
+        function removeLoading(){
+            setSyncStatus((conflicts.children.length ? "conflict" : ""));
         }
         
         // function trimLongStatus(output) {
@@ -1354,16 +1462,16 @@ define(function(require, exports, module) {
         //     );
         // }
        
-        // function setSyncStatus(type){
-        //     if (!btnScm) return;
+        function setSyncStatus(type){
+            if (!btnScm) return;
             
-        //     if (!type) {
-        //         btnScm.$ext.className = btnScmClassName;
-        //     }
-        //     else {
-        //         btnScm.$ext.className = btnScmClassName + " " + type;
-        //     }
-        // }
+            if (!type) {
+                btnScm.$ext.className = btnScmClassName;
+            }
+            else {
+                btnScm.$ext.className = btnScmClassName + " " + type;
+            }
+        }
         
         /***** Lifecycle *****/
         
@@ -1375,6 +1483,7 @@ define(function(require, exports, module) {
         });
         plugin.on("unload", function() {
             clearTimeout(syncTimeout);
+            isSyncing = null;
             syncTimeout = null;
             drawn = false;
             logTree = null;
@@ -1405,7 +1514,7 @@ define(function(require, exports, module) {
         });
         
         register(null, {
-            "scm.button": plugin
+            "scm.commit": plugin
         });
     }
 });

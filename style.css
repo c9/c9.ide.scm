@@ -142,58 +142,6 @@
 
 /******** NEW ***********/
 
-.btn-scm {
-    height: 100%;
-}
-.btn-scm.dark {
-    margin-top: -1px;
-}
-/*.btn-scm div:first-child {*/
-/*    min-width: 26px;*/
-/*    padding-left: 3px !important;*/
-/*}*/
-/*.btn-scm div:first-child .icon{*/
-/*    .image-2x("@{icon-path}/sync-button.png", 19px, 19px, no-repeat, true);*/
-/*    background-position: 8px 8px;*/
-/*    left: 3px;*/
-/*    top: 2px;*/
-/*    width: 36px;*/
-/*    height: 36px;*/
-/*}*/
-/*.btn-scm.dark div:first-child .icon{*/
-/*    height: 23px;*/
-/*    background-position: 8px 1px;*/
-/*}*/
-.btn-scm div:last-child {
-    vertical-align: top;
-}
-/*.btn-scm.error div:first-child .icon{*/
-/*    .image-2x("@{icon-path}/error-button.png", 19px, 19px, no-repeat, true);*/
-/*}*/
-/*.btn-scm.conflict div:first-child .icon{*/
-/*    .image-2x("@{icon-path}/conflict-button.png", 19px, 19px, no-repeat, true);*/
-/*}*/
-/*// Syncing States - Light*/
-/*.btn-scm.syncing div:first-child .icon{*/
-/*    .image-2x("@{icon-path}/syncing.gif", 19px, 19px, no-repeat, true);*/
-/*}*/
-/*.btn-scm.syncing.error div:first-child .icon{*/
-/*    .image-2x("@{icon-path}/syncing-error.gif", 19px, 19px, no-repeat, true);*/
-/*}*/
-/*.btn-scm.syncing.conflict div:first-child .icon{*/
-/*    .image-2x("@{icon-path}/syncing-conflict.gif", 19px, 19px, no-repeat, true);*/
-/*}*/
-/*// Syncing States - Dark*/
-/*.btn-scm.syncing.dark div:first-child .icon{*/
-/*    .image-2x("@{icon-path}/syncing-dark.gif", 19px, 19px, no-repeat, true);*/
-/*}*/
-/*.btn-scm.syncing.error.dark div:first-child .icon{*/
-/*    .image-2x("@{icon-path}/syncing-error-dark.gif", 19px, 19px, no-repeat, true);*/
-/*}*/
-/*.btn-scm.syncing.conflict.dark div:first-child .icon{*/
-/*    .image-2x("@{icon-path}/syncing-conflict-dark.gif", 19px, 19px, no-repeat, true);*/
-/*}*/
-
 .scm-title > div:last-child {
     text-transform: uppercase;
     font-size: 9px;
@@ -401,4 +349,60 @@ body .branch-filter .sbtb_middle{
 
 .scmtree .revert {
     right: 16px;
+}
+
+.scmtree .tree-row.deleted .caption {
+    text-decoration: line-through;
+}
+
+.btn-scm-sync {
+    height: 100%;
+}
+.btn-scm.dark {
+    margin-top: -1px;
+}
+.btn-scm-sync div:first-child {
+    min-width: 26px;
+    padding-left: 3px !important;
+}
+.btn-scm-sync div:first-child .icon{
+    .image-2x("@{icon-path}/sync-button.png", 19px, 19px, no-repeat, true);
+    background-position: 8px 8px;
+    left: 3px;
+    top: -1px !important;
+    width: 36px;
+    height: 36px;
+}
+.btn-scm-sync.dark div:first-child .icon{
+    height: 23px;
+    background-position: 8px 1px;
+}
+.btn-scm-sync div:last-child {
+    vertical-align: top;
+}
+.btn-scm-sync.error div:first-child .icon{
+    .image-2x("@{icon-path}/error-button.png", 19px, 19px, no-repeat, true);
+}
+.btn-scm-sync.conflict div:first-child .icon{
+    .image-2x("@{icon-path}/conflict-button.png", 19px, 19px, no-repeat, true);
+}
+// Syncing States - Light
+.btn-scm-sync.syncing div:first-child .icon{
+    .image-2x("@{icon-path}/syncing.gif", 19px, 19px, no-repeat, true);
+}
+.btn-scm-sync.syncing.error div:first-child .icon{
+    .image-2x("@{icon-path}/syncing-error.gif", 19px, 19px, no-repeat, true);
+}
+.btn-scm-sync.syncing.conflict div:first-child .icon{
+    .image-2x("@{icon-path}/syncing-conflict.gif", 19px, 19px, no-repeat, true);
+}
+// Syncing States - Dark
+.btn-scm-sync.syncing.dark div:first-child .icon{
+    .image-2x("@{icon-path}/syncing-dark.gif", 19px, 19px, no-repeat, true);
+}
+.btn-scm-sync.syncing.error.dark div:first-child .icon{
+    .image-2x("@{icon-path}/syncing-error-dark.gif", 19px, 19px, no-repeat, true);
+}
+.btn-scm-sync.syncing.conflict.dark div:first-child .icon{
+    .image-2x("@{icon-path}/syncing-conflict-dark.gif", 19px, 19px, no-repeat, true);
 }
