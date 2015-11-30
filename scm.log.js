@@ -475,6 +475,8 @@ define(function(require, exports, module) {
                     }
                     label.style.display = "block";
                     
+                    if (!status) return;
+                    
                     tree.setRoot(status.history);
                     tree.select(null);
                     tree.meta.options = options;

@@ -654,7 +654,7 @@ define(function(require, exports, module) {
             
             tree.minLines = 2;
             tree.maxLines = Math.floor((window.innerHeight - 100) / tree.rowHeight);
-            tree.emptyMessage = "loading...";
+            tree.emptyMessage = "Loading...";
             
             // sync.on("log", function(e){
             //     updateStatusMessage();
@@ -722,6 +722,7 @@ define(function(require, exports, module) {
             
             if (!status) {
                 tree.setRoot(null);
+                tree.emptyMessage = "No changes";
                 updateButton("sync");
                 return;
             }
@@ -931,11 +932,16 @@ define(function(require, exports, module) {
         }
         
         function reload(e){
+            tree.emptyMessage = "Loading...";
+            setLoading();
+            
             scm.getStatus({ 
                 hash: 0, 
                 force: true,
                 untracked: "all"
-            }, function(){});
+            }, function(){
+                removeLoading();
+            });
         }
         
         function isChanged(path){
