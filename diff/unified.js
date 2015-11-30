@@ -267,8 +267,8 @@ function DiffView(element, options) {
             +'<div>'
         
         w.el.className ="unidiff_fileHeader ace_lineWidgetContainer";
-        w.el.style.height = lineHeight * 5 + "px";
-        w.el.firstChild.style.height = lineHeight * 4 + "px";
+        w.el.style.height = lineHeight * 3 + "px";
+        w.el.firstChild.style.height = lineHeight * 3 + "px";
         w.el.firstChild.style.marginTop = lineHeight + "px";
     };
     this.renderHeaders = function(e, renderer) {
@@ -672,12 +672,13 @@ require("ace/lib/dom").importCssString("\
 .unidiff_fileHeaderInner {\
     background: #f7f7f7;\
     font: inherit;\
-    padding: 11px 5em;\
+    padding: 15px 4em;\
     box-sizing: border-box;\
     border: 1px solid #d8d8d8;\
     // border-style: solid none;\
     border-style: solid;\
     border-radius: 5px 5px 0 0;\
+    font-size: 11px;\
 }\
 .unidiff_fileHeader{\
     background: inherit;\
