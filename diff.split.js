@@ -3,7 +3,7 @@ define(function(require, exports, module) {
         "editors", "Editor", "ui", "scm", "layout", "settings",
         "threewaymerge", "menus", "Menu", "MenuItem", "Divider", "ace"
     ];
-    main.provides = ["diffview"];
+    main.provides = ["diff.split"];
     return main;
 
     function main(options, imports, register) {
@@ -40,7 +40,7 @@ define(function(require, exports, module) {
         var menuAce;
         var menuGutter;
         
-        var handle = editors.register("diffview", "Compare", DiffViewer, extensions);
+        var handle = editors.register("diff.split", "Compare", DiffViewer, extensions);
         
         function createMenu() {
             menuAce = new Menu({ 
@@ -359,7 +359,7 @@ define(function(require, exports, module) {
         }
         
         register(null, {
-            "diffview": handle
+            "diff.split": handle
         });
     }
 });

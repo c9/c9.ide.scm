@@ -3,14 +3,14 @@ define(function(require, exports, module) {
         "editors", "Editor", "ui", "scm", "layout", "settings",
         "threewaymerge", "menus", "Menu", "MenuItem", "Divider", "ace"
     ];
-    main.provides = ["diffview"];
+    main.provides = ["diff.unified"];
     return main;
 
     function main(options, imports, register) {
         var settings = imports.settings;
         var editors = imports.editors;
         var Editor = imports.Editor;
-        var scm = imports.scm;
+        var scmProvider = imports.scm;
         var layout = imports.layout;
         var MenuItem = imports.MenuItem;
         var Divider = imports.Divider;
@@ -21,7 +21,7 @@ define(function(require, exports, module) {
         
         var dirname = require("path").dirname;
         var basename = require("path").basename;
-        var DiffView = require("./diff/twoway").DiffView;
+        var DiffView = require("./diff/unified").DiffView;
         
         /***** Initialization *****/
         
@@ -39,8 +39,10 @@ define(function(require, exports, module) {
         
         var menuAce;
         var menuGutter;
+        var scm;
         
-        var handle = editors.register("diffview", "Compare", DiffViewer, extensions);
+        var handle = editors.register("diff.unified", "Compare", DiffViewer, extensions);
+        var handleEmit = handle.getEmitter();
         
         function createMenu() {
             menuAce = new Menu({ 
@@ -62,6 +64,11 @@ define(function(require, exports, module) {
             }, handle);
         }
         
+        scmProvider.on("scm", function(implementation){
+            scm = implementation;
+            handleEmit.sticky("ready");
+        }, handle);
+        
         function DiffViewer(){
             // TODO it is too difficult to hook into initialization flow of ace plugin
             // so we have to copy paste bunch of code here :(
@@ -79,168 +86,173 @@ define(function(require, exports, module) {
             plugin.on("draw", function(e) {
                 var tab = e.tab;
                 
-                lblLeft = new ui.label({ flex:1 });
-                lblRight = new ui.label({ flex:1, class:"right" });
-                btnNext = new ui.button({ 
-                    caption: ">", 
-                    height: 24,
-                    skin: "c9-toolbarbutton-glossy",
-                    onclick: function() {
-                        diffview.gotoNext(1);
-                    }
-                }); 
-                btnPrev = new ui.button({ 
-                    caption: "<",
-                    height: 24,
-                    skin: "c9-toolbarbutton-glossy",
-                    onclick: function() {
-                        diffview.gotoNext(-1);
-                    }
-                });
-                btnFold = new ui.button({ 
-                    caption: "Fold",
-                    height: 24,
-                    skin: "c9-toolbarbutton-glossy",
-                    onclick: function() {
-                        if (diffview.orig.session.$foldData.length)
-                            diffview.orig.session.unfold() 
-                        else
-                            diffview.foldUnchanged();
-                    }
-                });
+                // lblLeft = new ui.label({ flex:1 });
+                // lblRight = new ui.label({ flex:1, class:"right" });
+                // btnNext = new ui.button({ 
+                //     caption: ">", 
+                //     height: 24,
+                //     skin: "c9-toolbarbutton-glossy",
+                //     onclick: function() {
+                //         diffview.gotoNext(1);
+                //     }
+                // }); 
+                // btnPrev = new ui.button({ 
+                //     caption: "<",
+                //     height: 24,
+                //     skin: "c9-toolbarbutton-glossy",
+                //     onclick: function() {
+                //         diffview.gotoNext(-1);
+                //     }
+                // });
+                // btnFold = new ui.button({ 
+                //     caption: "Fold",
+                //     height: 24,
+                //     skin: "c9-toolbarbutton-glossy",
+                //     onclick: function() {
+                //         if (diffview.orig.session.$foldData.length)
+                //             diffview.orig.session.unfold() 
+                //         else
+                //             diffview.foldUnchanged();
+                //     }
+                // });
                 container = new ui.bar({ flex: 1, class: "ace_diff-container" });
                 
                 tab.appendChild(new ui.vsplitbox({ 
                     anchors: "0 0 0 0",
                     childNodes: [
-                        toolbar = new ui.hbox({
-                            class: "difftoolbar",
-                            height: 36,
-                            align: "center",
-                            edge: "0 5 0 3",
-                            padding: 3,
-                            childNodes: [
-                                lblLeft,
-                                new ui.hbox({
-                                    padding: 3,
-                                    edge: 3,
-                                    margin: "0 7 0 7",
-                                    align: "center",
-                                    class: "buttons",
-                                    childNodes: [ btnPrev, btnFold, btnNext ]
-                                }),
-                                lblRight
-                            ]
-                        }),
+                        // toolbar = new ui.hbox({
+                        //     class: "difftoolbar",
+                        //     height: 36,
+                        //     align: "center",
+                        //     edge: "0 5 0 3",
+                        //     padding: 3,
+                        //     childNodes: [
+                        //         lblLeft,
+                        //         new ui.hbox({
+                        //             padding: 3,
+                        //             edge: 3,
+                        //             margin: "0 7 0 7",
+                        //             align: "center",
+                        //             class: "buttons",
+                        //             childNodes: [ btnPrev, btnFold, btnNext ]
+                        //         }),
+                        //         lblRight
+                        //     ]
+                        // }),
+                        toolbar = new ui.bar({ height: 36 }),
                         container
                     ]
                 }));
                 
                 diffview = new DiffView(container.$ext, {});
                 
-                // temporary workaround for apf focus bugs
-                // only blur is needed sinse the rest is handled by tabManager
-                // todo remove this when there is proper focus manager
-                tab.$blur = function(e) {
-                    var ace = plugin.ace; // can be null when called for destroyed tab
-                    if (!ace || !e || !e.toElement || e.toElement.tagName == "menu") 
-                        return;
-                    if (!ace.isFocused())
-                        ace.renderer.visualizeBlur();
-                    else
-                        ace.textInput.blur();
-                };
+                // // temporary workaround for apf focus bugs
+                // // only blur is needed sinse the rest is handled by tabManager
+                // // todo remove this when there is proper focus manager
+                // tab.$blur = function(e) {
+                //     var ace = plugin.ace; // can be null when called for destroyed tab
+                //     if (!ace || !e || !e.toElement || e.toElement.tagName == "menu") 
+                //         return;
+                //     if (!ace.isFocused())
+                //         ace.renderer.visualizeBlur();
+                //     else
+                //         ace.textInput.blur();
+                // };
                 
-                function focusApf() {
-                    var page = apf.findHost(diffview.container.parentElement.parentElement);
-                    if (apf.activeElement != page)
-                        page.focus();
-                }
-                function updateLastAce(e, ace) { lastAce = ace; }
+                // function focusApf() {
+                //     var page = apf.findHost(diffview.container.parentElement.parentElement);
+                //     if (apf.activeElement != page)
+                //         page.focus();
+                // }
+                // function updateLastAce(e, ace) { lastAce = ace; }
                 
-                diffview.edit.on("focus", focusApf);
-                diffview.orig.on("focus", focusApf);
-                diffview.edit.keyBinding.setDefaultHandler(null);
-                diffview.orig.keyBinding.setDefaultHandler(null);
+                // diffview.edit.on("focus", focusApf);
+                // diffview.orig.on("focus", focusApf);
+                // diffview.edit.keyBinding.setDefaultHandler(null);
+                // diffview.orig.keyBinding.setDefaultHandler(null);
                 
-                diffview.edit.on("focus", updateLastAce);
-                diffview.orig.on("focus", updateLastAce);
+                // diffview.edit.on("focus", updateLastAce);
+                // diffview.orig.on("focus", updateLastAce);
                 
-                lastAce = diffview.edit;
+                // lastAce = diffview.edit;
                 
-                // createProgressIndicator(e.htmlNode);
+                // // createProgressIndicator(e.htmlNode);
                 
-                tab.on("contextmenu", function(e) { 
-                    if (!menuAce) createMenu();
+                // tab.on("contextmenu", function(e) { 
+                //     if (!menuAce) createMenu();
                     
-                    var target = e.htmlEvent.target;
-                    var gutter = plugin.diffview.gutterEl;
+                //     var target = e.htmlEvent.target;
+                //     var gutter = plugin.diffview.gutterEl;
                     
-                    // Set Gutter Context Menu
-                    if (ui.isChildOf(gutter, target, true)) {
-                        menuGutter.show(e.x, e.y);
-                    }
-                    // Set main Ace Context Menu
-                    else {
-                        menuAce.show(e.x, e.y);
-                    }
+                //     // Set Gutter Context Menu
+                //     if (ui.isChildOf(gutter, target, true)) {
+                //         menuGutter.show(e.x, e.y);
+                //     }
+                //     // Set main Ace Context Menu
+                //     else {
+                //         menuAce.show(e.x, e.y);
+                //     }
 
-                    return false;
-                });
+                //     return false;
+                // });
             });
             
             /***** Method *****/
             
-            function getLabelValue(path){
-                var hash;
+            // function getLabelValue(path){
+            //     var hash;
                 
-                if (path.indexOf(":") > -1) {
-                    hash = path.split(":");
-                    path = hash[1], hash = hash[0];
-                }
+            //     if (path.indexOf(":") > -1) {
+            //         hash = path.split(":");
+            //         path = hash[1], hash = hash[0];
+            //     }
                 
-                var dirpath = dirname(path);
-                return (hash ? "<span class='hash'>" + hash + "</span>" : "") 
-                    + basename(dirpath) + "/" + basename(path) 
-                    + "<span class='dirname'> - " + dirname(dirpath) + "</span>";
-            }
+            //     var dirpath = dirname(path);
+            //     return (hash ? "<span class='hash'>" + hash + "</span>" : "") 
+            //         + basename(dirpath) + "/" + basename(path) 
+            //         + "<span class='dirname'> - " + dirname(dirpath) + "</span>";
+            // }
             
-            function loadSession(session){
-                if (session.diffSession) {
-                    diffview.setSession(session.diffSession);
-                    return;
-                }
+            // function loadSession(session){
+            //     if (session.diffSession) {
+            //         diffview.setSession(session.diffSession);
+            //         return;
+            //     }
                 
-                diffview.setSession(session.diffSession = {
-                    orig: diffview.createSession(),
-                    edit: diffview.createSession(),
-                    chunks: []
-                });
+            //     diffview.setSession(session.diffSession = {
+            //         orig: diffview.createSession(),
+            //         edit: diffview.createSession(),
+            //         chunks: []
+            //     });
                 
-                var diff = session.diff || {};
-                if (typeof diff.patch == "string") {
-                    diffview.setValueFromFullPatch(diff.patch);
-                } else {
-                    diffview.orig.session.setValue(diff.orig || "");
-                    diffview.edit.session.setValue(diff.edit || "");
-                }
-                diffview.orig.setReadOnly(true);
-                diffview.edit.setReadOnly(true);
+            //     var diff = session.diff || {};
+            //     if (typeof diff.patch == "string") {
+            //         diffview.setValueFromFullPatch(diff.patch);
+            //     } else {
+            //         diffview.orig.session.setValue(diff.orig || "");
+            //         diffview.edit.session.setValue(diff.edit || "");
+            //     }
+            //     diffview.orig.setReadOnly(true);
+            //     diffview.edit.setReadOnly(true);
                  
-                var syntax = ace.getSyntaxForPath(session.newPath);
-                if (syntax && syntax.indexOf("/") == -1) syntax = "ace/mode/" + syntax;
-                if (syntax) {
-                    diffview.orig.session.setMode(syntax);
-                    diffview.edit.session.setMode(syntax);
-                }
-                diffview.orig.renderer.once("afterRender", function() {
-                    if (diffview.session == session.diffSession) {
-                        if (!diffview.chunks.length)
-                            diffview.computeDiff();
-                        diffview.foldUnchanged();
-                        diffview.gotoNext(1);
-                    }
-                });
+            //     var syntax = ace.getSyntaxForPath(session.newPath);
+            //     if (syntax && syntax.indexOf("/") == -1) syntax = "ace/mode/" + syntax;
+            //     if (syntax) {
+            //         diffview.orig.session.setMode(syntax);
+            //         diffview.edit.session.setMode(syntax);
+            //     }
+            //     diffview.orig.renderer.once("afterRender", function() {
+            //         if (diffview.session == session.diffSession) {
+            //             if (!diffview.chunks.length)
+            //                 diffview.computeDiff();
+            //             diffview.foldUnchanged();
+            //             diffview.gotoNext(1);
+            //         }
+            //     });
+            // }
+            
+            function loadSession(session) {
+                diffview.setValueFromPatch(session.diff);
             }
             
             /***** Lifecycle *****/
@@ -259,9 +271,9 @@ define(function(require, exports, module) {
                 
                 doc.title = "Compare Files...";
                 
-                diffview.c9session = session;
-                diffview.orig.session.c9session = session;
-                diffview.edit.session.c9session = session;
+                // diffview.c9session = session;
+                // diffview.orig.session.c9session = session;
+                // diffview.edit.session.c9session = session;
                 
                 function setTheme(e) {
                     var tab = doc.tab;
@@ -274,7 +286,8 @@ define(function(require, exports, module) {
                         if (isDark) tab.classList.add("dark");
                         else tab.classList.remove("dark");
                     }
-                    diffview.setTheme(settings.get("user/ace/@theme"));
+                    // TODO
+                    diffview.editor.setTheme(settings.get("user/ace/@theme"));
                 }
                 
                 layout.on("themeChange", setTheme, doc);
@@ -290,8 +303,8 @@ define(function(require, exports, module) {
                 var newFilename = (session.newPath + "").split("/").pop();
                 e.doc.title = "Compare " + newFilename;
                 
-                lblLeft.setAttribute("caption", getLabelValue(session.oldPath));
-                lblRight.setAttribute("caption", getLabelValue(session.newPath));
+                // lblLeft.setAttribute("caption", getLabelValue(session.oldPath));
+                // lblRight.setAttribute("caption", getLabelValue(session.newPath));
                 
                 if (session.diff)
                     return loadSession(session);
@@ -302,19 +315,21 @@ define(function(require, exports, module) {
                 var oldPath = session.oldPath
                     .replace(/PREVIOUS:/, ":");
                 
-                session.request = scm.loadDiff({ 
-                    oldPath: oldPath, 
-                    newPath: newPath 
-                }, function(err, diff) {
-                    if (err) 
-                        diff;
-                    
-                    if (session.request == diff.request) {
-                        session.diff = diff;
-                        loadSession(session);
-                    }
-                });
-                
+                handle.on("ready", function(){
+                    session.request = scm.loadDiff({ 
+                        oldPath: oldPath, 
+                        newPath: newPath,
+                        context: session.context || false
+                    }, function(err, diff) {
+                        if (err) 
+                            diff;
+                        
+                        if (session.request == diff.request) {
+                            session.diff = diff;
+                            loadSession(session);
+                        }
+                    });
+                }, plugin);
             });
             plugin.on("documentUnload", function(e) {
                 // var session = e.doc.getSession();
@@ -323,11 +338,13 @@ define(function(require, exports, module) {
                 var session = e.doc.getSession();
                 e.state.oldPath = session.oldPath;
                 e.state.newPath = session.newPath;
+                e.state.context = session.context;
             });
             plugin.on("setState", function(e) {
                 var session = e.doc.getSession();
                 session.oldPath = e.state.oldPath;
                 session.newPath = e.state.newPath;
+                session.context = e.state.context;
             });
             plugin.on("clear", function(){
             });
@@ -340,7 +357,7 @@ define(function(require, exports, module) {
             plugin.on("unload", function(){
             });
             plugin.on("resize", function(e) {
-                diffview && diffview.resize(e);
+                diffview && diffview.editor.resize(e);
             });
             
             /***** Register and define API *****/
@@ -359,7 +376,7 @@ define(function(require, exports, module) {
         }
         
         register(null, {
-            "diffview": handle
+            "diff.unified": handle
         });
     }
 });

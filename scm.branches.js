@@ -115,7 +115,7 @@ define(function(require, exports, module) {
             scmProvider.on("scm", function(implementation){
                 scm = implementation;
                 if (plugin.active) refresh();
-            });
+            }, plugin);
             
             plugin.once("show", function(){
                 if (!ready) refresh();
@@ -1127,31 +1127,72 @@ define(function(require, exports, module) {
             });
         }
         
+        // function openSelection(opts) {
+        //     if (!c9.has(c9.STORAGE))
+        //         return;
+            
+        //     var node = tree.selectedNode;
+        //     if (!node || node.isFolder)
+        //         return;
+            
+        //     if (node.parent == conflicts)
+        //         return openConflictView(node);
+            
+        //     var options = tree.meta.options;
+        //     var oldPath = node.path;
+        //     var newPath = node.originalPath || node.path;
+            
+        //     var hash = options.hash
+        //         ? options.hash + ":"
+        //         : (node.parent == staged ? "STAGED:" : "MODIFIED:");
+            
+        //     var base = options.base
+        //         ? options.base + ":"
+        //         : (node.parent == staged ? "HEAD:" : "PREVIOUS:");
+            
+        //     var diffview = {
+        //         oldPath: base + oldPath,
+        //         newPath: hash + newPath
+        //     };
+            
+        //     var tab = findOpenDiffview(diffview);
+        //     if (tab && !(opts && opts.preview)) {
+        //         if (tab.document.meta.preview)
+        //             tabManager.preview({ cancel: true, keep: true });
+        //         else {
+        //             opts && opts.preview
+        //                 ? tabManager.activateTab(tab)
+        //                 : tabManager.focusTab(tab);
+        //         }
+        //         return;
+        //     }
+            
+        //     tabManager[opts && opts.preview ? "preview" : "open"]({
+        //         editorType: "diffview",
+        //         focus: true,
+        //         document: {
+        //             diffview: diffview
+        //         }
+        //     }, function(){});
+        // }
+        
         function showCompareView(path){
+            // TODO make sure there is only one open
+            
             tabManager.open({
                 newfile: true,
-                value: -1,
-                editorType: "ace",
+                editorType: "diff.unified",
                 focus: true,
                 document: {
-                    title: "Compare View",
-                    ace: {
-                        customSyntax: "diff"
+                    "title": "Compare View",
+                    "diff.unified": {
+                        oldPath: "refs/remotes/origin/master",
+                        newPath: path,
+                        context: false
                     }
                 }
                 // path: "/compare.diff"
-            }, function(ignore, tab, done){
-                
-                scm.loadDiff({
-                    oldPath: "refs/remotes/origin/master",
-                    newPath: path,
-                    context: false,
-                }, function(err, info){
-                    if (err) return console.error(err); // TODO 
-                
-                    tab.document.value = info.patch;
-                    done();
-                });
+            }, function(ignore, tab){
                 
             });
         }
