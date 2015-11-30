@@ -175,7 +175,7 @@ function DiffView(element, options) {
 
             var line = session.getLine(row);
             var state = diffStates[row];
-            var className = "unidiff_gutter-cell ";
+            var className = "unidiff_gutter-cell unidiff " + state.type;
             
             if (cell.element.className != className)
                 cell.element.className = className;
@@ -220,10 +220,7 @@ function DiffView(element, options) {
             } else {
                 cell.element1.textContent = state.row1 || "\x1b";
                 cell.element2.textContent = state.row2 || "\x1b";
-            } 
-            
-            cell.element1.className = "unidiff-cell first unidiff " + state.type;
-            cell.element2.className = "unidiff-cell unidiff " + state.type;
+            }
             row++;
         }
 
