@@ -93,7 +93,7 @@ define(function(require, exports, module) {
             });
             
             settings.on("read", function(){
-                settings.setDefaults("project/scm", [["primary", ["origin/master"]]]);
+                settings.setDefaults("project/scm", [["primary", '["origin/master"]']]);
                 settings.setDefaults("user/scm", [["showauthor", [false]]]); // TODO this doesn't actually work
                 settings.setDefaults("state/scm", [["branches-display-mode", "branches"]]);
                 
@@ -114,7 +114,9 @@ define(function(require, exports, module) {
             
             scmProvider.on("scm", function(implementation){
                 scm = implementation;
-                if (plugin.active) refresh();
+                
+                if (plugin.active) 
+                    refresh();
             }, plugin);
             
             plugin.once("show", function(){
@@ -838,7 +840,11 @@ define(function(require, exports, module) {
         }
         
         function refresh(){
-            if (!scm) return;
+            if (!scm) {
+                branchesTree.setRoot(null);
+                branchesTree.emptyMessage = "No repository detected";
+                return;
+            }
             
             async.parallel([
                 function (next) {
@@ -1220,8 +1226,11 @@ define(function(require, exports, module) {
         plugin.on("disable", function(){
             
         });
+        plugin.on("resize", function() {
+            branchesTree && branchesTree.resize();
+        });
         plugin.on("show", function onShow(e) {
-            
+            branchesTree && setTimeout(branchesTree.resize);
         });
         plugin.on("hide", function(e) {
             

@@ -1,6 +1,6 @@
 define(function(require, exports, module) {
     main.consumes = [
-        "Plugin", "scm", "proc", "c9", "ext"
+        "Plugin", "scm", "proc", "c9", "fs"
     ];
     main.provides = ["scm.git"];
     return main;
@@ -9,11 +9,12 @@ define(function(require, exports, module) {
         var Plugin = imports.Plugin;
         var scm = imports.scm;
         var proc = imports.proc;
-        var ext = imports.ext;
+        var fs = imports.fs;
         var c9 = imports.c9;
         
         var basename = require("path").basename;
         var dirname = require("path").dirname;
+        var join = require("path").join;
         
         /***** Initialization *****/
         
@@ -28,7 +29,9 @@ define(function(require, exports, module) {
          * Detect whether the path has a git repository 
          */
         function detect(path, callback){
-            
+            fs.exists(join(path, ".git"), function(exists){
+                return callback(null, exists);
+            });
         }
         
         var ACTIONS = {
@@ -39,7 +42,7 @@ define(function(require, exports, module) {
             "stash": ["status.dirty"],
             "apply": ["status.dirty"],
             "commit": ["status.dirty", "log.dirty"]
-        }
+        };
         
         function git(args, cb) {
             if (typeof args == "string")
@@ -254,6 +257,10 @@ define(function(require, exports, module) {
             name: "NoRemoteRepo", 
             code: 103,
             detect: /fatal: No remote repository specified/
+        }, {
+            name: "NotARepo", 
+            code: 104,
+            detect: /fatal: Not a git repository/
         }].forEach(function(def){
             errors[def.name] = function(msg){ this.message = msg };
             errors[def.name].prototype = new Error();

@@ -152,20 +152,22 @@ define(function(require, exports, module) {
             scmProvider.on("scm", function(implementation){
                 scm = implementation;
                 
-                scm.on("status", function(e){
-                    updateStatus(e.status);
-                });
-                
-                scm.on("log.dirty", function(){
-                    if (!plugin.active) return;
-                    updateLastCommit();
-                });
-                
-                scm.on("status.dirty", reload);
+                if (scm) {
+                    scm.on("status", function(e){
+                        updateStatus(e.status);
+                    }, plugin);
+                    
+                    scm.on("log.dirty", function(){
+                        if (!plugin.active) return;
+                        updateLastCommit();
+                    }, plugin);
+                    
+                    scm.on("status.dirty", reload);
+                }
                 
                 if (plugin.active) {
-                    reload();
-                    updateLastCommit();
+                    if (reload())
+                        updateLastCommit();
                 }
             });
             
@@ -180,8 +182,9 @@ define(function(require, exports, module) {
             });
             
             plugin.on("show", function(){
-                reload();
-                updateLastCommit();
+                if (reload())
+                    updateLastCommit();
+                    
                 commitBox.focus();
             });
         }
@@ -826,7 +829,14 @@ define(function(require, exports, module) {
             
             scm.push(function(err){
                 removeLoading();
-                if (err) return; // TODO
+                isSyncing = false;
+                
+                if (err && err.code == scm.errors.NOPUSHDESTINATION) {
+                    alert("Unable To Push",
+                        "No origin specified.",
+                        "Please add a remote (origin) via the branches "
+                          + "panel in order to enable push.");
+                }
             });
         }
         function pull(){
@@ -837,7 +847,14 @@ define(function(require, exports, module) {
             
             scm.pull(function(err){
                 removeLoading();
-                if (err) return; // TODO
+                isSyncing = false;
+                
+                if (err && err.code == scm.errors.NOREMOTEREPO) {
+                    alert("Unable To Push",
+                        "No origin specified.",
+                        "Please add a remote (origin) via the branches "
+                          + "panel in order to enable push.");
+                }
             });
         }
         function mergeMaster(){
@@ -848,15 +865,18 @@ define(function(require, exports, module) {
             
             scm.pull({ branch: "origin master" }, function(err){
                 removeLoading();
-                if (err) return; // TODO
+                isSyncing = false;
+                
+                if (err && err.code == scm.errors.NOREMOTEREPO) {
+                    alert("Unable To Push",
+                        "No origin specified.",
+                        "Please add a remote (origin) via the branches "
+                          + "panel in order to enable push.");
+                }
             });
         }
         function resetHard(){
-            if (isSyncing) return;
-            
-            isSyncing = true;
             setLoading();
-            
             scm.resetHard(function(err){
                 removeLoading();
                 if (err) return; // TODO
@@ -963,6 +983,12 @@ define(function(require, exports, module) {
         }
         
         function reload(e){
+            if (!scm) {
+                updateStatus(null);
+                tree.emptyMessage = "No repository detected";
+                return false;
+            }
+            
             tree.emptyMessage = "Loading...";
             setLoading();
             
@@ -970,9 +996,14 @@ define(function(require, exports, module) {
                 hash: 0, 
                 force: true,
                 untracked: "all"
-            }, function(){
+            }, function(err){
                 removeLoading();
+                
+                if (err && err.code == scm.errors.NOTAREPO)
+                    updateStatus(null);
             });
+            
+            return true;
         }
         
         function isChanged(path){
@@ -1517,6 +1548,12 @@ define(function(require, exports, module) {
         });
         plugin.on("draw", function(options) {
             draw(options);
+        });
+        plugin.on("resize", function(options) {
+            tree && tree.resize();
+        });
+        plugin.on("show", function(options) {
+            tree && setTimeout(tree.resize);
         });
         plugin.on("unload", function() {
             clearTimeout(syncTimeout);

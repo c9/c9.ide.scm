@@ -195,18 +195,32 @@ define(function(require, exports, module) {
             //     group: "scm",
             //     exec: function(){ pull({}); }
             // }, plugin);
+            
+            c9.on("ready", function _(){
+                if (scm) return;
+                
+                if (!isDetecting)
+                    emit.sticky("scm", null);
+                else
+                    setTimeout(_, 100);
+            }, plugin);
         }
         
         /***** Methods *****/
         
+        var isDetecting = 0;
         function registerSCM(name, scmPlugin){
             scms[name] = scmPlugin;
             if (!scm) scm = scmPlugin;
             
             emit("register", { plugin: scmPlugin });
             
-            // TODO generalize this - currently this only works for the first scm plugin
-            emit.sticky("scm", scmPlugin);
+            isDetecting++;
+            scmPlugin.detect("/", function(err, active){
+                isDetecting--;
+                if (err || !active) return;
+                emit.sticky("scm", scmPlugin);
+            });
         }
         
         function unregisterSCM(name, scmPlugin){

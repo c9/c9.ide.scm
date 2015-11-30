@@ -39,7 +39,6 @@ define(function(require, exports, module) {
             return register(null, { "scm.log": {} });
         
         var extensions = [];
-        var scm, ready;
         
         var handle = editors.register("scmlog", "SCM Log Viewer", LogView, extensions);
         
@@ -69,17 +68,13 @@ define(function(require, exports, module) {
             //         }
             //     }
             // }, handle);
-            
-            scmProvider.on("scm", function(implementation){
-                scm = implementation;
-            });
         });
                           
         function LogView(){
             var plugin = new Editor("Ajax.org", main.consumes, extensions);
             var emit = plugin.getEmitter();
             
-            var datagrid, dropdown, label, tree, detail;
+            var datagrid, dropdown, label, tree, detail, scm, ready;
             
             var arrayCache = [];
             
@@ -91,10 +86,6 @@ define(function(require, exports, module) {
                 "dark": "#3D3D3D",
                 "dark-gray": "#3D3D3D" 
             };
-            
-            scm.on("log", function(node){
-                datagrid.model.loadData(node);
-            }, plugin);
             
             plugin.on("draw", function(e) {
                 var container = new ui.bar();
@@ -115,12 +106,20 @@ define(function(require, exports, module) {
                 drawLog(container.$int);
                 drawDetail(detail.$int.lastChild);
                 
-                // TODO move to a better place
-                scm.getLog({}, function(err, root) {
-                    if (err) return console.error(err);
+                scmProvider.on("scm", function(implementation){
+                    scm = implementation;
                     
-                    ready = true;
-                    emit.sticky("ready");
+                    if (scm) {                    
+                        scm.on("log", function(node){
+                            datagrid.model.loadData(node);
+                        }, plugin);
+                        
+                        scm.on("log.dirty", function(node){
+                            reload();
+                        }, plugin);
+                    }
+                    
+                    reload();
                 });
             });
             
@@ -455,31 +454,20 @@ define(function(require, exports, module) {
                 }
             }
             
-            function reload(options, cb) {
-                if (!options) options = { hash: 0 };
-                if (!tree.meta.options) tree.meta.options = {};
-                if (!options.force)
-                if (tree.meta.options.hash == options.hash 
-                  && tree.meta.options.base == options.base)
+            function reload() {
+                if (!scm) {
+                    tree.emptyMessage = "No repository detected";
+                    tree.setRoot(null);
                     return;
+                }
                 
-                scm.getStatus(options, function(e, status) {
-                    if (options.commit) {
-                        label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span> "
-                            + "<span>" + escapeHTML(options.commit.authorname) + "</span>"
-                            + "<div>" + escapeHTML(options.commit.label) + "</div>";
-                    } else {
-                        label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span>"
-                            + " ... "
-                            + "<span class='hash'>" + escapeHTML(options.base) + "</span> ";
+                scm.getLog({}, function(err, root) {
+                    if (err) return console.error(err);
+                    
+                    if (!ready) {
+                        ready = true;
+                        emit.sticky("ready");
                     }
-                    label.style.display = "block";
-                    
-                    if (!status) return;
-                    
-                    tree.setRoot(status.history);
-                    tree.select(null);
-                    tree.meta.options = options;
                 });
             }
             
