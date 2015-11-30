@@ -108,7 +108,17 @@ define(function(require, exports, module) {
             var args = ["pull"];
             if (options.prune) args.push("--prune");
             if (options.branch) args.push(options.branch);
-            git(args, callback);
+            
+            git(args, function(err, stdout, stderr){
+                if (stderr) {
+                    var error = errors.detect(stderr);
+                    if (error)
+                        return callback(error);
+                }
+                
+                if (err || stderr) return callback(err || stderr);
+                return callback();
+            });
         }
         
         function push(options, callback){
@@ -118,7 +128,17 @@ define(function(require, exports, module) {
             var args = ["push"];
             if (options.force) args.push("--force");
             if (options.branch) args.push(options.branch);
-            git(args, callback);
+            
+            git(args, function(err, stdout, stderr){
+                if (stderr) {
+                    var error = errors.detect(stderr);
+                    if (error)
+                        return callback(error);
+                }
+                
+                if (err || stderr) return callback(err || stderr);
+                return callback();
+            });
         }
         
         function getRemotes(callback){
@@ -226,6 +246,14 @@ define(function(require, exports, module) {
             name: "UnknownBranch", 
             code: 101,
             detect: /did not match any file\(s\) known to git/
+        }, {
+            name: "NoPushDestination", 
+            code: 102,
+            detect: /fatal: No configured push destination/
+        }, {
+            name: "NoRemoteRepo", 
+            code: 103,
+            detect: /fatal: No remote repository specified/
         }].forEach(function(def){
             errors[def.name] = function(msg){ this.message = msg };
             errors[def.name].prototype = new Error();

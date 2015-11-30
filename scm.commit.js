@@ -5,7 +5,7 @@ define(function(require, exports, module) {
         "Menu", "MenuItem", "Divider", "layout", "Tree", "tabManager", 
         "dialog.question", "dialog.filechange", "tree", "save",
         "commands", "c9", "scm", "console", "preferences.experimental",
-        "watcher"
+        "watcher", "dialog.question"
     ];
     main.provides = ["scm.commit"];
     return main;
@@ -43,7 +43,7 @@ define(function(require, exports, module) {
         var showError = imports["dialog.error"].show;
         var confirm = imports["dialog.confirm"].show;
         var alert = imports["dialog.alert"].show;
-        var showQuestion = imports["dialog.question"].show;
+        var question = imports["dialog.question"];
         var showFileChange = imports["dialog.filechange"].show;
         var Menu = imports.Menu;
         var MenuItem = imports.MenuItem;
@@ -769,22 +769,53 @@ define(function(require, exports, module) {
         function sync(){
             if (isSyncing) return;
             
-            isSyncing = true;
-            setLoading();
+            if (settings.getBool("state/scm/@auto")
+              || settings.getBool("user/scm/@dontask"))
+                return _sync();
             
-            function done(err){
-                isSyncing = true;
-                removeLoading();
-                if (err) return; // TODO
-            }
-            
-            scm.pull(function(err){
-                if (err) return done(err);
-                
-                scm.push(function(err){
-                    done(err);
+            question.show("Synchronize Changes With Origin",
+                "Are you sure you want to sync?",
+                "Syncing will fetch and merge all remote changes of this branch "
+                  + "to your working copy and push all your changes to the remote "
+                  + "origin. Essentially this will execute a pull and then a push.",
+                function(){ // Yes
+                    if (question.dontAsk)
+                       settings.set("user/scm/@dontask", true);
+                    
+                    _sync();
+                }, function(){ // No
+                    // Do Nothing
+                }, {
+                    showDontAsk: true
                 });
-            });
+            
+            function _sync(){
+                isSyncing = true;
+                setLoading();
+                
+                function done(err){
+                    isSyncing = false;
+                    removeLoading();
+                    
+                    if (err.code == scm.errors.NOPUSHDESTINATION
+                      || err.code == scm.errors.NOREMOTEREPO) {
+                        alert("Unable To Sync",
+                            "No origin specified.",
+                            "Please add a remote (origin) via the branches "
+                              + "panel in order to enable synchronization.");
+                    }
+                    
+                    if (err) return; // TODO
+                }
+                
+                scm.pull(function(err){
+                    if (err) return done(err);
+                    
+                    scm.push(function(err){
+                        done(err);
+                    });
+                });
+            }
         }
         
         function push(){
