@@ -252,7 +252,7 @@ define(function(require, exports, module) {
             // }
             
             function loadSession(session) {
-                diffview.setValueFromPatch(session.diff);
+                diffview.setValueFromPatch(session.diff.patch);
             }
             
             /***** Lifecycle *****/

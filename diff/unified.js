@@ -31,24 +31,21 @@ function createEditor(el) {
 }
 
 function DiffView(element, options) {
+    this.renderedHeaders = [];
+    this.renderHeaders = this.renderHeaders.bind(this);
+    // this.onInput = this.onInput.bind(this);
+    
     this.options = {};
     var editor = createEditor(element);
     this.container = editor.container;
     this.editor = editor;
+    this.attachToEditor(editor);
 
     oop.mixin(this.options, {
         showDiffs: true,
         maxDiffs: 5000
     }, options);
-
-    editor.renderer.$gutterLayer.$cells = [];
-    editor.renderer.$gutterLayer.element.innerHTML = "";
-    editor.renderer.$gutterLayer.gutterWidth = NaN;
-    editor.renderer.$gutterLayer.$padding = null;
-    editor.renderer.$gutterLayer.update = this.updateGutter;
-    
-    // this.onInput = this.onInput.bind(this);
-    
+        
     config.resetOptions(this);
     config._signal("diffView", this);
 }
@@ -63,8 +60,6 @@ function DiffView(element, options) {
         
         var states = [];
         var result = [];
-        var block = null;
-        var l = 0;
         var rowInsert = 0;
         var rowRemove = 0;
         for (var i = 0; i < lines.length; i++) {
@@ -73,7 +68,8 @@ function DiffView(element, options) {
                 var none = {type: "none"};
                 result.push(lines[i], "", "", "", "");
                 states.push({type: "file"}, none, none, none, none);
-                i+= 3
+                while (i + 1 < lines.length && lines[i + 1][0] != "@")
+                    i++;
             }
             else if (line[0] == "@") {
                 var m = line.match(/^@@ -(\d+)(,\d+) \+(\d+)(,\d+) @@/)
@@ -114,17 +110,20 @@ function DiffView(element, options) {
                 type: "uniDiff_" + type
             }];
         };
-        
-        this.addWidgets(editor.session);
-        editor.renderer.off("beforeRender", editor.session.widgetManager.measureWidgets);
     };
     
     this.attachToEditor = function(editor) {
         editor.session.setMode(mode);
-        editor.session.removeMarker(editor.mi)
-        editor.mi = editor.session.addDynamicMarker(new DiffHighlight)
-    }
-
+        editor.session.removeMarker(editor.session.mi);
+        editor.session.mi = editor.session.addDynamicMarker(new DiffHighlight);
+        editor.renderer.on("afterRender", this.renderHeaders);
+        editor.session.diffView = this;
+        editor.renderer.$gutterLayer.$cells = [];
+        editor.renderer.$gutterLayer.element.innerHTML = "";
+        editor.renderer.$gutterLayer.gutterWidth = NaN;
+        editor.renderer.$gutterLayer.$padding = null;
+        editor.renderer.$gutterLayer.update = this.updateGutter;
+    };
 
     this.updateGutter= function(config) {
         var session = this.session;
@@ -134,14 +133,12 @@ function DiffView(element, options) {
         var fold = session.getNextFoldLine(firstRow);
         var foldStart = fold ? fold.start.row : Infinity;
         var foldWidgets = this.$showFoldWidgets && session.foldWidgets;
-        var breakpoints = session.$breakpoints;
-        var decorations = session.$decorations;
         var firstLineNumber = session.$firstLineNumber;
-        var lastLineNumber = 0;
         
         var diffStates = session.bgTokenizer.diffStates;
         
-        var gutterRenderer = session.gutterRenderer || this.$renderer;
+        if (!diffStates)
+            return;
 
         var cell = null;
         var index = -1;
@@ -231,9 +228,6 @@ function DiffView(element, options) {
 
         this.element.style.height = config.minHeight + "px";
 
-        if (this.$fixedWidth || session.$useWrapMode)
-            lastLineNumber = session.getLength() + firstLineNumber;
-
         var gutterWidth = 2 * 6 * config.characterWidth;
         
         var padding = this.$padding || this.$computePadding();
@@ -243,13 +237,9 @@ function DiffView(element, options) {
             this.element.style.width = Math.ceil(this.gutterWidth) + "px";
             this._emit("changeGutterWidth", gutterWidth);
         }
-}
+    };
 
-
-
-
-
-    this.createWidget = function(row) {
+    this.createWidget = function(row, renderedHeaders) {
         var w = {
             row: row,
             el: document.createElement("div"),
@@ -259,41 +249,69 @@ function DiffView(element, options) {
             coverGutter: 1,
             fixedWidth: true
         };
+        renderedHeaders.push(w);
         return w
         
     };
-    this.addWidgets = function(session) {
+    this.populateWidget = function(w, i) {
         var editor = this.editor
-        if (!session.widgetManager) {
-            var LineWidgets = require("ace/line_widgets").LineWidgets;
-            session.widgetManager = new LineWidgets(session);
-            session.widgetManager.attach(editor);
-        }
-        var wm = session.widgetManager;
-        wm.session.lineWidgets && wm.session.lineWidgets.filter(Boolean).forEach(wm.removeLineWidget, wm);        
+        var session = editor.session;
+        var line = session.getLine(i);
         var lineHeight = editor.renderer.layerConfig.lineHeight;
-        var lines = session.doc.$lines;
-        for (var i = 0; i < lines.length; i++) {
-            if (lines[i][0] !== "d")
-                continue
-            var line = lines[i];
-            var w = this.createWidget(i);
-            w.el.innerHTML = '<div class="unidiff_fileHeaderInner">\
-                <span class="ace_fold-widget ace_start ace_open"\
-                style="height:1.5em;left: -20px;\
-                position: relative;display: inline-block;"></span>'
-                + " " +  lang.escapeHTML(line) + " "
-                +'<div>'
-            wm.addLineWidget(w);
-            
-            w.el.className ="unidiff_fileHeader";
-            w.el.style.height = lineHeight * 5 + "px";
-            w.el.firstChild.style.height = lineHeight * 4 + "px";
-            w.el.firstChild.style.marginTop = lineHeight + "px";
-        }
+        w.el.innerHTML = '<div class="unidiff_fileHeaderInner">\
+            <span class="ace_fold-widget ace_start ace_open"\
+            style="height:1.5em;left: -20px;\
+            position: relative;display: inline-block;"></span>'
+            + " " +  lang.escapeHTML(line) + " "
+            +'<div>'
+        
+        w.el.className ="unidiff_fileHeader ace_lineWidgetContainer";
+        w.el.style.height = lineHeight * 5 + "px";
+        w.el.firstChild.style.height = lineHeight * 4 + "px";
+        w.el.firstChild.style.marginTop = lineHeight + "px";
     };
-    
+    this.renderHeaders = function(e, renderer) {
+        var config = renderer.layerConfig;
+        var diffStates = renderer.session.bgTokenizer.diffStates;
+        if (!diffStates)
+            return;
+        var first = Math.min(this.firstRow, config.firstRow - 5);
+        var last = Math.max(this.lastRow, config.lastRow);
+        
+        this.firstRow = config.firstRow;
+        this.lastRow = config.lastRow;
 
+        var renderedHeaders = this.renderedHeaders;
+        var j = 0
+        renderer.$cursorLayer.config = config;
+        for (var i = first; i <= last; i++) {
+            var state = diffStates[i];
+            if (!state || diffStates[i].type != "file") continue;
+            var w = renderedHeaders[j] || this.createWidget(i, renderedHeaders);
+            j++;
+            this.populateWidget(w, i);
+            if (!w._inDocument) {
+                w._inDocument = true;
+                renderer.container.appendChild(w.el);
+            }
+            var top = renderer.$cursorLayer.getPixelPosition({row: i, column:0}, true).top;
+            w.el.style.top = top - config.offset + "px";
+            
+            var left = w.coverGutter ? 0 : renderer.gutterWidth;
+            w.el.style.left = left + "px";
+            
+            if (w.fixedWidth) {
+                w.el.style.right = renderer.scrollBar.getWidth() + "px";
+            } else {
+                w.el.style.right = "";
+            }
+        }
+        for (var k = j; k < renderedHeaders.length; k++) {
+            var h = renderedHeaders[k];
+            if (h.el) h.el.remove();
+        }
+        renderedHeaders.length = j;
+    };
     
     /*** patch ***/
     this.createPatch = function(options) {
@@ -400,48 +418,6 @@ function DiffView(element, options) {
         }
         
         return patch;
-    };
-    
-    this.setValueFromFullPatch = function(fullUniDiff) {
-        var lines = fullUniDiff.split("\n");
-        var missingEOF = "";
-        var oldLines = [];
-        var newLines = [];
-        var i = 0;
-        while (i < lines.length && !(/^@@/.test(lines[i])))
-            i++;
-        
-        while (++i < lines.length) {
-            var tag = lines[i][0];
-            var line = lines[i].substr(1);
-            if (tag === "+") {
-                newLines.push(line);
-            }
-            else if (tag === "-") {
-                oldLines.push(line);
-            }
-            else if (tag === " ") {
-                newLines.push(line);
-                oldLines.push(line);
-            }
-            else if (tag === "\\") {
-                missingEOF = lines[i - 1][0];
-            }
-        }
-        
-        if (missingEOF === "+") {
-            oldLines.push("");
-        }
-        else if (missingEOF === "-") {
-            newLines.push("");
-        }
-        else if (missingEOF === "") {
-            newLines.push("");
-            oldLines.push("");
-        }
-        
-        this.orig.session.setValue(oldLines.join("\n"));
-        this.edit.session.setValue(newLines.join("\n"));
     };
     
     this.applyPatch = function(oldStr, uniDiff) {
