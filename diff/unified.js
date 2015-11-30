@@ -66,7 +66,8 @@ function DiffView(element, options) {
             var line = lines[i]
             if (line[0] == "d" && line.slice(0, 5) == "diff ") {
                 var none = {type: "none"};
-                result.push(lines[i], "", "", "", "");
+                var path = line.split(" b/").pop();
+                result.push(path, "", "", "", "");
                 states.push({type: "file"}, none, none, none, none);
                 while (i + 1 < lines.length && lines[i + 1][0] != "@")
                     i++;
@@ -683,6 +684,8 @@ require("ace/lib/dom").importCssString("\
     border-top: 1px solid #d8d8d8;\
 }\
 .unidiff_gutter-cell { padding-right: 13px}\
+.ace_diff-container .ace_gutter { border-left: 1px solid #DEDEDE; }\
+.ace_diff-container .ace_scroller { border-right: 1px solid #DEDEDE; }\
 .unidiff-cell{ width: 3em; display:inline-block;\
     padding-right: 5px;\
     margin-right: -5px}\

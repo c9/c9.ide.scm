@@ -612,7 +612,7 @@ define(function(require, exports, module) {
             if (!~oldPath.indexOf(":")) oldPath += ":";
             if (!~newPath.indexOf(":")) newPath += ":";
             
-            args.push(newPath, oldPath);
+            args.push(oldPath, newPath);
             
             git(args, function(err, stdout, stderr) {
                 if (err || !stdout) {

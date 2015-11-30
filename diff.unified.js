@@ -115,7 +115,7 @@ define(function(require, exports, module) {
                 //             diffview.foldUnchanged();
                 //     }
                 // });
-                container = new ui.bar({ flex: 1, class: "ace_diff-container" });
+                container = new ui.bar({ margin: "0 20 0 20", class: "ace_diff-container" });
                 
                 tab.appendChild(new ui.vsplitbox({ 
                     anchors: "0 0 0 0",
