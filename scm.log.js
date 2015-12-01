@@ -349,6 +349,15 @@ define(function(require, exports, module) {
                     }
                 });
                 
+                datagrid.on("afterChoose", function(e){
+                    // Toggle detail
+                    if (detail.visible) detail.hide();
+                    else {
+                        detail.show();
+                        datagrid.select(datagrid.selectedNodes); // Todo async callback and then show
+                    }
+                });
+                
                 var switchToTree = function(e) {
                     tree.focus();
                     if (!tree.selectedNode)

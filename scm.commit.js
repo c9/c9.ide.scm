@@ -960,7 +960,7 @@ define(function(require, exports, module) {
                 focus: true,
                 pane: cnsl.getPanes()[0]
             }, function(err, tab){
-                callback(err, tab);
+                callback && callback(err, tab);
             });
         }
         
