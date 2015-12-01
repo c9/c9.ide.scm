@@ -1,0 +1,77 @@
+.ace_editor {
+    color: #333
+}
+
+.unidiff.marker {
+    position: absolute;
+}
+
+.unidiff.insert {
+    background: #EAFFEA;
+}
+
+.blob-code-addition .x {
+    background-color: #a6f3a6;
+}
+
+.blob-code-deletion .x {
+    background-color: #f8cbcb;
+}
+
+.unidiff.remove {
+    background: #FFECEC;
+}
+
+.unidiff.header {
+    background: #EDF2F9;
+}
+
+.unidiff_fileHeaderInner {
+    background: #f7f7f7;
+    font: inherit;
+    padding: 11px 5em;
+    box-sizing: border-box;
+    border: 1px solid #d8d8d8;
+    // border-style: solid none;
+    border-style: solid;
+    border-radius: 5px 5px 0 0;
+}
+
+.unidiff_fileHeader {
+    background: inherit;
+    border-top: 1px solid #d8d8d8;
+}
+
+.ace_diff-container .ace_gutter {
+    border-left: 1px solid #DEDEDE;
+}
+
+.ace_diff-container .ace_scroller {
+    border-right: 1px solid #DEDEDE;
+}
+
+.unidiff-cell {
+    width: 3em;
+    display: inline-block;
+    padding-right: 5px;
+    margin-right: -5px
+}
+
+.unidiff-cell.first {
+    border-right: 1px solid #d8d8d8;
+    margin-right: 0px
+}
+
+.ace_uniDiff_header {
+    color: #D8D8D8;
+}
+
+.unidiff_gutter-cell {
+    padding-right: 13px;
+    color: #BFBABA;
+    border-right: 1px solid transparent;
+}
+.unidiff_gutter-cell.remove,
+.unidiff_gutter-cell.insert {
+    border-right: 1px solid #d8d8d8;
+}

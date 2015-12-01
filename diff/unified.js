@@ -9,8 +9,8 @@ var dom = require("ace/lib/dom");
 var config = require("ace/config");
 
 var LineWidgets = require("ace/line_widgets").LineWidgets;
-var css = require("ace/requirejs/text!./styles.css");
-// dom.importCssString(css, "diffview.css");
+var css = require("ace/requirejs/text!./unified.css");
+dom.importCssString(css, "unidiff.css");
 var diff_match_patch = require("./diff_match_patch").diff_match_patch;
 
 
@@ -103,9 +103,9 @@ function DiffView(element, options) {
         editor.session.bgTokenizer.diffStates = states;
         editor.session.bgTokenizer.stop();
         editor.setReadOnly(true);
-        editor.session.bgTokenizer.getLineTokens = function(row) {
-            var line = this.session.getLine(row)
-            var type = this.diffStates[row];
+        editor.session.bgTokenizer.getTokens = function(row) {
+            var line = this.doc.getLine(row)
+            var type = this.diffStates[row].type;
             return [{
                 value: line,
                 type: "uniDiff_" + type
@@ -645,71 +645,6 @@ var DiffHighlight = function(diffView, type) {
 }).call(DiffHighlight.prototype);
 
 
-require("ace/lib/dom").importCssString("\
-.ace_editor {color: #333}\
-.unidiff.marker {\
-    position:absolute;\
-}\
-.unidiff.insert {\
-    background: #EAFFEA;\
-}\
-.blob-code-addition .x {\
-    background-color: #a6f3a6;\
-}\
-.blob-code-deletion .x {\
-    background-color: #f8cbcb;\
-}\
-\
-.unidiff.remove {\
-    background: #FFECEC;\
-}\
-.unidiff.header {\
-    background: #EDF2F9;\
-    color: rgba(0,0,0,0.3);\
-}\
-.unidiff_fileHeaderInner {\
-    background: #f7f7f7;\
-    font: inherit;\
-    padding: 15px 4em;\
-    box-sizing: border-box;\
-    border: 1px solid #d8d8d8;\
-    // border-style: solid none;\
-    border-style: solid;\
-    border-radius: 5px 5px 0 0;\
-    font-size: 11px;\
-}\
-.unidiff_fileHeader{\
-    background: inherit;\
-    border-top: 1px solid #d8d8d8;\
-}\
-.unidiff_gutter-cell { padding-right: 13px}\
-.ace_diff-container .ace_gutter { border-left: 1px solid #DEDEDE; }\
-.ace_diff-container .ace_scroller { border-right: 1px solid #DEDEDE; }\
-.unidiff-cell{ width: 3em; display:inline-block;\
-    padding-right: 5px;\
-    margin-right: -5px}\
-.unidiff-cell.first{border-right: 1px solid #d8d8d8; margin-right: 0px};\
-.unidiff_gutter-cell.remove .unidiff-cell.first {\
-    border-right: 1px solid #f1c0c0;\
-}\
-.unidiff_gutter-cell.remove {\
-    background: #ffdddd;\
-}\
-.unidiff_gutter-cell.insert .unidiff-cell.first {\
-    border-right: 1px solid #c1e9c1;\
-}\
-.unidiff_gutter-cell.insert {\
-    background: #dbffdb;\
-}\
-.unidiff_gutter-cell.header .unidiff-cell.first {\
-    border-right: 1px solid #d2dff0;\
-}\
-.unidiff_gutter-cell.header {\
-    background: #DFECFF;\
-    color: rgba(0,0,0,0.3);\
-}\
-\
-")
 
 
 module.exports.DiffView = DiffView;
