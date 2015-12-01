@@ -918,7 +918,9 @@ define(function(require, exports, module) {
             }
             
             if (!staged.children.length && !force) {
-                scm.addFileToStaging(function(err){
+                scm.addFileToStaging(changed.children.map(function(n){
+                    return n.path;
+                }), function(err){
                     if (err) return console.error(err);
                     
                     commit(message, amend, callback, true); 
@@ -1184,48 +1186,33 @@ define(function(require, exports, module) {
         //     }
         // }
         
-        // function openSelectedFiles(opts) {
-        //     // if (!c9.has(c9.STORAGE))
-        //     //     return;
+        function openSelectedFiles(opts) {
+            // if (!c9.has(c9.STORAGE))
+            //     return;
             
-        //     var focus = opts && opts.focusNewTab || true;
-        //     var sel = logTree.selectedNodes;
-        //     var main = logTree.selectedNode;
+            var focus = true;
+            var sel = tree.selectedNodes;
+            var main = tree.selectedNode;
             
-        //     sel.forEach(function(node) {
-        //         if (!node || node.isFolder)
-        //             return;
+            sel.forEach(function(node) {
+                if (!node || node.isFolder)
+                    return;
     
-        //         var pane = tabManager.focussedTab && tabManager.focussedTab.pane;
-        //         if (tabManager.getPanes(tabManager.container).indexOf(pane) == -1)
-        //             pane = null;
+                var pane = tabManager.focussedTab && tabManager.focussedTab.pane;
+                if (tabManager.getPanes(tabManager.container).indexOf(pane) == -1)
+                    pane = null;
                 
-        //         if (~node.fileName.indexOf("<???>"))
-        //             return;
+                var options = {
+                    path: "/" + node.path,
+                    pane: pane,
+                    noanim: sel.length > 1,
+                    active: node === main,
+                    focus: node === main && focus
+                };
                 
-        //         var options = {
-        //             path: "/" + node.fileName,
-        //             pane: pane,
-        //             noanim: sel.length > 1,
-        //             active: node === main,
-        //             focus: node === main && focus
-        //         };
-        //         if (node.lineNumber) {
-        //             var jump = {
-        //                 row: node.lineNumber,
-        //                 col: node.columnNumber
-        //             };
-        //             options.document = {
-        //                 ace: {
-        //                     jump: jump
-        //                 }
-        //             };
-        //         }
-                
-        //         var method = opts && opts.preview ? "preview" : "open";
-        //         tabManager[method](options, function(){});
-        //     });
-        // }
+                tabManager.open(options, function(){});
+            });
+        }
         
         // /***** Methods *****/
         
