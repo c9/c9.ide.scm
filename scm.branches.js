@@ -182,7 +182,7 @@ define(function(require, exports, module) {
                 : ICON_PERSON) + displayMode.uCaseFirst() + "<span> </span>";
             
             var mnuContext = new Menu({ items: [
-                new MenuItem({ caption: "Checkout", onclick: function(){
+                new MenuItem({ caption: "Checkout...", onclick: function(){
                     checkout(branchesTree.selectedNode);
                 }, isAvailable: function(){
                     return branchesTree.selectedNodes.length == 1
