@@ -606,13 +606,18 @@ define(function(require, exports, module) {
             if (options.context !== false)
                 args.push("-U" + (options.context || 20000))
             
-            var oldPath = options.oldPath;
-            var newPath = options.newPath;
+            var oldPath = options.oldPath || "";
+            var newPath = options.newPath || "";
             
-            if (!~oldPath.indexOf(":")) oldPath += ":";
-            if (!~newPath.indexOf(":")) newPath += ":";
+            if (oldPath.indexOf("refs") === 0 && !~oldPath.indexOf(":")) 
+                oldPath += ":";
+            if (newPath.indexOf("refs") === 0 && ~newPath.indexOf(":")) 
+                newPath += ":";
             
-            args.push(oldPath, newPath);
+            if (oldPath)
+                args.push(oldPath);
+            if (newPath)
+                args.push(newPath);
             
             git(args, function(err, stdout, stderr) {
                 if (err || !stdout) {

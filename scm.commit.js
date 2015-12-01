@@ -468,11 +468,11 @@ define(function(require, exports, module) {
                 if (tabManager.previewTab)
                     tabManager.preview({ cancel: true });
                 else
-                    openSelection({ preview: true });
+                    showDiff(tree.selectedNode.path, true);
             });
             
             tree.commands.bindKey("Enter", function(e) {
-                openSelection();
+                showDiff(tree.selectedNode.path);
             });
             
             tree.commands.bindKey("Shift-Enter", function(e) {
@@ -488,12 +488,12 @@ define(function(require, exports, module) {
             }, plugin);
             
             tree.on("afterChoose", function(e) {
-                openSelection();
+                showDiff(tree.selectedNode.path);
             });
             
             tree.on("userSelect", function(e) {
                 if (tabManager.previewTab)
-                    openSelection({ preview: true });
+                    showDiff(tree.selectedNode.path);
             });
             
             // TODO: Immediate feedback
@@ -1040,6 +1040,26 @@ define(function(require, exports, module) {
         
         function removeLoading(){
             setSyncStatus((conflicts.children.length ? "conflict" : ""));
+        }
+        
+        function showDiff(path, preview){
+            // TODO make sure there is only one open
+            
+            tabManager[preview ? "preview" : "open"]({
+                newfile: true,
+                editorType: "diff.unified",
+                focus: true,
+                document: {
+                    "title": "Compare View",
+                    "diff.unified": {
+                        newPath: path,
+                        context: false
+                    }
+                }
+                // path: "/compare.diff"
+            }, function(ignore, tab){
+                
+            });
         }
         
         // function trimLongStatus(output) {

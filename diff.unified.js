@@ -299,7 +299,8 @@ define(function(require, exports, module) {
             plugin.on("documentActivate", function(e) {
                 var session = currentSession = e.doc.getSession();
                 
-                if (!session.newPath) return;
+                if (!session.newPath) 
+                    throw new Error("Missing compare path");
                 
                 var newFilename = (session.newPath + "").split("/").pop();
                 e.doc.title = "Compare " + newFilename;
@@ -310,10 +311,10 @@ define(function(require, exports, module) {
                 if (session.diff)
                     return loadSession(session);
                 
-                var newPath = session.newPath
+                var newPath = (session.newPath || "")
                     .replace(/MODIFIED:/, "")
                     .replace(/STAGED:/, ":");
-                var oldPath = session.oldPath
+                var oldPath = (session.oldPath || "")
                     .replace(/PREVIOUS:/, ":");
                 
                 handle.on("ready", function(){
