@@ -145,6 +145,7 @@ define(function(require, exports, module) {
                 }));
                 
                 diffview = new DiffView(container.$ext, {});
+                diffview.editor.setOption("fontSize", 11);
                 
                 // // temporary workaround for apf focus bugs
                 // // only blur is needed sinse the rest is handled by tabManager

@@ -87,6 +87,7 @@ define(function(require, exports, module) {
         var btnMode = "sync";
         var btnScm, title, tree, status, scm;
         var arrayCache = [];
+        var reloading;
         
         var body, commitBox, ammendCb, commitBtn, onclick;
         var container, lastCommitMessage;
@@ -989,6 +990,9 @@ define(function(require, exports, module) {
                 return false;
             }
             
+            if (reloading) return;
+            reloading = true;
+            
             tree.emptyMessage = "Loading...";
             setLoading();
             
@@ -997,6 +1001,7 @@ define(function(require, exports, module) {
                 force: true,
                 untracked: "all"
             }, function(err){
+                reloading = false;
                 removeLoading();
                 
                 if (err && err.code == scm.errors.NOTAREPO)

@@ -665,6 +665,7 @@ require("ace/lib/dom").importCssString("\
 }\
 .unidiff.header {\
     background: #EDF2F9;\
+    color: rgba(0,0,0,0.3);\
 }\
 .unidiff_fileHeaderInner {\
     background: #f7f7f7;\
@@ -688,6 +689,25 @@ require("ace/lib/dom").importCssString("\
     padding-right: 5px;\
     margin-right: -5px}\
 .unidiff-cell.first{border-right: 1px solid #d8d8d8; margin-right: 0px};\
+.unidiff_gutter-cell.remove .unidiff-cell.first {\
+    border-right: 1px solid #f1c0c0;\
+}\
+.unidiff_gutter-cell.remove {\
+    background: #ffdddd;\
+}\
+.unidiff_gutter-cell.insert .unidiff-cell.first {\
+    border-right: 1px solid #c1e9c1;\
+}\
+.unidiff_gutter-cell.insert {\
+    background: #dbffdb;\
+}\
+.unidiff_gutter-cell.header .unidiff-cell.first {\
+    border-right: 1px solid #d2dff0;\
+}\
+.unidiff_gutter-cell.header {\
+    background: #DFECFF;\
+    color: rgba(0,0,0,0.3);\
+}\
 \
 ")
 
