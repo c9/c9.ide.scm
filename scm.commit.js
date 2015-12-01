@@ -334,13 +334,6 @@ define(function(require, exports, module) {
                         }
                     }),
                     
-                    new MenuItem({
-                        caption: "Show Branches...",
-                        onclick: function() {
-                            // tabManager.openFile("/package.xml", true, function(){});
-                        }
-                    }),
-                    
                     new Divider(),
                     
                     new MenuItem({
