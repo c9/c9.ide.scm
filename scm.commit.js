@@ -422,6 +422,52 @@ define(function(require, exports, module) {
             
             // updateStatusTree();
             
+            var mnuContext = new Menu({ items: [
+                new MenuItem({ caption: "Stage", onclick: function(){
+                    tree.selectedNodes.forEach(stageFile);
+                }, isAvailable: function(){
+                    var node = tree.selectedNode;
+                    return node && node.parent != staged;
+                }}),
+                new MenuItem({ caption: "Unstage", onclick: function(){
+                    var nodes = tree.selectedNodes;
+                    removeFromStaging(nodes);
+                }, isAvailable: function(){
+                    var node = tree.selectedNode;
+                    return node && node.parent == staged;
+                }}),
+                new MenuItem({ caption: "Revert", onclick: function(){
+                    tree.selectedNodes.forEach(revertFile);
+                }, isAvailable: function(){
+                    var node = tree.selectedNode;
+                    return node && (node.parent == staged || node.parent == changed);
+                }}),
+                new Divider(),
+                new MenuItem({ caption: "Stage All", onclick: function(){
+                    scm.addAll();
+                }, isAvailable: function(){
+                    return changed.children.length;
+                }}),
+                new MenuItem({ caption: "Unstage All", onclick: function(){
+                    scm.unstageAll();
+                }, isAvailable: function(){
+                    return staged.children.length;
+                }}),
+                new Divider(),
+                new MenuItem({ caption: "Show Changes", hotkey: "Enter", onclick: function(){
+                    showDiff(tree.selectedNode);
+                }, isAvailable: function(){
+                    var node = tree.selectedNode;
+                    return node && (node.parent != ignored && node.parent != untracked);
+                }}),
+                new MenuItem({ caption: "Open File", hotkey: "Shift-Enter", onclick: function(){
+                    openSelectedFiles();
+                }, isAvailable: function(){
+                    return tree.selectedNode;
+                }})
+            ]}, plugin);
+            container.setAttribute("contextmenu", mnuContext.aml);
+            
             tree = new Tree({
                 container: container.$int,
                 scrollMargin: [0, 0],
@@ -475,11 +521,11 @@ define(function(require, exports, module) {
                 if (tabManager.previewTab)
                     tabManager.preview({ cancel: true });
                 else
-                    showDiff(tree.selectedNode.path, true);
+                    showDiff(tree.selectedNode, true);
             });
             
             tree.commands.bindKey("Enter", function(e) {
-                showDiff(tree.selectedNode.path);
+                showDiff(tree.selectedNode);
             });
             
             tree.commands.bindKey("Shift-Enter", function(e) {
@@ -495,12 +541,12 @@ define(function(require, exports, module) {
             }, plugin);
             
             tree.on("afterChoose", function(e) {
-                showDiff(tree.selectedNode.path);
+                showDiff(tree.selectedNode);
             });
             
             tree.on("userSelect", function(e) {
                 if (tabManager.previewTab)
-                    showDiff(tree.selectedNode.path);
+                    showDiff(tree.selectedNode);
             });
             
             // TODO: Immediate feedback
@@ -516,37 +562,15 @@ define(function(require, exports, module) {
             
             tree.on("click", function(e) {
                 var classList = e.domEvent.target.classList;
-                var node;
                 
                 if (classList.contains("plus")) {
-                    node = e.getNode();
-                    
-                    if (node.parent === conflicts && node.type.indexOf("D") === -1) {
-                        fs.readFile(node.path, function(err, data){
-                            if (err || data.indexOf("<<<<<<<") === -1) 
-                                return addToStaging([node]);
-                            
-                            confirm("Conflict Not Resolved",
-                                "The merge conflict is not yet resolved",
-                                "The file '" + node.path + "' still has an "
-                                  + "unresolved merge conflict. Click OK to mark "
-                                  + "the conflict as resolved.",
-                                function(){
-                                    addToStaging([node]);
-                                });
-                        });
-                        return;
-                    }
-                    
-                    addToStaging([node]);
+                    stageFile(e.getNode());
                 }
                 else if (classList.contains("min")) {
-                    node = e.getNode();
-                    removeFromStaging([node]);
+                    removeFromStaging([e.getNode()]);
                 }
                 else if (classList.contains("revert")) {
-                    node = e.getNode();
-                    revertFile(node.path);
+                    revertFile(e.getNode());
                 }
             });
             
@@ -964,6 +988,27 @@ define(function(require, exports, module) {
             });
         }
         
+        function stageFile(node) {
+            if (node.parent === conflicts && node.type.indexOf("D") === -1) {
+                fs.readFile(node.path, function(err, data){
+                    if (err || data.indexOf("<<<<<<<") === -1) 
+                        return addToStaging([node]);
+                    
+                    confirm("Conflict Not Resolved",
+                        "The merge conflict is not yet resolved",
+                        "The file '" + node.path + "' still has an "
+                          + "unresolved merge conflict. Click OK to mark "
+                          + "the conflict as resolved.",
+                        function(){
+                            addToStaging([node]);
+                        });
+                });
+                return;
+            }
+            
+            addToStaging([node]);
+        }
+        
         function addToStaging(nodes){
             scm.addFileToStaging(nodes.map(function(n){
                 return n.path;
@@ -976,7 +1021,8 @@ define(function(require, exports, module) {
             }).filter(Boolean));
         }
         
-        function revertFile(path) {
+        function revertFile(node) {
+            var path = node.path;
             confirm("Revert File",
                 "Are you sure you want to revert all changes in '" + path + "'",
                 "Click OK to revert all changes or click Cancel to cancel this action.",
@@ -1051,8 +1097,13 @@ define(function(require, exports, module) {
             setSyncStatus((conflicts.children.length ? "conflict" : ""));
         }
         
-        function showDiff(path, preview){
+        function showDiff(node, preview){
             // TODO make sure there is only one open
+            
+            if (node.parent == ignored || node.parent == untracked)
+                return;
+            
+            var path = node.path;
             
             tabManager[preview ? "preview" : "open"]({
                 newfile: true,
