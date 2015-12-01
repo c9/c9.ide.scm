@@ -163,7 +163,11 @@ define(function(require, exports, module) {
                         updateLastCommit();
                     }, plugin);
                     
-                    scm.on("status.dirty", reload);
+                    var timer;
+                    scm.on("status.dirty", function(){
+                        clearTimeout(timer);
+                        timer = setTimeout(reload, 500);
+                    });
                 }
                 
                 if (plugin.active) {
@@ -522,7 +526,7 @@ define(function(require, exports, module) {
                             if (err || data.indexOf("<<<<<<<") === -1) 
                                 return addToStaging([node]);
                             
-                            confirm("Conflict Not Resolves",
+                            confirm("Conflict Not Resolved",
                                 "The merge conflict is not yet resolved",
                                 "The file '" + node.path + "' still has an "
                                   + "unresolved merge conflict. Click OK to mark "
