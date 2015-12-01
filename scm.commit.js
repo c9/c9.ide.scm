@@ -289,6 +289,22 @@ define(function(require, exports, module) {
                     new Divider(),
                     
                     new MenuItem({
+                        caption: "Reset Local Changes...",
+                        onclick: function() {
+                            resetHard();
+                        }
+                    }),
+                    new MenuItem({ caption: "Stash Changes", onclick: function(){  
+                        scm.stash(function(){});
+                    }}, plugin),
+                    
+                    new MenuItem({ caption: "Apply Stashed Changes", onclick: function(){
+                        scm.stashPop(function(){});
+                    }}, plugin),
+                    
+                    new Divider(),
+                    
+                    new MenuItem({
                         caption: "Rebase Against Master",
                         onclick: function() {
                             
@@ -308,12 +324,6 @@ define(function(require, exports, module) {
                         }
                     }),
         
-                    new MenuItem({
-                        caption: "Reset Local Changes...",
-                        onclick: function() {
-                            resetHard();
-                        }
-                    }),
                     
                     new MenuItem({
                         caption: "Mark Conflicts As Resolved",

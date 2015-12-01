@@ -310,6 +310,13 @@ define(function(require, exports, module) {
             });
         }
         
+        function stashPop(callback) {
+            git(["stash", "pop"], function(err, stdout, stderr) {
+                if (err || stderr) return callback(err || stderr);
+                return callback();
+            });
+        }
+        
         function resetHard(callback) {
             git(["reset", "--hard"], function(err, stdout, stderr) {
                 if (err || stderr) return callback(err || stderr);
@@ -899,6 +906,11 @@ define(function(require, exports, module) {
              * 
              */
             stashApply: stashApply,
+             
+            /**
+             * 
+             */
+            stashPop: stashPop,
              
             /**
              * 

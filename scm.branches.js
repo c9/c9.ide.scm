@@ -506,18 +506,6 @@ define(function(require, exports, module) {
                     });
                 } }, plugin),
                 new Divider(),
-                new MenuItem({ caption: "Reset Local Changes", onclick: function(){  
-                    scm.resetHard(function(){});
-                }}, plugin),
-                new MenuItem({ caption: "Stash Changes", onclick: function(){  
-                    scm.stash(function(){
-                        refresh();
-                    });
-                }}, plugin),
-                new MenuItem({ caption: "Apply Stash", onclick: function(){
-                    scm.stashApply(function(){});
-                }}, plugin),
-                new Divider(),
                 new MenuItem({ caption: "Show Author Name", type: "check", checked: "user/scm/@showauthor" }, plugin)
             ]}, plugin);
             
