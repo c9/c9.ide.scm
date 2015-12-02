@@ -1644,12 +1644,13 @@ define(function(require, exports, module) {
         function setSyncStatus(type){
             if (!btnScm) return;
             
-            if (!type) {
-                btnScm.$ext.className = btnScmClassName;
-            }
-            else {
-                btnScm.$ext.className = btnScmClassName + " " + type;
-            }
+            var cls;
+            if (!type)
+                cls = btnScmClassName;
+            else
+                cls = btnScmClassName + " " + type;
+            
+            btnScm.$ext.className = cls + (isSyncing ? " syncing" : "");
         }
         
         /***** Lifecycle *****/

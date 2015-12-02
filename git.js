@@ -109,7 +109,7 @@ define(function(require, exports, module) {
                         return callback(error);
                 }
                 
-                if (err || stderr) return callback(err || stderr);
+                if (err) return callback(err); // || stderr
                 return callback();
             });
         }
@@ -129,7 +129,7 @@ define(function(require, exports, module) {
                         return callback(error);
                 }
                 
-                if (err || stderr) return callback(err || stderr);
+                if (err) return callback(err); // || stderr
                 return callback();
             });
         }
@@ -149,7 +149,7 @@ define(function(require, exports, module) {
                         return callback(error);
                 }
                 
-                if (err || stderr) return callback(err || stderr);
+                if (err) return callback(err); // || stderr
                 return callback();
             });
         }
