@@ -493,24 +493,9 @@ define(function(require, exports, module) {
             }
             
             function showCompareView(node, preview){
-                // TODO make sure there is only one open
-                
-                var hash = node.hash;
-                tabManager[preview ? "preview" : "open"]({
-                    newfile: true,
-                    editorType: "diff.unified",
-                    focus: true,
-                    document: {
-                        "title": "Compare View",
-                        "diff.unified": {
-                            oldPath: hash,
-                            newPath: hash + "^1",
-                            context: false
-                        }
-                    }
-                    // path: "/compare.diff"
-                }, function(ignore, tab){
-                    
+                scmProvider.openDiff({
+                    hash: node.hash,
+                    preview: preview
                 });
             }
             

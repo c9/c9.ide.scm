@@ -1171,23 +1171,9 @@ define(function(require, exports, module) {
         // }
         
         function showCompareView(path){
-            // TODO make sure there is only one open
-            
-            tabManager.open({
-                newfile: true,
-                editorType: "diff.unified",
-                focus: true,
-                document: {
-                    "title": "Compare View",
-                    "diff.unified": {
-                        oldPath: "refs/remotes/origin/master",
-                        newPath: path,
-                        context: false
-                    }
-                }
-                // path: "/compare.diff"
-            }, function(ignore, tab){
-                
+            scmProvider.openDiff({
+                branch: path,
+                compareBranch: "refs/remotes/origin/master"
             });
         }
         

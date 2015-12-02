@@ -1104,22 +1104,8 @@ define(function(require, exports, module) {
             if (node.parent == ignored || node.parent == untracked)
                 return;
             
-            var path = node.path;
-            
-            tabManager[preview ? "preview" : "open"]({
-                newfile: true,
-                editorType: "diff.unified",
-                focus: true,
-                document: {
-                    "title": "Compare View",
-                    "diff.unified": {
-                        newPath: path,
-                        context: false
-                    }
-                }
-                // path: "/compare.diff"
-            }, function(ignore, tab){
-                
+            scmProvider.openDiff({
+                path: node.path
             });
         }
         

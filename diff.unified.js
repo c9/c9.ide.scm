@@ -266,12 +266,39 @@ define(function(require, exports, module) {
                 var doc = e.doc;
                 var session = e.doc.getSession();
                 
-                if (e.state.oldPath)
-                    session.oldPath = e.state.oldPath;
-                if (e.state.newPath)
-                    session.newPath = e.state.newPath;
+                session.isEqual = function(options){
+                    return (
+                        session.path == options.path &&
+                        session.hash == options.hash &&
+                        session.branch == options.branch &&
+                        session.context == options.context &&
+                        session.compareBranch == options.compareBranch
+                    );
+                };
                 
-                doc.title = "Compare Files...";
+                if (e.state.path) session.path = e.state.path;
+                if (e.state.hash) session.hash = e.state.hash;
+                if (e.state.branch) session.branch = e.state.branch;
+                if (e.state.context) session.context = e.state.context;
+                if (e.state.compareBranch)
+                    session.compareBranch = e.state.compareBranch;
+                
+                var title;
+                if (session.branch) {
+                    title = session.branch
+                        .replace(/refs\/(?:head|remotes\/\w+)\//, "");
+                }
+                else if (session.hash) {
+                    title = session.hash;
+                }
+                else if (session.path) {
+                    title = basename(session.path);
+                }
+                else {
+                    throw new Error("Wrong arguments");
+                }
+                
+                doc.title = "Compare " + title;
                 
                 // diffview.c9session = session;
                 // diffview.orig.session.c9session = session;
@@ -300,32 +327,53 @@ define(function(require, exports, module) {
             plugin.on("documentActivate", function(e) {
                 var session = currentSession = e.doc.getSession();
                 
-                if (!session.newPath) 
-                    throw new Error("Missing compare path");
-                
-                var newFilename = (session.newPath + "").split("/").pop();
-                e.doc.title = "Compare " + newFilename;
-                
                 // lblLeft.setAttribute("caption", getLabelValue(session.oldPath));
                 // lblRight.setAttribute("caption", getLabelValue(session.newPath));
                 
                 if (session.diff)
                     return loadSession(session);
                 
-                var newPath = (session.newPath || "")
-                    .replace(/MODIFIED:/, "")
-                    .replace(/STAGED:/, ":");
-                var oldPath = (session.oldPath || "")
-                    .replace(/PREVIOUS:/, ":");
+                e.doc.tab.classList.add("connecting");
+                
+                // var newPath = (session.newPath || "")
+                //     .replace(/MODIFIED:/, "")
+                //     .replace(/STAGED:/, ":");
+                // var oldPath = (session.oldPath || "")
+                //     .replace(/PREVIOUS:/, ":");
+                
+                var config = { context: session.context || false };
+            
+                // Show a single commit
+                if (session.hash) {
+                    config.oldPath = session.hash;
+                    config.newPath = session.hash + "^1";
+                }
+                
+                // Show all changes in a branch
+                else if (session.branch) {
+                    config.newPath = session.branch;
+                    config.oldPath = session.compareBranch 
+                        || "refs/remotes/origin/master";
+                    
+                    if (session.path) {
+                        config.oldPath += ":" + session.path;
+                        config.newPath += ":" + session.path;
+                    }
+                }
+                
+                // Show uncommitted changes in a tracked file
+                else if (session.path) {
+                    config.newPath = session.path;
+                }
                 
                 handle.on("ready", function(){
-                    session.request = scm.loadDiff({ 
-                        oldPath: oldPath, 
-                        newPath: newPath,
-                        context: session.context || false
-                    }, function(err, diff) {
-                        if (err) 
-                            diff;
+                    session.request = scm.loadDiff(config, function(err, diff) {
+                        e.doc.tab.classList.remove("connecting");
+                        
+                        if (err) {
+                            e.doc.tab.classList.add("error");
+                            return;
+                        }
                         
                         if (session.request == diff.request) {
                             session.diff = diff;
@@ -339,14 +387,18 @@ define(function(require, exports, module) {
             });
             plugin.on("getState", function(e) {
                 var session = e.doc.getSession();
-                e.state.oldPath = session.oldPath;
-                e.state.newPath = session.newPath;
+                e.state.path = session.path;
+                e.state.hash = session.hash;
+                e.state.branch = session.branch;
+                e.state.compareBranch = session.compareBranch;
                 e.state.context = session.context;
             });
             plugin.on("setState", function(e) {
                 var session = e.doc.getSession();
-                session.oldPath = e.state.oldPath;
-                session.newPath = e.state.newPath;
+                session.path = e.state.path;
+                session.hash = e.state.hash;
+                session.branch = e.state.branch;
+                session.compareBranch = e.state.compareBranch;
                 session.context = e.state.context;
             });
             plugin.on("clear", function(){

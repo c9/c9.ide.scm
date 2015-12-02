@@ -94,7 +94,7 @@ define(function(require, exports, module) {
         var settings = imports.settings;
         var ui = imports.ui;
         var c9 = imports.c9;
-        var tabs = imports.tabManager;
+        var tabManager = imports.tabManager;
         var watcher = imports.watcher;
         var panels = imports.panels;
         var util = imports.util;
@@ -131,7 +131,7 @@ define(function(require, exports, module) {
                 name: "blame",
                 group: "scm",
                 exec: function() {
-                    var tab = tabs.focussedTab || tabs.getPanes()[0].activeTab;
+                    var tab = tabManager.focussedTab || tabManager.getPanes()[0].activeTab;
                     if (!tab || !tab.path || tab.editorType != "ace")
                         return;
                     var blameAnnotation, err, data;
@@ -159,7 +159,7 @@ define(function(require, exports, module) {
                     }
                 },
                 isAvailable: function(){
-                    var tab = tabs.focussedTab || tabs.getPanes()[0].activeTab;
+                    var tab = tabManager.focussedTab || tabManager.getPanes()[0].activeTab;
                     if (!tab || !tab.path || tab.editorType != "ace")
                         return false;
                     return true;
@@ -229,6 +229,32 @@ define(function(require, exports, module) {
             emit("unregister", { plugin: scmPlugin });
         }
         
+        function openDiff(options, callback) {
+            var found;
+            if (tabManager.getTabs().some(function(tab){
+                if (tab.editorType == "diff.unified") {
+                    if (tab.document.getSession().isEqual(options)) {
+                        found = tab;
+                        return true;
+                    }
+                }
+                return false;
+            })) return tabManager.focusTab(found);
+            
+            tabManager[options.preview ? "preview" : "open"]({
+                newfile: true,
+                editorType: "diff.unified",
+                focus: true,
+                document: {
+                    "title": "Compare View",
+                    "diff.unified": options
+                }
+                // path: "/compare.diff"
+            }, function(err, tab){
+                callback && callback(err, tab);
+            });
+        }
+        
         /***** Lifecycle *****/
         
         plugin.on("load", function(){
@@ -249,7 +275,12 @@ define(function(require, exports, module) {
             /**
              * 
              */
-            unregister: unregisterSCM
+            unregister: unregisterSCM,
+            
+            /**
+             * 
+             */
+            openDiff: openDiff
         });
         
         register(null, {
