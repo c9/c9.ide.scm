@@ -528,19 +528,19 @@ define(function(require, exports, module) {
             
                 // Show a single commit
                 if (session.hash) {
-                    config.oldPath = session.hash;
-                    config.newPath = session.hash + "^1";
+                    config.newPath = session.hash;
+                    config.oldPath = session.hash + "^1";
                 }
                 
                 // Show all changes in a branch
                 else if (session.branch) {
-                    config.oldPath = session.branch;
-                    config.newPath = session.compareBranch 
+                    config.newPath = session.branch;
+                    config.oldPath = session.compareBranch 
                         || "refs/remotes/origin/master";
                     
                     if (session.path) {
-                        config.oldPath += ":" + session.path;
                         config.newPath += ":" + session.path;
+                        config.oldPath += ":" + session.path;
                     }
                 }
                 
