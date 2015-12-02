@@ -524,9 +524,12 @@ define(function(require, exports, module) {
                     showDiff(tree.selectedNode, true);
             });
             
-            tree.commands.bindKey("Enter", function(e) {
-                showDiff(tree.selectedNode);
-            });
+            var openSelection = function(e) {
+                if (showDiff(tree.selectedNode) === false)
+                    openSelectedFiles();
+            };
+            tree.commands.bindKey("Enter", openSelection);
+            tree.on("afterChoose", openSelection);
             
             tree.commands.bindKey("Shift-Enter", function(e) {
                 openSelectedFiles();
@@ -540,9 +543,6 @@ define(function(require, exports, module) {
                     tree.resize();
             }, plugin);
             
-            tree.on("afterChoose", function(e) {
-                showDiff(tree.selectedNode);
-            });
             
             tree.on("userSelect", function(e) {
                 if (tabManager.previewTab)
@@ -1099,10 +1099,8 @@ define(function(require, exports, module) {
         }
         
         function showDiff(node, preview){
-            // TODO make sure there is only one open
-            
             if (node.parent == ignored || node.parent == untracked)
-                return;
+                return false;
             
             scmProvider.openDiff({
                 path: node.path,

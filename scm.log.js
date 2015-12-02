@@ -75,6 +75,7 @@ define(function(require, exports, module) {
             var emit = plugin.getEmitter();
             
             var datagrid, dropdown, label, tree, detail, scm, ready;
+            var currentDocument;
             
             var BGCOLOR = { 
                 "flat-light": "#f7f7f7", 
@@ -296,8 +297,19 @@ define(function(require, exports, module) {
                     return;
                 }
                 
+                var doc = currentDocument;
+                if (doc) {
+                    doc.tab.classList.add("connecting");
+                    doc.tab.classList.remove("error");
+                }
+                
                 scm.getLog({}, function(err, root) {
-                    if (err) return console.error(err);
+                    doc && doc.tab.classList.remove("connecting");
+                    
+                    if (err) {
+                        doc && doc.tab.classList.add("error");
+                        return console.error(err);
+                    }
                     
                     if (!ready) {
                         ready = true;
@@ -307,6 +319,13 @@ define(function(require, exports, module) {
             }
             
             function showCompareView(node, preview){
+                if (node.label == "// WIP") {
+                    return scmProvider.openDiff({
+                        preview: preview
+                    });
+                }
+                    
+                
                 scmProvider.openDiff({
                     hash: node.hash,
                     preview: preview
@@ -335,7 +354,12 @@ define(function(require, exports, module) {
             });
             
             plugin.on("documentActivate", function(e) {
-                
+                currentDocument = e.doc;
+            });
+            
+            plugin.on("documentUnload", function(e) {
+                if (currentDocument == e.doc)
+                    currentDocument = null;
             });
             
             plugin.on("resize", function(e) {

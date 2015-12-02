@@ -476,7 +476,7 @@ define(function(require, exports, module) {
                     title = basename(session.path);
                 }
                 else {
-                    throw new Error("Wrong arguments");
+                    title = "Working Copy";
                 }
                 
                 doc.title = "Compare " + title;
