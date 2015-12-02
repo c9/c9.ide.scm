@@ -744,11 +744,8 @@ var DiffHighlight = function(diffView, type) {
                 fold = session.getNextFoldLine(row, fold);
                 foldStart = fold ? fold.start.row : Infinity;
             }
-            if (row > last) {
-                break;
-            }
             
-            var type = states[row].type;
+            var type = row <= last ? states[row].type : "";
             if (lastType != type) {
                 if (lastType) {
                     markerLayer.drawFullLineMarker(html, range.toScreenRange(session),
@@ -760,6 +757,9 @@ var DiffHighlight = function(diffView, type) {
                 } else {
                     lastType = "";
                 }
+            }
+            if (row > last) {
+                break;
             }
             range.end.row = row;
             
