@@ -852,8 +852,8 @@ define(function(require, exports, module) {
                     isSyncing = false;
                     removeLoading();
                     
-                    if (err.code == scm.errors.NOPUSHDESTINATION
-                      || err.code == scm.errors.NOREMOTEREPO) {
+                    if (err && (err.code == scm.errors.NOPUSHDESTINATION
+                      || err.code == scm.errors.NOREMOTEREPO)) {
                         alert("Unable To Sync",
                             "No origin specified.",
                             "Please add a remote (origin) via the branches "

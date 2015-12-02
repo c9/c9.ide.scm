@@ -480,10 +480,7 @@ define(function(require, exports, module) {
                 }
                 
                 doc.title = "Compare " + title;
-                
-                // diffview.c9session = session;
-                // diffview.orig.session.c9session = session;
-                // diffview.edit.session.c9session = session;
+                doc.tooltip = "Compare " + title;
                 
                 function setTheme(e) {
                     var tab = doc.tab;
@@ -508,21 +505,12 @@ define(function(require, exports, module) {
             plugin.on("documentActivate", function(e) {
                 var session = currentSession = e.doc.getSession();
                 
-                // lblLeft.setAttribute("caption", getLabelValue(session.oldPath));
-                // lblRight.setAttribute("caption", getLabelValue(session.newPath));
-                
                 if (session.diff)
                     return loadSession(session);
                    
                 diffview.setValueFromPatch("");
                 
                 e.doc.tab.classList.add("connecting");
-                
-                // var newPath = (session.newPath || "")
-                //     .replace(/MODIFIED:/, "")
-                //     .replace(/STAGED:/, ":");
-                // var oldPath = (session.oldPath || "")
-                //     .replace(/PREVIOUS:/, ":");
                 
                 var config = { context: session.context || false };
             

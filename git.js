@@ -98,17 +98,27 @@ define(function(require, exports, module) {
             if (typeof options == "function")
                 callback = options, options = {};
             
-            var args = ["fetch"];
+            var args = ["fetch", "-q"];
             if (options.prune) args.push("--prune");
             if (options.branch) args.push(options.branch);
-            git(args, callback);
+            
+            git(args, function(err, stdout, stderr){
+                if (stderr) {
+                    var error = errors.detect(stderr);
+                    if (error)
+                        return callback(error);
+                }
+                
+                if (err || stderr) return callback(err || stderr);
+                return callback();
+            });
         }
         
         function pull(options, callback){
             if (typeof options == "function")
                 callback = options, options = {};
             
-            var args = ["pull"];
+            var args = ["pull", "-q"];
             if (options.prune) args.push("--prune");
             if (options.branch) args.push(options.branch);
             
@@ -128,7 +138,7 @@ define(function(require, exports, module) {
             if (typeof options == "function")
                 callback = options, options = {};
             
-            var args = ["push"];
+            var args = ["push", "-q"];
             if (options.force) args.push("--force");
             if (options.branch) args.push(options.branch);
             
