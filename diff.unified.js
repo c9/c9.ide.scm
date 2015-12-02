@@ -532,8 +532,8 @@ define(function(require, exports, module) {
                 
                 // Show all changes in a branch
                 else if (session.branch) {
-                    config.newPath = session.branch;
-                    config.oldPath = session.compareBranch 
+                    config.oldPath = session.branch;
+                    config.newPath = session.compareBranch 
                         || "refs/remotes/origin/master";
                     
                     if (session.path) {
