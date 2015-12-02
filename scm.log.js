@@ -76,8 +76,6 @@ define(function(require, exports, module) {
             
             var datagrid, dropdown, label, tree, detail, scm, ready;
             
-            var arrayCache = [];
-            
             var BGCOLOR = { 
                 "flat-light": "#f7f7f7", 
                 "flat-dark": "#3D3D3D",
@@ -88,23 +86,10 @@ define(function(require, exports, module) {
             };
             
             plugin.on("draw", function(e) {
-                var container = new ui.bar();
-                detail = new ui.bar({
-                    width: "25%",
-                    class: "scm-statusbar detail-root",
-                    visible: false // TODO remember this in state
-                });
-                var hbox = e.tab.appendChild(new ui.hsplitbox({
-                    splitter: true,
-                    childNodes: [ container, detail ]
-                }));
+                e.htmlNode.style.paddingTop = 0;
                 
-                detail.$int.innerHTML = "<div class='detail-label'></div><div class='detail-tree'></div>";
-                label = detail.$int.firstChild;
-                label.host = { textselect: true };
-                
+                var container = e.tab.appendChild(new ui.bar({ anchors: "0 0 0 0"}));
                 drawLog(container.$int);
-                drawDetail(detail.$int.lastChild);
                 
                 scmProvider.on("scm", function(implementation){
                     scm = implementation;
@@ -122,158 +107,6 @@ define(function(require, exports, module) {
                     reloadLog();
                 });
             });
-            
-            function drawDetail(parentHtml) {
-                tree = new Tree({
-                    container: parentHtml,
-                    scrollMargin: [10, 0],
-                    theme: "filetree",
-                    enableDragdrop: true,
-                
-                    getIconHTML: function(node) {
-                        var icon = node.isFolder ? "folder" : "status-icon-" + node.type;
-                        // if (node.parent == conflicts)
-                        //     icon = "status-icon-conflict";
-                        // if (node.status === "loading") icon = "loading";
-                        // if (tree.model.twoWay && !node.isFolder)
-                        //     icon += " clickable";
-                        return "<span class='status-icon " + icon + "'>"
-                            + (node.type || "") + "</span>";
-                    },
-                    
-                    getCaptionHTML: function(node) {
-                        if (node.path) {
-                            var path = node.labelPath || node.path;
-                            return basename(path) 
-                                + "<span class='extrainfo'> - " 
-                                + dirname(path) + "</span>";
-                        }
-                        return escapeHTML(node.label || node.name);
-                    },
-                    
-                    getRowIndent: function(node) {
-                        return 0; //node.$depth ? node.$depth - 2 : 0;
-                    },
-                    
-                    isLoading: function() {},
-        
-                    getEmptyMessage: function(){
-                        if (!this.keyword)
-                            return this.isLoading()
-                                ? "Loading file list. One moment please..."
-                                : "No files found.";
-                        else
-                            return "No files found that match '" + this.keyword + "'";
-                    }
-                }, plugin);
-                
-                tree.container.style.position = "absolute";
-                tree.container.style.left = "0";
-                tree.container.style.top = "0";
-                tree.container.style.right = "0";
-                tree.container.style.bottom = "0";
-                tree.container.style.height = "";
-                tree.renderer.scrollBarV.$minWidth = 10;
-                
-                tree.commands.bindKey("Space", function(e) {
-                    if (tabManager.previewTab)
-                        tabManager.preview({ cancel: true });
-                    else
-                        showCompareView(tree.selectedNode, true);
-                });
-                
-                tree.commands.bindKey("Enter", function(e) {
-                    showCompareView(tree.selectedNode);
-                });
-                
-                // tree.commands.bindKey("Shift-Enter", function(e) {
-                //     openSelectedFiles();
-                // });
-                
-                tree.commands.bindKey("Left", function(e) {
-                    datagrid.focus();
-                });
-                tree.commands.bindKey("Tab", function(e) {
-                    datagrid.focus();
-                });
-                
-                layout.on("eachTheme", function(e){
-                    var height = parseInt(ui.getStyleRule(".filetree .tree-row", "height"), 10) || 22;
-                    tree.rowHeightInner = height;
-                    tree.rowHeight = height + 1;
-                    if (e.changed)
-                        tree.resize();
-                }, plugin);
-                
-                tree.on("afterChoose", function(e) {
-                    openSelection();
-                });
-                
-                tree.on("userSelect", function(e) {
-                    if (tabManager.previewTab)
-                        openSelection({ preview: true });
-                });
-                
-                tree.on("drop", function(e) {
-                    if (e.target && e.selectedNodes) {
-                        var nodes = e.selectedNodes;
-                        if (e.target == staged) {
-                            scm.addFileToStaging(nodes);
-                        } else if (e.target == changed) {
-                            scm.unstage(nodes);
-                        }
-                    }   
-                });
-                
-                tree.on("click", function(e) {
-                    if (e.domEvent.target.classList.contains("status-icon")) {
-                        var node = e.getNode();
-                        if (node.parent == staged) {
-                            scm.unstage(node);
-                        } else if (node.parent == changed || node.parent == ignored) {
-                            scm.addFileToStaging(node);
-                        } else if (node.parent == conflicts) {
-                            scm.addFileToStaging(node);
-                        }
-                    }
-                });
-                
-                tree.setRoot(arrayCache);
-                
-                // tree.on("focus", function(){
-                //     test.focussedPanel = plugin;
-                // });
-                
-                // settings.on("read", function(){
-                //     test.settingsMenu.append(new MenuItem({ 
-                //         caption: "Collapse Passed and Skipped Groups", 
-                //         checked: "user/test/@collapsegroups",
-                //         type: "check",
-                //         position: 300
-                //     }));
-                // }, plugin);
-                
-                // settings.on("user/test/@collapsegroups", function(value){
-                //     if (plugin.visible) {
-                //         skipNode.isOpen = !value;
-                //         passNode.isOpen = !value;
-                //         tree.refresh();
-                //     }
-                // }, plugin);
-                
-                plugin.on("select", function(options){
-                    if (options && detail.visible) 
-                        reloadDetail(options, function(){});
-                }, plugin);
-                
-                // Context Menu
-                // menuContext = new Menu({ items: [
-                //     new MenuItem({ match: "file", class: "strong", caption: "Open Diff", onclick: openSelection }, plugin),
-                //     new MenuItem({ match: "file", caption: "Open", onclick: openSelectedFiles }, plugin),
-                //     new MenuItem({ match: "file", caption: "Reveal in File Tree", onclick: reveal }, plugin),
-                // ]});
-                // opts.aml.setAttribute("contextmenu", menuContext.aml);
-            }
                 
             function drawLog(parentHtml) {
                 datagrid = new Datagrid({
@@ -318,7 +151,6 @@ define(function(require, exports, module) {
                 datagrid.container.style.bottom = "0";
                 datagrid.container.style.height = "";
                 
-                
                 // Enable Git Graph
                 new GitGraph().attachToTree(datagrid.acetree);
                 
@@ -338,11 +170,19 @@ define(function(require, exports, module) {
                 });
                 
                 datagrid.commands.bindKey("Space", function(e) {
-                    toggleDetail();
+                    if (tabManager.previewTab)
+                        tabManager.preview({ cancel: true });
+                    else
+                        showCompareView(datagrid.selectedNode, true);
                 });
                 
                 datagrid.on("afterChoose", function(e){
-                    toggleDetail();
+                    showCompareView(datagrid.selectedNode);
+                });
+                
+                datagrid.on("userSelect", function(e) {
+                    if (tabManager.previewTab)
+                        showCompareView(datagrid.selectedNode, true);
                 });
                 
                 var switchToTree = function(e) {
@@ -449,32 +289,6 @@ define(function(require, exports, module) {
                 }
             }
             
-            function reloadDetail(options, cb) {
-                if (!options) options = { hash: 0 };
-                if (!tree.meta.options) tree.meta.options = {};
-                if (!options.force)
-                if (tree.meta.options.hash == options.hash 
-                  && tree.meta.options.base == options.base)
-                    return;
-                
-                scm.getStatus(options, function(e, status) {
-                    if (options.commit) {
-                        label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span> "
-                            + "<span>" + escapeHTML(options.commit.authorname) + "</span>"
-                            + "<div>" + escapeHTML(options.commit.label) + "</div>";
-                    } else {
-                        label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span>"
-                            + " ... "
-                            + "<span class='hash'>" + escapeHTML(options.base) + "</span> ";
-                    }
-                    label.style.display = "block";
-                    
-                    tree.setRoot(status.history);
-                    tree.select(null);
-                    tree.meta.options = options;
-                });
-            }
-            
             function reloadLog() {
                 if (!scm) {
                     tree.emptyMessage = "No repository detected";
@@ -497,19 +311,6 @@ define(function(require, exports, module) {
                     hash: node.hash,
                     preview: preview
                 });
-            }
-            
-            function toggleDetail(){
-                // Toggle detail
-                if (detail.visible) {
-                    detail.hide();
-                    datagrid.resize();
-                }
-                else {
-                    detail.show();
-                    datagrid.select(datagrid.selectedNodes); // Todo async callback and then show
-                    datagrid.resize();
-                }
             }
             
             /***** Lifecycle *****/

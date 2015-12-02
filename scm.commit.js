@@ -546,7 +546,7 @@ define(function(require, exports, module) {
             
             tree.on("userSelect", function(e) {
                 if (tabManager.previewTab)
-                    showDiff(tree.selectedNode);
+                    showDiff(tree.selectedNode, true);
             });
             
             // TODO: Immediate feedback

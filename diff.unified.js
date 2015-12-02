@@ -201,6 +201,187 @@ define(function(require, exports, module) {
             
             /***** Method *****/
             
+            // TODO Basis for showing files of a commit
+            // TODO possible add as a plugin to diff
+            function drawDetail(parentHtml) {
+                tree = new Tree({
+                    container: parentHtml,
+                    scrollMargin: [10, 0],
+                    theme: "filetree",
+                    enableDragdrop: true,
+                
+                    getIconHTML: function(node) {
+                        var icon = node.isFolder ? "folder" : "status-icon-" + node.type;
+                        // if (node.parent == conflicts)
+                        //     icon = "status-icon-conflict";
+                        // if (node.status === "loading") icon = "loading";
+                        // if (tree.model.twoWay && !node.isFolder)
+                        //     icon += " clickable";
+                        return "<span class='status-icon " + icon + "'>"
+                            + (node.type || "") + "</span>";
+                    },
+                    
+                    getCaptionHTML: function(node) {
+                        if (node.path) {
+                            var path = node.labelPath || node.path;
+                            return basename(path) 
+                                + "<span class='extrainfo'> - " 
+                                + dirname(path) + "</span>";
+                        }
+                        return escapeHTML(node.label || node.name);
+                    },
+                    
+                    getRowIndent: function(node) {
+                        return 0; //node.$depth ? node.$depth - 2 : 0;
+                    },
+                    
+                    isLoading: function() {},
+        
+                    getEmptyMessage: function(){
+                        if (!this.keyword)
+                            return this.isLoading()
+                                ? "Loading file list. One moment please..."
+                                : "No files found.";
+                        else
+                            return "No files found that match '" + this.keyword + "'";
+                    }
+                }, plugin);
+                
+                tree.container.style.position = "absolute";
+                tree.container.style.left = "0";
+                tree.container.style.top = "0";
+                tree.container.style.right = "0";
+                tree.container.style.bottom = "0";
+                tree.container.style.height = "";
+                tree.renderer.scrollBarV.$minWidth = 10;
+                
+                tree.commands.bindKey("Space", function(e) {
+                    if (tabManager.previewTab)
+                        tabManager.preview({ cancel: true });
+                    else
+                        showCompareView(tree.selectedNode, true);
+                });
+                
+                tree.commands.bindKey("Enter", function(e) {
+                    showCompareView(tree.selectedNode);
+                });
+                
+                // tree.commands.bindKey("Shift-Enter", function(e) {
+                //     openSelectedFiles();
+                // });
+                
+                tree.commands.bindKey("Left", function(e) {
+                    datagrid.focus();
+                });
+                tree.commands.bindKey("Tab", function(e) {
+                    datagrid.focus();
+                });
+                
+                layout.on("eachTheme", function(e){
+                    var height = parseInt(ui.getStyleRule(".filetree .tree-row", "height"), 10) || 22;
+                    tree.rowHeightInner = height;
+                    tree.rowHeight = height + 1;
+                    if (e.changed)
+                        tree.resize();
+                }, plugin);
+                
+                tree.on("afterChoose", function(e) {
+                    openSelection();
+                });
+                
+                tree.on("userSelect", function(e) {
+                    if (tabManager.previewTab)
+                        openSelection({ preview: true });
+                });
+                
+                tree.on("drop", function(e) {
+                    if (e.target && e.selectedNodes) {
+                        var nodes = e.selectedNodes;
+                        if (e.target == staged) {
+                            scm.addFileToStaging(nodes);
+                        } else if (e.target == changed) {
+                            scm.unstage(nodes);
+                        }
+                    }   
+                });
+                
+                tree.on("click", function(e) {
+                    if (e.domEvent.target.classList.contains("status-icon")) {
+                        var node = e.getNode();
+                        if (node.parent == staged) {
+                            scm.unstage(node);
+                        } else if (node.parent == changed || node.parent == ignored) {
+                            scm.addFileToStaging(node);
+                        } else if (node.parent == conflicts) {
+                            scm.addFileToStaging(node);
+                        }
+                    }
+                });
+                
+                tree.setRoot(arrayCache);
+                
+                // tree.on("focus", function(){
+                //     test.focussedPanel = plugin;
+                // });
+                
+                // settings.on("read", function(){
+                //     test.settingsMenu.append(new MenuItem({ 
+                //         caption: "Collapse Passed and Skipped Groups", 
+                //         checked: "user/test/@collapsegroups",
+                //         type: "check",
+                //         position: 300
+                //     }));
+                // }, plugin);
+                
+                // settings.on("user/test/@collapsegroups", function(value){
+                //     if (plugin.visible) {
+                //         skipNode.isOpen = !value;
+                //         passNode.isOpen = !value;
+                //         tree.refresh();
+                //     }
+                // }, plugin);
+                
+                plugin.on("select", function(options){
+                    if (options && detail.visible) 
+                        reloadDetail(options, function(){});
+                }, plugin);
+                
+                // Context Menu
+                // menuContext = new Menu({ items: [
+                //     new MenuItem({ match: "file", class: "strong", caption: "Open Diff", onclick: openSelection }, plugin),
+                //     new MenuItem({ match: "file", caption: "Open", onclick: openSelectedFiles }, plugin),
+                //     new MenuItem({ match: "file", caption: "Reveal in File Tree", onclick: reveal }, plugin),
+                // ]});
+                // opts.aml.setAttribute("contextmenu", menuContext.aml);
+            }
+            
+            // TODO a way to get files from a branch
+            function reloadDetail(options, cb) {
+                if (!options) options = { hash: 0 };
+                if (!tree.meta.options) tree.meta.options = {};
+                if (!options.force)
+                if (tree.meta.options.hash == options.hash 
+                  && tree.meta.options.base == options.base)
+                    return;
+                
+                scm.getStatus(options, function(e, status) {
+                    if (options.commit) {
+                        label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span> "
+                            + "<span>" + escapeHTML(options.commit.authorname) + "</span>"
+                            + "<div>" + escapeHTML(options.commit.label) + "</div>";
+                    } else {
+                        label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span>"
+                            + " ... "
+                            + "<span class='hash'>" + escapeHTML(options.base) + "</span> ";
+                    }
+                    label.style.display = "block";
+                    
+                    tree.setRoot(status.history);
+                    tree.select(null);
+                    tree.meta.options = options;
+                });
+            }
+            
             // function getLabelValue(path){
             //     var hash;
                 

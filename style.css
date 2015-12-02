@@ -77,40 +77,40 @@
     color: @inactive-font-color;
 }
 
-.detail-label{
-    padding: 6px 5px 7px 5px;
-    font-size: 12px;
-    background-color: @detail-label-background;
-    border-bottom: @detail-label-border-bottom;
-    box-shadow: @detail-label-box-shadow;
-}
+/*.detail-label{*/
+/*    padding: 6px 5px 7px 5px;*/
+/*    font-size: 12px;*/
+/*    background-color: @detail-label-background;*/
+/*    border-bottom: @detail-label-border-bottom;*/
+/*    box-shadow: @detail-label-box-shadow;*/
+/*}*/
 
-.detail-label .hash{
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
-    padding: 2px 4px 1px;
-    display: inline-block;
-    border-radius: 4px;
-    background: @detail-label-hash-background;
-    border: @detail-label-hash-border;
-    color: @detail-label-hash-color;
-    margin-right: 6px;
-    font-size: 12px;
-}
+/*.detail-label .hash{*/
+/*    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;*/
+/*    padding: 2px 4px 1px;*/
+/*    display: inline-block;*/
+/*    border-radius: 4px;*/
+/*    background: @detail-label-hash-background;*/
+/*    border: @detail-label-hash-border;*/
+/*    color: @detail-label-hash-color;*/
+/*    margin-right: 6px;*/
+/*    font-size: 12px;*/
+/*}*/
 
-.detail-label {
-    line-height: 1.5em;
-    color: @detail-label-color;
-}
+/*.detail-label {*/
+/*    line-height: 1.5em;*/
+/*    color: @detail-label-color;*/
+/*}*/
 
-.detail-tree{
-    flex: 1;
-    position: relative;
-}
+/*.detail-tree{*/
+/*    flex: 1;*/
+/*    position: relative;*/
+/*}*/
 
-.detail-root{
-    display: flex;
-    flex-direction: column;
-}
+/*.detail-root{*/
+/*    display: flex;*/
+/*    flex-direction: column;*/
+/*}*/
 
 .form-bar{
     padding: @form-bar-padding;
