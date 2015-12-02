@@ -513,6 +513,9 @@ define(function(require, exports, module) {
                 
                 if (session.diff)
                     return loadSession(session);
+                   
+                // TODO @nightwing: how can I clear the state here? 
+                // diffview.editor.setValue("");
                 
                 e.doc.tab.classList.add("connecting");
                 
