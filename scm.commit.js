@@ -1105,7 +1105,8 @@ define(function(require, exports, module) {
                 return;
             
             scmProvider.openDiff({
-                path: node.path
+                path: node.path,
+                preview: preview
             });
         }
         
