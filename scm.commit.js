@@ -812,9 +812,8 @@ define(function(require, exports, module) {
         }
         
         function updateButton(type){
-            // btnScm.setAttribute("caption", CAPTION[type]);
             btnMode = type;
-            removeLoading();
+            if (!isSyncing) removeLoading();
         }
         
         // TODO update UI somehow 
