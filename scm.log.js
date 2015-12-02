@@ -115,11 +115,11 @@ define(function(require, exports, module) {
                         }, plugin);
                         
                         scm.on("log.dirty", function(node){
-                            reload();
+                            reloadLog();
                         }, plugin);
                     }
                     
-                    reload();
+                    reloadLog();
                 });
             });
             
@@ -179,16 +179,16 @@ define(function(require, exports, module) {
                     if (tabManager.previewTab)
                         tabManager.preview({ cancel: true });
                     else
-                        openSelection({ preview: true });
+                        showCompareView(tree.selectedNode, true);
                 });
                 
                 tree.commands.bindKey("Enter", function(e) {
-                    openSelection();
+                    showCompareView(tree.selectedNode);
                 });
                 
-                tree.commands.bindKey("Shift-Enter", function(e) {
-                    openSelectedFiles();
-                });
+                // tree.commands.bindKey("Shift-Enter", function(e) {
+                //     openSelectedFiles();
+                // });
                 
                 tree.commands.bindKey("Left", function(e) {
                     datagrid.focus();
@@ -263,7 +263,7 @@ define(function(require, exports, module) {
                 
                 plugin.on("select", function(options){
                     if (options && detail.visible) 
-                        reload(options, function(){});
+                        reloadDetail(options, function(){});
                 }, plugin);
                 
                 // Context Menu
@@ -274,7 +274,7 @@ define(function(require, exports, module) {
                 // ]});
                 // opts.aml.setAttribute("contextmenu", menuContext.aml);
                 
-                reload({ hash: 0, force: true }, function(){});
+                // reload({ hash: 0, force: true }, function(){});
             }
                 
             function drawLog(parentHtml) {
@@ -336,26 +336,16 @@ define(function(require, exports, module) {
                         datagrid.resize();
                 }, plugin);
                 
-                datagrid.commands.bindKey("Space", function(e) {
-                    // TODO show diff of entire commit
+                datagrid.commands.bindKey("Enter", function(e) {
+                    showCompareView(datagrid.selectedNode);
                 });
                 
-                datagrid.commands.bindKey("Enter", function(e) {
-                    // Toggle detail
-                    if (detail.visible) detail.hide();
-                    else {
-                        detail.show();
-                        datagrid.select(datagrid.selectedNodes); // Todo async callback and then show
-                    }
+                datagrid.commands.bindKey("Space", function(e) {
+                    toggleDetail();
                 });
                 
                 datagrid.on("afterChoose", function(e){
-                    // Toggle detail
-                    if (detail.visible) detail.hide();
-                    else {
-                        detail.show();
-                        datagrid.select(datagrid.selectedNodes); // Todo async callback and then show
-                    }
+                    toggleDetail();
                 });
                 
                 var switchToTree = function(e) {
@@ -463,7 +453,33 @@ define(function(require, exports, module) {
                 }
             }
             
-            function reload() {
+            function reloadDetail(options, cb) {
+                if (!options) options = { hash: 0 };
+                if (!tree.meta.options) tree.meta.options = {};
+                if (!options.force)
+                if (tree.meta.options.hash == options.hash 
+                  && tree.meta.options.base == options.base)
+                    return;
+                
+                scm.getStatus(options, function(e, status) {
+                    if (options.commit) {
+                        label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span> "
+                            + "<span>" + escapeHTML(options.commit.authorname) + "</span>"
+                            + "<div>" + escapeHTML(options.commit.label) + "</div>";
+                    } else {
+                        label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span>"
+                            + " ... "
+                            + "<span class='hash'>" + escapeHTML(options.base) + "</span> ";
+                    }
+                    label.style.display = "block";
+                    
+                    tree.setRoot(status.history);
+                    tree.select(null);
+                    tree.meta.options = options;
+                });
+            }
+            
+            function reloadLog() {
                 if (!scm) {
                     tree.emptyMessage = "No repository detected";
                     tree.setRoot(null);
@@ -478,6 +494,41 @@ define(function(require, exports, module) {
                         emit.sticky("ready");
                     }
                 });
+            }
+            
+            function showCompareView(node, preview){
+                // TODO make sure there is only one open
+                
+                var hash = node.hash;
+                tabManager[preview ? "preview" : "open"]({
+                    newfile: true,
+                    editorType: "diff.unified",
+                    focus: true,
+                    document: {
+                        "title": "Compare View",
+                        "diff.unified": {
+                            oldPath: hash,
+                            newPath: hash + "^1",
+                            context: false
+                        }
+                    }
+                    // path: "/compare.diff"
+                }, function(ignore, tab){
+                    
+                });
+            }
+            
+            function toggleDetail(){
+                // Toggle detail
+                if (detail.visible) {
+                    detail.hide();
+                    datagrid.resize();
+                }
+                else {
+                    detail.show();
+                    datagrid.select(datagrid.selectedNodes); // Todo async callback and then show
+                    datagrid.resize();
+                }
             }
             
             /***** Lifecycle *****/

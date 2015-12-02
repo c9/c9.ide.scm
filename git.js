@@ -393,7 +393,10 @@ define(function(require, exports, module) {
                 // console.log(err, stdout);
                 // console.log(t-Date.now(), stdout.length);
                 var status = parseStatus(stdout, options.twoWay);
-                emit("status", { status: status });
+                
+                if (options.twoWay)
+                    emit("status", { status: status });
+                    
                 cb(err, status);
             });
         }
