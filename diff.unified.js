@@ -81,7 +81,7 @@ define(function(require, exports, module) {
             var diffview;
             var lastAce;
             var lblLeft, lblRight, btnNext, btnPrev, btnFold, container;
-            var toolbar;
+            var toolbar, activeDocument;
             
             plugin.on("draw", function(e) {
                 var tab = e.tab;
@@ -514,8 +514,7 @@ define(function(require, exports, module) {
                 if (session.diff)
                     return loadSession(session);
                    
-                // TODO @nightwing: how can I clear the state here? 
-                // diffview.editor.setValue("");
+                diffview.setValueFromPatch("");
                 
                 e.doc.tab.classList.add("connecting");
                 
@@ -550,7 +549,11 @@ define(function(require, exports, module) {
                     config.newPath = session.path;
                 }
                 
-                handle.on("ready", function(){
+                activeDocument = e.doc;
+                
+                handle.once("ready", function(){
+                    if (activeDocument != e.doc) return;
+                    
                     session.request = scm.loadDiff(config, function(err, diff) {
                         e.doc.tab.classList.remove("connecting");
                         
@@ -564,7 +567,7 @@ define(function(require, exports, module) {
                             loadSession(session);
                         }
                     });
-                }, plugin);
+                });
             });
             plugin.on("documentUnload", function(e) {
                 // var session = e.doc.getSession();

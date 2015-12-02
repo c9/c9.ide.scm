@@ -74,7 +74,7 @@ define(function(require, exports, module) {
             caption: "Commit",
             minWidth: 150,
             where: options.where || "left",
-            autohide: true
+            autohide: false
         });
         var emit = plugin.getEmitter();
         
@@ -196,7 +196,7 @@ define(function(require, exports, module) {
                 plugin.autohide = true;
             }, plugin);
             
-            plugin.autohide = panels.isActive("scm.commit");
+            plugin.autohide = !panels.isActive("scm.commit");
             
             plugin.on("show", function(e){
                 plugin.autohide = !e.button;
