@@ -93,6 +93,7 @@ define(function(require, exports, module) {
         
         var body, commitBox, ammendCb, commitBtn, onclick;
         var container, lastCommitMessage, winCommit;
+        var isCommitting;
         
         function load() {
             ui.insertCss(require("text!./style.css"), options.staticPrefix, plugin);
@@ -264,26 +265,12 @@ define(function(require, exports, module) {
                 bindKey: "Ctrl-Enter|Cmd-Enter",
                 name: "commit",
                 exec: function(editor) {
-                    if (!commitBox.getValue())
-                        return; // TODO
-                    
-                    ammendCb.disable();
-                    commitBox.disable();
-                    commit(commitBox.getValue(), ammendCb.checked, function(err){
-                        ammendCb.enable();
-                        commitBox.enable();
-                        
-                        if (err) 
-                            return console.error(err);
-                        
-                        ammendCb.uncheck();
-                        commitBox.setValue("");
-                    });
+                    commit();
                 }
             });
             
             function onAllBlur(e) {
-                if (!winCommit.visible || !plugin.autohide)
+                if (!winCommit.visible || !plugin.autohide || isCommitting)
                     return;
                 
                 var to = e.toElement;
@@ -967,6 +954,19 @@ define(function(require, exports, module) {
         }
         
         function commit(message, amend, callback, force){
+            if (!message || typeof message == "function") {
+                callback = message;
+                message = commitBox.getValue();
+                amend = ammendCb.checked;
+            }
+            if (typeof amend == "function")
+                callback = amend, amend = false;
+            if (!callback) 
+                callback = function(){};
+            
+            if (!message) 
+                return callback(new Error("Nothing To Do"));
+            
             if (conflicts.children.length) {
                 alert("Unresolved Conflicts",
                     "There are unresolved conflicts.",
@@ -981,22 +981,42 @@ define(function(require, exports, module) {
                 return callback(new Error("Nothing to do"));
             }
             
+            isCommitting = true;
+            
+            ammendCb.disable();
+            commitBox.disable();
+            
+            function done(err){
+                ammendCb.enable();
+                commitBox.enable();
+                
+                isCommitting = false;
+                
+                if (err) 
+                    return console.error(err);
+                
+                ammendCb.uncheck();
+                commitBox.setValue("");
+                
+                callback && callback();
+            }
+            
             if (!staged.children.length && !force) {
                 scm.addFileToStaging(changed.children.map(function(n){
                     return n.path;
                 }), function(err){
-                    if (err) return console.error(err);
+                    if (err) return done(err);
                     
                     commit(message, amend, callback, true); 
                 });
                 return;
             }
             
-            scm.commit({ 
+            scm.commit({
                 message: message,
                 amend: amend
             }, function(err){
-                if (err) return console.error(err);
+                if (err) return done(err);
                 
                 if (settings.getBool("state/scm/@auto"))
                     sync();
@@ -1004,7 +1024,7 @@ define(function(require, exports, module) {
                 if (plugin.autohide)
                     plugin.hide();
                 
-                callback && callback();
+                done();
             });
         }
         
@@ -1650,6 +1670,7 @@ define(function(require, exports, module) {
         plugin.on("unload", function() {
             clearTimeout(syncTimeout);
             isSyncing = null;
+            isCommitting = false;
             syncTimeout = null;
             drawn = false;
             logTree = null;
