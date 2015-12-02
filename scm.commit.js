@@ -5,7 +5,7 @@ define(function(require, exports, module) {
         "Menu", "MenuItem", "Divider", "layout", "Tree", "tabManager", 
         "dialog.question", "dialog.filechange", "tree", "save",
         "commands", "c9", "scm", "console", "preferences.experimental",
-        "watcher", "dialog.question"
+        "watcher", "dialog.question", "panels"
     ];
     main.provides = ["scm.commit"];
     return main;
@@ -37,6 +37,7 @@ define(function(require, exports, module) {
         var fs = imports.fs;
         var c9 = imports.c9;
         var settings = imports.settings;
+        var panels = imports.panels;
         var commands = imports.commands;
         var collabWorkspace = imports["collab.workspace"];
         var showInfo = imports["dialog.info"].show;
@@ -72,7 +73,8 @@ define(function(require, exports, module) {
             index: options.index || 400,
             caption: "Commit",
             minWidth: 150,
-            where: options.where || "left"
+            where: options.where || "left",
+            autohide: true
         });
         var emit = plugin.getEmitter();
         
@@ -90,7 +92,7 @@ define(function(require, exports, module) {
         var reloading, lastReloadT = 0;
         
         var body, commitBox, ammendCb, commitBtn, onclick;
-        var container, lastCommitMessage;
+        var container, lastCommitMessage, winCommit;
         
         function load() {
             ui.insertCss(require("text!./style.css"), options.staticPrefix, plugin);
@@ -186,7 +188,22 @@ define(function(require, exports, module) {
                     reload();
             });
             
-            plugin.on("show", function(){
+            panels.on("showPanelScm.commit", function(e) {
+                plugin.autohide = !e.button;
+            }, plugin);
+            panels.on("hidePanelScm.commit", function(e) {
+                plugin.autohide = true;
+            }, plugin);
+            
+            plugin.autohide = panels.isActive("scm.commit");
+            
+            plugin.on("show", function(e){
+                plugin.autohide = !e.button;
+            
+                // TODO is this needed?
+                // if (e.button === "restoreSettings")
+                //     return;
+                
                 if (reload())
                     updateLastCommit();
                     
@@ -195,8 +212,9 @@ define(function(require, exports, module) {
         }
         
         function draw(opts) {
-            // Splitbox
-            var vbox = opts.aml.appendChild(new ui.vbox({ 
+            
+            winCommit = opts.aml;
+            var vbox = winCommit.appendChild(new ui.vbox({ 
                 anchors: "0 0 0 0" 
             }));
             
@@ -263,6 +281,21 @@ define(function(require, exports, module) {
                     });
                 }
             });
+            
+            function onAllBlur(e) {
+                if (!winCommit.visible || !plugin.autohide)
+                    return;
+                
+                var to = e.toElement;
+                if (!to || apf.isChildOf(winCommit, to, true)) {
+                    return;
+                }
+                
+                // TODO add better support for overlay panels
+                setTimeout(function() { plugin.hide() }, 10);
+            }
+    
+            apf.addEventListener("movefocus", onAllBlur);
             
             /**** Main UI ****/
             
@@ -967,6 +1000,9 @@ define(function(require, exports, module) {
                 
                 if (settings.getBool("state/scm/@auto"))
                     sync();
+                
+                if (plugin.autohide)
+                    plugin.hide();
                 
                 callback && callback();
             });
