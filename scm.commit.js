@@ -87,7 +87,7 @@ define(function(require, exports, module) {
         var btnMode = "sync";
         var btnScm, title, tree, status, scm;
         var arrayCache = [];
-        var reloading;
+        var reloading, lastReloadT = 0;
         
         var body, commitBox, ammendCb, commitBtn, onclick;
         var container, lastCommitMessage;
@@ -177,12 +177,12 @@ define(function(require, exports, module) {
             });
             
             watcher.on("change.all", function(e){
-                if (plugin.active && !isChanged(e.path))
+                if (plugin.active && !isChanged(e.path) && Date.now() - lastReloadT > 2000)
                     reload();
             });
             
             watcher.on("directory.all", function(e){
-                if (plugin.active && !isChanged(e.path))
+                if (plugin.active && !isChanged(e.path) && Date.now() - lastReloadT > 2000)
                     reload();
             });
             
@@ -1057,6 +1057,7 @@ define(function(require, exports, module) {
                 untracked: "all"
             }, function(err){
                 reloading = false;
+                lastReloadT = Date.now();
                 removeLoading();
                 
                 if (err && err.code == scm.errors.NOTAREPO)

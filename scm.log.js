@@ -273,14 +273,12 @@ define(function(require, exports, module) {
                 //     new MenuItem({ match: "file", caption: "Reveal in File Tree", onclick: reveal }, plugin),
                 // ]});
                 // opts.aml.setAttribute("contextmenu", menuContext.aml);
-                
-                // reload({ hash: 0, force: true }, function(){});
             }
                 
             function drawLog(parentHtml) {
                 datagrid = new Datagrid({
                     container: parentHtml,
-                    scrollMargin: [10, 0],
+                    scrollMargin: [0, 0],
                     theme: "blackdg versionlog",
                     
                     columns : [
@@ -320,7 +318,6 @@ define(function(require, exports, module) {
                 datagrid.container.style.bottom = "0";
                 datagrid.container.style.height = "";
                 
-                datagrid.renderer.scrollBarV.$minWidth = 10;
                 
                 // Enable Git Graph
                 new GitGraph().attachToTree(datagrid.acetree);
@@ -379,7 +376,6 @@ define(function(require, exports, module) {
                     
                     emit("select", options);
                 });
-                
                 // datagrid.setRoot(rootNode = new Node({
                 //     label: "root",
                 //     tree: tree
