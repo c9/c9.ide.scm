@@ -25,14 +25,24 @@
     require(["plugins/c9.ide.scm/diff/unified", "ace/ace"], function() {
         var DiffView = require("plugins/c9.ide.scm/diff/unified").DiffView;
         var ace = require("ace/ace");
-        var editor = ace.edit(document.querySelector(".ace_diff-container"), {});
-        window.editor = editor;
+        var el = document.querySelector(".ace_diff-container");
         
         require("ace/lib/net").get("./diff/example.diff", function(v) {
-            var d = new DiffView(editor);
-            d.attachToEditor(editor);
-            
-            d.setValueFromPatch(v);
+            var diffView = new DiffView();
+            diffView.setValueFromPatch(v);
+            window.diffView = diffView;
+            window.editor = diffView.editor;
+            window.val = v;
+            el.appendChild(diffView.container);
+            diffView.editor.renderer.scrollBarV.$minWidth = 30;
+            diffView.container.style.top = "0";
+            diffView.container.style.bottom = "0";
+            diffView.container.style.left = "20px";
+            diffView.container.style.right = "0px";
+            diffView.container.style.position = "absolute";
+            window.addEventListener("resize", function() {
+                diffView.editor.resize();
+            });
         });
     });
 

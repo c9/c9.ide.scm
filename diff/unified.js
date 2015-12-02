@@ -63,13 +63,27 @@ function DiffView(element, options) {
         var result = [];
         var rowInsert = 0;
         var rowRemove = 0;
+        var file;
+        var insertedTotal = 0;
+        var removedTotal = 0;
+        var inserted = 0;
+        var removed = 0;
         for (var i = 0; i < lines.length; i++) {
             var line = lines[i];
             if (line[0] == "d" && line.slice(0, 5) == "diff ") {
+                if (file) {
+                    file.inserted = inserted;
+                    file.removed = removed;
+                }
+                insertedTotal += inserted;
+                removedTotal += removed;
+                inserted = removed = 0;
+                
+                file = {type: "file"};
                 var none = {type: "none"};
                 var path = line.split(" b/").pop();
                 result.push("", "", "", path);
-                states.push(none, none, none, {type: "file"});
+                states.push(none, none, none, file);
                 while (i + 1 < lines.length && lines[i + 1][0] != "@")
                     i++;
             }
@@ -92,16 +106,18 @@ function DiffView(element, options) {
                 result.push(line.substr(1));
                 states.push({type: "insert", row2: rowInsert, row1: ""});
                 rowInsert++;
+                inserted++;
             }
             else if (line[0] == "-") {
                 result.push(line.substr(1));
                 states.push({type: "remove", row2: "", row1: rowRemove});
                 rowRemove++;
+                removed++;
             }
         }
         
         result.push("", "");
-        states.push(none, {type: "file"});
+        states.push({type: "none"}, {type: "file"});
         
         v = result.join("\n");
         editor.setValue(v, -1);
@@ -116,6 +132,10 @@ function DiffView(element, options) {
                 type: "uniDiff_" + type
             }];
         };
+        if (!editor.session.meta)
+            editor.session.meta = {};
+        editor.session.meta.deletedLines = removedTotal;
+        editor.session.meta.addedLines = insertedTotal;
     };
     
     this.foldingRules = {
@@ -159,6 +179,7 @@ function DiffView(element, options) {
         editor.renderer.$gutterLayer.gutterWidth = NaN;
         editor.renderer.$gutterLayer.$padding = null;
         editor.renderer.$gutterLayer.update = this.updateGutter;
+        editor.diffView = this;
     };
 
     this.updateGutter= function(config) {
@@ -277,6 +298,7 @@ function DiffView(element, options) {
         var editor = this.editor;
         if (e.target.classList.contains("ace_fold-widget")) {
             editor.session.onFoldWidgetClick(w.row, {domEvent: e});
+            e.preventDefault();
         }
     };
     this.createWidget = function(row, renderedHeaders) {
@@ -307,6 +329,7 @@ function DiffView(element, options) {
         if (!line) {
             w.el.style.height = lineHeight * 100 + "px";
             w.el.innerHTML = "";
+            w.foldArrow = null;
             return;
         }
         w.el.style.height = lineHeight * HEADER_ROWS + "px";
@@ -361,6 +384,7 @@ function DiffView(element, options) {
             if (foldClosed != w.foldClosed && w.foldArrow) {
                 w.foldClosed = foldClosed;
                 dom.setCssClass(w.foldArrow, "ace_closed", !!foldClosed);
+                w.el.firstChild.style.borderBottomColor = foldClosed ? "transparent" : "";
             }
             if (!w._inDocument) {
                 w._inDocument = true;
@@ -709,7 +733,8 @@ var DiffHighlight = function(diffView, type) {
         var states = session.bgTokenizer.diffStates;
         var range = new Range(0, 0, 0, 1);
         var lastType = "";
-        
+        if (!states)
+            return;
         var fold = session.getNextFoldLine(first);
         var foldStart = fold ? fold.start.row : Infinity;
         var row = first || 0;
