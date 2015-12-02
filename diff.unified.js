@@ -115,7 +115,7 @@ define(function(require, exports, module) {
                 //             diffview.foldUnchanged();
                 //     }
                 // });
-                container = new ui.bar({ margin: "0 20 0 20", class: "ace_diff-container" });
+                container = new ui.bar({ margin: "0 0 0 20", class: "ace_diff-container" });
                 
                 tab.appendChild(new ui.vsplitbox({ 
                     anchors: "0 0 0 0",
@@ -146,6 +146,7 @@ define(function(require, exports, module) {
                 
                 diffview = new DiffView(container.$ext, {});
                 diffview.editor.setOption("fontSize", 11);
+                diffview.editor.renderer.scrollBarV.$minWidth = 20;
                 
                 // // temporary workaround for apf focus bugs
                 // // only blur is needed sinse the rest is handled by tabManager

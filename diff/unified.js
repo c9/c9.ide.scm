@@ -1,6 +1,5 @@
 define(function(require, exports, module) {
 "use strict";
-/*eslint semi: 0*/
 var oop = require("ace/lib/oop");
 var lang = require("ace/lib/lang");
 var event = require("ace/lib/event");
@@ -22,6 +21,7 @@ var EditSession = require("ace/edit_session").EditSession;
 var Mode = require("ace/mode/text").Mode;
 
 var mode = new Mode();
+var HEADER_ROWS = 3
 
 function createEditor(el) {
     if (el instanceof Editor) return el;
@@ -33,6 +33,7 @@ function createEditor(el) {
 function DiffView(element, options) {
     this.renderedHeaders = [];
     this.renderHeaders = this.renderHeaders.bind(this);
+    this.handleWidgetMouseDown = this.handleWidgetMouseDown.bind(this);
     // this.onInput = this.onInput.bind(this);
     
     this.options = {};
@@ -63,22 +64,22 @@ function DiffView(element, options) {
         var rowInsert = 0;
         var rowRemove = 0;
         for (var i = 0; i < lines.length; i++) {
-            var line = lines[i]
+            var line = lines[i];
             if (line[0] == "d" && line.slice(0, 5) == "diff ") {
                 var none = {type: "none"};
                 var path = line.split(" b/").pop();
-                result.push(path, "", "", "", "");
-                states.push({type: "file"}, none, none, none, none);
+                result.push("", "", "", path);
+                states.push(none, none, none, {type: "file"});
                 while (i + 1 < lines.length && lines[i + 1][0] != "@")
                     i++;
             }
             else if (line[0] == "@") {
-                var m = line.match(/^@@ -(\d+)(,\d+) \+(\d+)(,\d+) @@/)
+                var m = line.match(/^@@ -(\d+)(,\d+) \+(\d+)(,\d+) @@/);
                 if (m) {
                     rowRemove = parseInt(m[1], 10);
                     rowInsert = parseInt(m[3], 10);
-                    result.push(line)
-                    states.push({type: "header"})
+                    result.push(line);
+                    states.push({type: "header"});
                 }
             }
             else if (line[0] == " ") {
@@ -98,13 +99,17 @@ function DiffView(element, options) {
                 rowRemove++;
             }
         }
+        
+        result.push("", "", "", "");
+        states.push(none, none, none, {type: "file"});
+        
         v = result.join("\n");
         editor.setValue(v, -1);
         editor.session.bgTokenizer.diffStates = states;
         editor.session.bgTokenizer.stop();
         editor.setReadOnly(true);
         editor.session.bgTokenizer.getTokens = function(row) {
-            var line = this.doc.getLine(row)
+            var line = this.doc.getLine(row);
             var type = this.diffStates[row].type;
             return [{
                 value: line,
@@ -113,7 +118,37 @@ function DiffView(element, options) {
         };
     };
     
+    this.foldingRules = {
+        getFoldWidget: function(session, foldStyle, row) {
+            var state = session.bgTokenizer.diffStates[row];
+            if (state && state.type == "file" || state.type == "header")
+                return "start";
+            return "";
+        },
+
+        getFoldWidgetRange: function(session, foldStyle, row) {
+            var states = session.bgTokenizer.diffStates;
+            var state = states[row];
+            var type = state.type;
+            if (!state || (type != "header" && type != "file"))
+                return null;
+            
+            var line = session.getLine(row);
+            var start = {row: row, column: line.length};
+            
+            for (var l = states.length; ++row < l;) {
+                state = states[row];
+                if (state.type == type || state.type == "file" || state.type == "none")
+                    break;
+            }
+            if (row == start.row + 1)
+                return;
+            return new Range(start.row, start.column, row - 1, session.getLine(row - 1).length);
+        }
+    };
+        
     this.attachToEditor = function(editor) {
+        mode.foldingRules = this.foldingRules;
         editor.session.setMode(mode);
         editor.session.removeMarker(editor.session.mi);
         editor.session.mi = editor.session.addDynamicMarker(new DiffHighlight);
@@ -134,7 +169,6 @@ function DiffView(element, options) {
         var fold = session.getNextFoldLine(firstRow);
         var foldStart = fold ? fold.start.row : Infinity;
         var foldWidgets = this.$showFoldWidgets && session.foldWidgets;
-        var firstLineNumber = session.$firstLineNumber;
         
         var diffStates = session.bgTokenizer.diffStates;
         
@@ -237,6 +271,14 @@ function DiffView(element, options) {
         }
     };
 
+    this.handleWidgetMouseDown = function(e) {
+        e.stopPropagation();
+        var w = e.currentTarget.w;
+        var editor = this.editor;
+        if (e.target.classList.contains("ace_fold-widget")) {
+            editor.session.onFoldWidgetClick(w.row, {domEvent: e});
+        }
+    };
     this.createWidget = function(row, renderedHeaders) {
         var w = {
             row: row,
@@ -247,25 +289,34 @@ function DiffView(element, options) {
             coverGutter: 1,
             fixedWidth: true
         };
+        w.el.onmousedown = this.handleWidgetMouseDown;
         renderedHeaders.push(w);
-        return w
-        
+        w.el.w = w;
+        return w;
     };
-    this.populateWidget = function(w, i) {
-        var editor = this.editor
+    this.populateWidget = function(w, i, state) {
+        if (state === w.state)
+            return;
+        w.state = state;
+        var editor = this.editor;
         var session = editor.session;
         var line = session.getLine(i);
         var lineHeight = editor.renderer.layerConfig.lineHeight;
+        w.el.style.borderTopWidth = i > HEADER_ROWS ? "" : "0";
+        w.el.className ="unidiff_fileHeader ace_lineWidgetContainer";
+        if (!line) {
+            w.el.style.height = lineHeight * 100 + "px";
+            w.el.innerHTML = "";
+            return;
+        }
+        w.el.style.height = lineHeight * HEADER_ROWS + "px";
         w.el.innerHTML = '<div class="unidiff_fileHeaderInner">\
             <span class="ace_fold-widget ace_start ace_open"\
             style="height:1.5em;left: -20px;\
             position: relative;display: inline-block;"></span>'
             + " " +  lang.escapeHTML(line) + " "
-            +'<div>'
-        
-        w.el.className ="unidiff_fileHeader ace_lineWidgetContainer";
-        w.el.style.height = lineHeight * 3 + "px";
-        w.el.firstChild.style.height = lineHeight * 3 + "px";
+            +'<div>';
+        w.el.firstChild.style.height = lineHeight * HEADER_ROWS + "px";
         w.el.firstChild.style.marginTop = lineHeight + "px";
     };
     this.renderHeaders = function(e, renderer) {
@@ -280,19 +331,19 @@ function DiffView(element, options) {
         this.lastRow = config.lastRow;
 
         var renderedHeaders = this.renderedHeaders;
-        var j = 0
+        var j = 0;
         renderer.$cursorLayer.config = config;
         for (var i = first; i <= last; i++) {
             var state = diffStates[i];
             if (!state || diffStates[i].type != "file") continue;
             var w = renderedHeaders[j] || this.createWidget(i, renderedHeaders);
             j++;
-            this.populateWidget(w, i);
+            this.populateWidget(w, i, state);
             if (!w._inDocument) {
                 w._inDocument = true;
                 renderer.container.appendChild(w.el);
             }
-            var top = renderer.$cursorLayer.getPixelPosition({row: i, column:0}, true).top;
+            var top = renderer.$cursorLayer.getPixelPosition({row: i - HEADER_ROWS, column:0}, true).top;
             w.el.style.top = top - config.offset + "px";
             
             var left = w.coverGutter ? 0 : renderer.gutterWidth;
@@ -628,7 +679,7 @@ var DiffHighlight = function(diffView, type) {
         var states = session.bgTokenizer.diffStates;
         var range = new Range(0, 0, 0, 1);
         for (var i = start; i < end; i++) {
-            range.start.row = range.end.row = i
+            range.start.row = range.end.row = i;
             var type = states[i].type;
             if (type == "insert")
                 markerLayer.drawFullLineMarker(html, range.toScreenRange(session),
