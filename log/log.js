@@ -334,6 +334,7 @@ function GitGraph(editor) {
         
         if (firstRow === 0 && lastRow === 0) {
             this.renderPlaceHolder(provider, html, config);
+            graph.desc.innerHTML = html.join("");
         } else {
             graph.getRowClass = this.getRowClass.bind(this);
             graph.vsize = vsize;

@@ -100,8 +100,8 @@ function DiffView(element, options) {
             }
         }
         
-        result.push("", "", "", "");
-        states.push(none, none, none, {type: "file"});
+        result.push("", "");
+        states.push(none, {type: "file"});
         
         v = result.join("\n");
         editor.setValue(v, -1);
@@ -285,7 +285,7 @@ function DiffView(element, options) {
             el: document.createElement("div"),
             rowCount: 0,
             pixelHeight: 0,
-            coverLine: 1,
+            foldClosed: false,
             coverGutter: 1,
             fixedWidth: true
         };
@@ -294,7 +294,7 @@ function DiffView(element, options) {
         w.el.w = w;
         return w;
     };
-    this.populateWidget = function(w, i, state) {
+    this.renderWidget = function(w, i, state) {
         if (state === w.state)
             return;
         w.state = state;
@@ -310,41 +310,68 @@ function DiffView(element, options) {
             return;
         }
         w.el.style.height = lineHeight * HEADER_ROWS + "px";
-        w.el.innerHTML = '<div class="unidiff_fileHeaderInner">\
-            <span class="ace_fold-widget ace_start ace_open"\
-            style="height:1.5em;left: -20px;\
-            position: relative;display: inline-block;"></span>'
+        w.el.innerHTML = '<div class="unidiff_fileHeaderInner">'
+            + '<span class="ace_fold-widget ace_start' + (w.foldClosed ? 'ace_closed': '') +'"\
+                style="height:1.5em;left: -20px;\
+                position: relative;display: inline-block;"></span>'
             + " " +  lang.escapeHTML(line) + " "
             +'<div>';
+        w.foldArrow = w.el.firstChild.firstChild;
         w.el.firstChild.style.height = lineHeight * HEADER_ROWS + "px";
         w.el.firstChild.style.marginTop = lineHeight + "px";
     };
     this.renderHeaders = function(e, renderer) {
         var config = renderer.layerConfig;
-        var diffStates = renderer.session.bgTokenizer.diffStates;
+        var session = renderer.session;
+        var diffStates = session.bgTokenizer.diffStates;
         if (!diffStates)
             return;
-        var first = Math.min(this.firstRow, config.firstRow - 5);
-        var last = Math.max(this.lastRow, config.lastRow);
-        
+        var first = Math.max(0, config.firstRow - HEADER_ROWS);
+        var last = Math.min(diffStates.length, config.lastRow + HEADER_ROWS);
+
         this.firstRow = config.firstRow;
         this.lastRow = config.lastRow;
 
         var renderedHeaders = this.renderedHeaders;
         var j = 0;
         renderer.$cursorLayer.config = config;
-        for (var i = first; i <= last; i++) {
-            var state = diffStates[i];
-            if (!state || diffStates[i].type != "file") continue;
-            var w = renderedHeaders[j] || this.createWidget(i, renderedHeaders);
+        
+        var fold = session.getNextFoldLine(first);
+        var foldStart = fold ? fold.start.row : Infinity;
+        
+        var row = first || 0;
+        while (true) {
+            if (row > foldStart) {
+                row = fold.end.row + 1;
+                fold = session.getNextFoldLine(row, fold);
+                foldStart = fold ? fold.start.row : Infinity;
+            }
+            if (row > last) {
+                break;
+            }
+            var state = diffStates[row];
+            if (!state || diffStates[row].type != "file") {
+                row++;
+                continue;
+            }
+            var w = renderedHeaders[j] || this.createWidget(row, renderedHeaders);
             j++;
-            this.populateWidget(w, i, state);
+            this.renderWidget(w, row, state);
+            var foldClosed = fold && fold.start.row == row;
+            if (foldClosed != w.foldClosed && w.foldArrow) {
+                w.foldClosed = foldClosed;
+                dom.setCssClass(w.foldArrow, "ace_closed", !!foldClosed);
+            }
             if (!w._inDocument) {
                 w._inDocument = true;
                 renderer.container.appendChild(w.el);
             }
-            var top = renderer.$cursorLayer.getPixelPosition({row: i - HEADER_ROWS, column:0}, true).top;
+            var top = renderer.$cursorLayer.getPixelPosition({
+                row: row - (row == diffStates.length - 1 ? 1 : HEADER_ROWS),
+                column: 0
+            }, true).top;
             w.el.style.top = top - config.offset + "px";
+            w.row = row;
             
             var left = w.coverGutter ? 0 : renderer.gutterWidth;
             w.el.style.left = left + "px";
@@ -354,7 +381,10 @@ function DiffView(element, options) {
             } else {
                 w.el.style.right = "";
             }
+
+            row++;
         }
+
         for (var k = j; k < renderedHeaders.length; k++) {
             var h = renderedHeaders[k];
             if (h.el) h.el.remove();
@@ -674,22 +704,41 @@ var DiffHighlight = function(diffView, type) {
     this.MAX_RANGES = 500;
 
     this.update = function(html, markerLayer, session, config) {
-        var start = config.firstRow;
-        var end = config.lastRow;
+        var first = config.firstRow;
+        var last = config.lastRow;
         var states = session.bgTokenizer.diffStates;
         var range = new Range(0, 0, 0, 1);
-        for (var i = start; i < end; i++) {
-            range.start.row = range.end.row = i;
-            var type = states[i].type;
-            if (type == "insert")
-                markerLayer.drawFullLineMarker(html, range.toScreenRange(session),
-                    "unidiff marker " + "insert", config);  
-            else if (type == "remove")
-                markerLayer.drawFullLineMarker(html, range.toScreenRange(session),
-                    "unidiff marker " + "remove", config);  
-            else if (type == "header")
-                markerLayer.drawFullLineMarker(html, range.toScreenRange(session),
-                    "unidiff marker " + "header", config);  
+        var lastType = "";
+        
+        var fold = session.getNextFoldLine(first);
+        var foldStart = fold ? fold.start.row : Infinity;
+        var row = first || 0;
+        while (true) {
+            if (row > foldStart) {
+                row = fold.end.row + 1;
+                fold = session.getNextFoldLine(row, fold);
+                foldStart = fold ? fold.start.row : Infinity;
+            }
+            if (row > last) {
+                break;
+            }
+            
+            var type = states[row].type;
+            if (lastType != type) {
+                if (lastType) {
+                    markerLayer.drawFullLineMarker(html, range.toScreenRange(session),
+                        "unidiff marker " + lastType, config);
+                }
+                if (type == "insert" || type == "remove" || type == "header") {
+                    range.start.row = row;
+                    lastType = type
+                } else {
+                    lastType = "";
+                }
+            }
+            range.end.row = row;
+            
+            row++;
         }
     };
 
