@@ -324,7 +324,6 @@ define(function(require, exports, module) {
                         preview: preview
                     });
                 }
-                    
                 
                 scmProvider.openDiff({
                     hash: node.hash,

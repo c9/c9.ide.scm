@@ -371,8 +371,9 @@ define(function(require, exports, module) {
                 else if (node.showall === false) {
                     collapse(node.parent);
                 }
-                else if (node.hash) {
-                    checkout(node);
+                else if (node.path) {
+                    // showBranchInLog(node);
+                    showCompareView(node.path);
                 }
             });
             
