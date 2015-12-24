@@ -21,6 +21,10 @@ define(function(require, exports, module) {
         
         var workspaceDir = c9.workspaceDir;
         
+        scm.on("workspaceDir", function(options){
+            workspaceDir = options.workspaceDir || c9.workspaceDir;
+        }, plugin);
+
         /***** Methods *****/
         
         /**
@@ -340,7 +344,7 @@ define(function(require, exports, module) {
         function getBlame(path, callback){
             proc.spawn("git", {
                 args: ["blame", "-wp", "--", basename(path)],
-                cwd: c9.workspaceDir + "/" + dirname(path)
+                cwd: workspaceDir + "/" + dirname(path)
             }, function(err, process) {
                 if (err) return callback(err);
                 buffer(process, function(stdout, stderr) {

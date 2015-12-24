@@ -39,6 +39,12 @@ define(function(require, exports, module) {
         });
         // var emit = plugin.getEmitter();
         
+        var workspaceDir = c9.workspaceDir;
+
+        scm.on("workspaceDir", function(options){
+            workspaceDir = options.workspaceDir || c9.workspaceDir;
+        }, plugin);
+
         var tree, menuContext, label;
         var arrayCache = [];
         
@@ -411,7 +417,7 @@ define(function(require, exports, module) {
             var path = node.path;
             if (path) {
                 if (path[0] != "/") path = "/" + path;
-                path = c9.workspaceDir + path;
+                path = workspaceDir + path;
                 path = util.normalizePath(path);
                 tabbehavior.revealtab({path: path});
             }
@@ -480,7 +486,7 @@ define(function(require, exports, module) {
         
         function openConflictView(node) {
             var addConflictMarker = require("./diff/conflictmarker");
-            var path = c9.workspaceDir + "/" + node.path;
+            var path = workspaceDir + "/" + node.path;
             tabManager.open({path: path, focus: true}, function(e, tab) {
                 addConflictMarker(tab.editor.ace);
             });
@@ -503,7 +509,7 @@ define(function(require, exports, module) {
                     pane = null;
     
                 tabManager.open({
-                    path: c9.workspaceDir + "/" + node.path,
+                    path: workspaceDir + "/" + node.path,
                     pane: pane,
                     noanim: sel.length > 1,
                     active: node === main,
