@@ -112,7 +112,7 @@ define(function(require, exports, module) {
         
         var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Source Control Management")
         if (!ENABLED)
-            return register(null, { "scm": {} });
+            return register(null, { "scm": { on: function(){} } });
         
         var plugin = new Plugin("Ajax.org", main.consumes);
         var emit = plugin.getEmitter();
