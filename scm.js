@@ -1,38 +1,38 @@
 define(function(require, exports, module) {
     main.consumes = [
-        "Panel", "Menu", "MenuItem", "Divider", "settings", "ui", "c9", 
+        "Panel", "Menu", "MenuItem", "Divider", "settings", "ui", "c9",
         "watcher", "panels", "util", "save", "preferences", "commands", "Tree",
         "Datagrid", "tabManager", "layout", "preferences.experimental"
     ];
     main.provides = ["scm"];
     return main;
-    
+
     /*
         LEGEND:
             * = done (item should be removed)
             / = half done
             - = not done
-    
-        # LOW HANGING FRUIT 
+
+        # LOW HANGING FRUIT
             - conflicts
                 - save
             - tree
                 - add watcher to .git/HEAD
             - fix errors with added/removed files
-        
+
         # TODO
             - commit
-                - do dry-run 
-                    - add status message for ammend 
-                    - display branch to commit to 
+                - do dry-run
+                    - add status message for ammend
+                    - display branch to commit to
                 - amend doesnt work
             - pull
                 - pull --rebase
-            - detail    
+            - detail
                 - afterChoose should stage/unstage files instead of opening diff view
                 - drag to staged doesnt work sometimes (rowheight issue?)
             - conflicts
-                - add commands? detect, next, prev, use 1/ 2 
+                - add commands? detect, next, prev, use 1/ 2
             - branches
                 - Harutyun: Resize properly when expanding/collapsing
                 - Harutyun: scrollMargin for left, right and bottom doesn't work (same for log, detail)
@@ -55,13 +55,13 @@ define(function(require, exports, module) {
                     - Change to splitbutton with form only shown on arrow
                     - reload of log doesn't work after pull
                 / push button - split button
-                    / add push dialog (Ruben) 
+                    / add push dialog (Ruben)
                         / dropdown for remotes/branches
                         - output
                     - Handle error states
                     - Change to splitbutton with form only shown on arrow
                     - reload of log doesn't work after push
-        
+
         # LATER
             # Ruben
                 - Choose Git Path - use file dialog
@@ -71,19 +71,19 @@ define(function(require, exports, module) {
                 - solve edge line cases
             - Compare view
                 - save the right file (use ace session clone)
-                - git add the left file 
-                - undo doesn't work 
-                - scrolling doesn't work well. It should scroll the sides as 
+                - git add the left file
+                - undo doesn't work
+                - scrolling doesn't work well. It should scroll the sides as
                     slowly as the side with most lines would go when scrolling there
             - conflicts
                 - automatically add to staging on save
-                - dialog for one deleted and one saved file 
+                - dialog for one deleted and one saved file
                 - undo
             - branches
                 - When updating, only do a partial update (maintain selection, expanded state - see test/data/data.js)
                 - make a datagrid?
     */
-    
+
     function main(options, imports, register) {
         var Panel = imports.Panel;
         var Tree = imports.Tree;
@@ -103,21 +103,21 @@ define(function(require, exports, module) {
         var prefs = imports.preferences;
         var commands = imports.commands;
         var experimental = imports["preferences.experimental"];
-        
+
         // var Tooltip = require("ace_tree/tooltip");
         var DataProvider = require("ace_tree/data_provider");
         var escapeHTML = require("ace/lib/lang").escapeHTML;
-        
+
         /***** Initialization *****/
-        
+
         var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Changes Panel")
-        
+
         if (!ENABLED) {
             return register(null, {
                 "scm": {}
             });
         }
-        
+
         var plugin = new Panel("Ajax.org", main.consumes, {
             index: options.index || 350,
             caption: "Changes",
@@ -126,33 +126,35 @@ define(function(require, exports, module) {
             where: options.where || "left"
         });
         var emit = plugin.getEmitter();
-        
+
         var tree, commitBox, toolbar, ammendCb, commitBtn;
         var mnuBranches, branchesTree, btnBranches;
-        
+
         var scms = {};
         var scm;
-        
+
         var mnuCommit, btnCommit, mnuExecute, barCommit, mnuSettings;
         var btnSettings, container, btnPush, barPush, pushBtn;
         var barPull, btnPull, activeDialog;
-        
+
+        var locationBar, locationBox, locationRefreshButton;
+
         var workspaceDir = c9.workspaceDir; // + "/plugins/c9.ide.scm/mock/git";
-        
+
         var loaded = false;
         function load(){
             if (loaded) return false;
             loaded = true;
-            
+
             plugin.setCommand({
                 name: "changes",
                 hint: "Changed Files",
                 bindKey: { mac: "", win: "" },
                 extra: function(editor, args, e) {
-                    
+
                 }
             });
-            
+
             commands.addCommand({
                 name: "blame",
                 group: "scm",
@@ -169,18 +171,18 @@ define(function(require, exports, module) {
                         blameAnnotation = blameModule.annotate(ace);
                         done();
                     });
-                    
+
                     var path = tab.path;
                     scm.getBlame(path, function(err, blameInfo){
                         if (err) return console.error(err);
                         data = blameInfo;
                         done();
                     });
-                    
+
                     function done() {
                         if (!blameAnnotation) return;
                         if (data === null) return;
-                        
+
                         blameAnnotation.setData(data);
                     }
                 },
@@ -191,41 +193,41 @@ define(function(require, exports, module) {
                     return true;
                 }
             }, plugin);
-            
+
             commands.addCommand({
                 name: "addall",
                 group: "scm",
                 exec: function(){ addAll(); }
             }, plugin);
-            
+
             commands.addCommand({
                 name: "unstageall",
                 group: "scm",
                 exec: function(){ unstageAll(); }
             }, plugin);
-            
+
             commands.addCommand({
                 name: "fetch",
                 group: "scm",
                 exec: function(){ fetch(); }
             }, plugin);
-            
+
             commands.addCommand({
                 name: "push",
                 group: "scm",
                 exec: function(){ push({}); }
             }, plugin);
-            
+
             commands.addCommand({
                 name: "pull",
                 group: "scm",
                 exec: function(){ pull({}); }
             }, plugin);
-            
+
             commands.addCommand({
                 name: "commit",
                 group: "scm",
-                exec: function(editor, args){ 
+                exec: function(editor, args){
                     if (args.message) commit(args.message, args.amend);
                     else {
                         panels.activate("changes");
@@ -234,20 +236,57 @@ define(function(require, exports, module) {
                 }
             }, plugin);
         }
-        
+
         var drawn = false;
         function draw(opts) {
             if (drawn) return;
             drawn = true;
-            
+
             // Import CSS
             ui.insertCss(require("text!./style.css"), plugin);
-            
+
             // Splitbox
-            var vbox = opts.aml.appendChild(new ui.vbox({ 
-                anchors: "0 0 0 0" 
+            var vbox = opts.aml.appendChild(new ui.vbox({
+                anchors: "0 0 0 0"
             }));
-            
+
+            // LocationBar
+            locationBar = vbox.appendChild(new ui.bar({
+                skin: "toolbar-top",
+                class: "fakehbox aligncenter debugger_buttons basic changes",
+                style: "white-space:nowrap !important;",
+                height: 30
+            }));
+            plugin.addElement();
+
+            ui.insertByIndex(locationBar, new ui.hsplitbox({
+                height: 30,
+                childNodes: [
+                    locationBox = new ui.textbox({
+                        skinset: "default",
+                        skin: "codebox",
+                        class: "tb_textbox",
+                        value: "/",
+                        onkeyup: function(event) {
+                            if (event.keyCode === 13) {
+                                refreshWorkspace();
+                            }
+                        }
+                    }),
+                    locationRefreshButton = new ui.button({
+                        caption: "Refresh",
+                        skinset: "default",
+                        skin: "c9-menu-btn",
+                        class: "single-button",
+                        style: "text-align: center",
+                        width: 60,
+                        onclick: function() {
+                            refreshWorkspace();
+                        }
+                    })
+                ]
+            }), 1, plugin);
+
             // Toolbar
             toolbar = vbox.appendChild(new ui.bar({
                 skin: "toolbar-top",
@@ -255,7 +294,7 @@ define(function(require, exports, module) {
                 style: "white-space:nowrap !important;"
             }));
             plugin.addElement(toolbar);
-            
+
             barCommit = vbox.appendChild(new ui.bar({
                 class: "form-bar",
                 visible: false,
@@ -264,7 +303,7 @@ define(function(require, exports, module) {
                     new ui.hbox({
                         padding: 5,
                         childNodes: [
-                            ammendCb = new ui.checkbox({ 
+                            ammendCb = new ui.checkbox({
                                 label: "amend",
                                 skin: "checkbox_black",
                                 margin: "5 0 0 0"
@@ -280,7 +319,7 @@ define(function(require, exports, module) {
                                     commit(commitBox.ace.getValue(), ammendCb.checked, function(err){
                                         commitBtn.enable();
                                         if (err) return console.error(err);
-                                        
+
                                         ammendCb.uncheck();
                                         commitBox.ace.setValue("");
                                         barCommit.hide();
@@ -291,7 +330,7 @@ define(function(require, exports, module) {
                     })
                 ]
             }));
-            
+
             commitBox.on("DOMNodeInsertedIntoDocument", function(){
                 commitBox.ace.setOption("minLines", 2);
                 commitBox.ace.commands.addCommand({
@@ -311,7 +350,7 @@ define(function(require, exports, module) {
                     }
                 });
             });
-            
+
             mnuCommit = new Menu({ items: [
                 new MenuItem({ caption: "Add All", command: "addall", tooltip: "git add -u" }, plugin),
                 new MenuItem({ caption: "Unstage All", command: "unstageall", tooltip: "git add -u" }, plugin)
@@ -325,7 +364,7 @@ define(function(require, exports, module) {
             }), 100, plugin);
             btnCommit.$button1.setAttribute("state", true);
             link(btnCommit.$button1, barCommit, commitBox);
-            
+
             var forceCb, branchBox;
             barPush = vbox.appendChild(new ui.bar({
                 class: "form-bar",
@@ -343,7 +382,7 @@ define(function(require, exports, module) {
                     new ui.hbox({
                         padding: 3,
                         childNodes: [
-                            forceCb = new ui.checkbox({ 
+                            forceCb = new ui.checkbox({
                                 label: "force",
                                 skin: "checkbox_black",
                                 margin: "5 0 0 0"
@@ -357,12 +396,12 @@ define(function(require, exports, module) {
                                 onclick: function() {
                                     pushBtn.disable();
                                     push({
-                                        branch: branchBox.ace.getValue(), 
+                                        branch: branchBox.ace.getValue(),
                                         force: forceCb.checked
                                     }, function(err){
                                         pushBtn.enable();
                                         if (err) return console.error(err);
-                                        
+
                                         // TODO stream output
                                         barPush.hide();
                                     });
@@ -372,7 +411,7 @@ define(function(require, exports, module) {
                     })
                 ]
             }));
-            
+
             btnPush = ui.insertByIndex(toolbar, new ui.button({
                 caption: "Push",
                 skinset: "default",
@@ -381,7 +420,7 @@ define(function(require, exports, module) {
                 state: true,
             }), 100, plugin);
             link(btnPush, barPush);
-            
+
             var pruneCb, branchBoxPull, pullBtn, fetchBtn;
             barPull = vbox.appendChild(new ui.bar({
                 class: "form-bar",
@@ -399,7 +438,7 @@ define(function(require, exports, module) {
                     new ui.hbox({
                         padding: 3,
                         childNodes: [
-                            pruneCb = new ui.checkbox({ 
+                            pruneCb = new ui.checkbox({
                                 label: "prune",
                                 skin: "checkbox_black",
                                 margin: "5 0 0 0"
@@ -414,13 +453,13 @@ define(function(require, exports, module) {
                                     pullBtn.disable();
                                     fetchBtn.disable();
                                     fetch({
-                                        branch: branchBoxPull.ace.getValue(), 
+                                        branch: branchBoxPull.ace.getValue(),
                                         prune: pruneCb.checked
                                     }, function(err){
                                         pullBtn.enable();
                                         fetchBtn.enable();
                                         if (err) return console.error(err);
-                                        
+
                                         // TODO stream output
                                         barPull.hide();
                                     });
@@ -435,13 +474,13 @@ define(function(require, exports, module) {
                                     pullBtn.disable();
                                     fetchBtn.disable();
                                     pull({
-                                        branch: branchBoxPull.ace.getValue(), 
+                                        branch: branchBoxPull.ace.getValue(),
                                         prune: pruneCb.checked
                                     }, function(err){
                                         pullBtn.enable();
                                         fetchBtn.enable();
                                         if (err) return console.error(err);
-                                        
+
                                         // TODO stream output
                                         barPull.hide();
                                     });
@@ -451,7 +490,7 @@ define(function(require, exports, module) {
                     })
                 ]
             }));
-            
+
             btnPull = ui.insertByIndex(toolbar, new ui.button({
                 caption: "Pull",
                 skinset: "default",
@@ -460,7 +499,7 @@ define(function(require, exports, module) {
                 state: true
             }), 100, plugin);
             link(btnPull, barPull);
-            
+
             function link(btn, bar, main) {
                 btn.bar = bar;
                 bar.button = btn;
@@ -485,7 +524,7 @@ define(function(require, exports, module) {
                 }
                 this.button.setAttribute("value", e.value);
             }
-            
+
             mnuBranches = new ui.menu({ width: 500, style: "padding:0" });
             mnuBranches.on("prop.visible", function(e){
                 if (e.value) {
@@ -495,7 +534,7 @@ define(function(require, exports, module) {
                             scrollMargin: [0, 0],
                             theme: "blackdg",
                             isLoading: function() {},
-    
+
                             getEmptyMessage: function(){
                                 if (!this.keyword)
                                     return this.isLoading()
@@ -523,7 +562,7 @@ define(function(require, exports, module) {
                                 width: "40%",
                             },
                             /* upstream, type, subject, authoremail, committerdate,*/
-                            
+
                         ];
                         var idMixin = function () {
                             this.expandedList = Object.create(null);
@@ -549,7 +588,7 @@ define(function(require, exports, module) {
                         };
                         idMixin.call(branchesTree.model);
                         branchesTree.model.expandedList["refs/remotes/"] = true;
-                        
+
                         branchesTree.container.style.margin = "0 0px 0 0";
                     }
                     branchesTree.minLines = 3;
@@ -560,7 +599,7 @@ define(function(require, exports, module) {
                             branchesTree.emptyMessage = "Error while loading\n" + escapeHTML(err.message);
                             return console.error(err);
                         }
-                        
+
                         var root = { path: "" };
                         data.forEach(function(x) {
                             x.path = x.name;
@@ -582,7 +621,7 @@ define(function(require, exports, module) {
                     });
                 }
             });
-            
+
             btnBranches = ui.insertByIndex(toolbar, new ui.button({
                 caption: "Branches",
                 skinset: "default",
@@ -590,11 +629,11 @@ define(function(require, exports, module) {
                 style: "float:right",
                 submenu: mnuBranches
             }), 200, plugin);
-            
+
             mnuExecute = new Menu({ items: [
                 new MenuItem({ caption: "Refresh", onclick: refresh }, plugin)
             ]}, plugin);
-            
+
             // btnExecute = ui.insertByIndex(toolbar, new ui.button({
             //     caption: "Execute",
             //     skinset: "default",
@@ -602,22 +641,22 @@ define(function(require, exports, module) {
             //     command: "cleartestresults",
             //     submenu: mnuExecute.aml
             // }), 300, plugin);
-            
+
             mnuSettings = mnuExecute; /*new Menu({ items: [
-                
+
             ]}, plugin);*/
-            
+
             btnSettings = opts.aml.appendChild(new ui.button({
                 skin: "header-btn",
                 class: "panel-settings changes",
                 submenu: mnuSettings.aml
             }));
-            
+
             // Container
             container = vbox.appendChild(new ui.bar({
                 style: "flex:1;-webkit-flex:1;display:flex;flex-direction: column;"
             }));
-            
+
             // Mark Dirty
             plugin.on("show", function() {
                 save.on("afterSave", markDirty);
@@ -628,9 +667,9 @@ define(function(require, exports, module) {
                 save.off("afterSave", markDirty);
                 watcher.off("change", markDirty);
             });
-            
+
             watcher.watch(util.normalizePath(workspaceDir) + "/.git");
-            
+
             var timer = null;
             function markDirty(e) {
                 clearTimeout(timer);
@@ -641,56 +680,72 @@ define(function(require, exports, module) {
                     }
                 }, 800);
             }
-            
+
             emit.sticky("drawPanels", { html: container.$int, aml: container });
         }
-        
+
         /***** Methods *****/
-        
+
         function registerSCM(name, scmPlugin){
             scms[name] = scmPlugin;
             if (!scm) scm = scmPlugin;
-            
+
             emit("register", { plugin: scmPlugin });
         }
-        
+
         function unregisterSCM(name, scmPlugin){
             delete scms[name];
-            
+
             emit("unregister", { plugin: scmPlugin });
         }
-        
+
+        function refreshWorkspace() {
+            var location = locationBox.getValue().trim();
+
+            if (location[0] === "/") {
+                location = location.slice(1);
+            }
+
+            workspaceDir = c9.workspaceDir + "/" + location;
+
+            emit("workspaceDir", {
+                workspaceDir: workspaceDir
+            })
+
+            refresh();
+        }
+
         function refresh(){
             getLog();
             emit("reload");
         }
-        
+
         function resize(){
             emit("resize");
         }
-        
+
         function getLog(){
             scm.getLog({}, function(err, root) {
                 if (err) return console.error(err);
-                
+
                 emit("log", root);
             });
         }
-        
+
         function commit(message, amend, callback){
-            scm.commit({ 
+            scm.commit({
                 message: message,
                 amend: amend
             }, function(err){
                 if (err) return console.error(err);
-                
+
                 emit("reload");
                 getLog();
-                
+
                 callback && callback();
             });
         }
-        
+
         function unstage(nodes) {
             // model.root.staging;
             if (!Array.isArray(nodes))
@@ -698,13 +753,13 @@ define(function(require, exports, module) {
             var paths = nodes.map(function(node) {
                 return node.path;
             }).filter(Boolean);
-            
+
             scm.unstage(paths, function(err){
                 if (err) return console.error(err);
                 emit("reload");
             });
         }
-        
+
         function addFileToStaging(nodes) {
             // model.root.staging;
             if (!Array.isArray(nodes))
@@ -712,13 +767,13 @@ define(function(require, exports, module) {
             var paths = nodes.map(function(node) {
                 return node.path;
             }).filter(Boolean);
-            
+
             scm.addFileToStaging(paths, function(err){
                 if (err) return console.error(err);
                 emit("reload");
             });
         }
-        
+
         function addAll(){
             scm.addAll(function(err){
                 if (err) return console.error(err);
@@ -762,9 +817,9 @@ define(function(require, exports, module) {
         function getStatus(options, callback){
             scm.getStatus(options, callback);
         }
-        
+
         /***** Lifecycle *****/
-        
+
         plugin.on("load", function(){
             load();
         });
@@ -772,66 +827,66 @@ define(function(require, exports, module) {
             draw(e);
         });
         plugin.on("enable", function(){
-            
+
         });
         plugin.on("disable", function(){
-            
+
         });
         plugin.on("show", function onShow(e) {
             if (!scm) return plugin.once("register", onShow);
-            
+
             emit("reload", { force: true });
             getLog();
         });
         plugin.on("hide", function(e) {
-            
+
         });
         plugin.on("unload", function(){
             loaded = false;
             drawn = false;
         });
-        
+
         /***** Register and define API *****/
-        
+
         plugin.freezePublicAPI({
             /**
-             * 
+             *
              */
             register: registerSCM,
-            
+
             /**
-             * 
+             *
              */
             unregister: unregisterSCM,
-            
+
             /**
-             * 
+             *
              */
             addFileToStaging: addFileToStaging,
-            
+
             /**
-             * 
+             *
              */
             loadDiff: loadDiff,
-            
+
             /**
-             * 
+             *
              */
             unstage: unstage,
-            
+
             /**
-             * 
+             *
              */
             getStatus: getStatus,
-            
+
             /**
-             * 
+             *
              */
             resize: resize
-            
+
             // TODO all other functions
         });
-        
+
         register(null, {
             "scm": plugin
         });

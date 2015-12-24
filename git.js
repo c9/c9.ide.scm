@@ -10,81 +10,85 @@ define(function(require, exports, module) {
         var scm = imports.scm;
         var proc = imports.proc;
         var c9 = imports.c9;
-        
+
         var basename = require("path").basename;
         var dirname = require("path").dirname;
-        
+
         /***** Initialization *****/
-        
+
         var plugin = new Plugin("Ajax.org", main.consumes);
         // var emit = plugin.getEmitter();
-        
+
         var workspaceDir = c9.workspaceDir;
-        
+
+        scm.on("workspaceDir", function(options){
+            workspaceDir = options.workspaceDir || c9.workspaceDir;
+        }, plugin);
+
         /***** Methods *****/
-        
+
         /**
-         * Detect whether the path has a git repository 
+         * Detect whether the path has a git repository
          */
         function detect(path, callback){
-            
+
         }
-        
+
         function addAll(callback){
             git("add -u", callback);
         }
-        
+
         function addFileToStaging(paths, callback){
             git(["add", "-f", "--ignore-errors", "--"].concat(paths), callback);
         }
-        
+
         function unstageAll(callback){
             git("reset --mixed", callback);
         }
-        
+
         function unstage(paths, callback){
             git(["reset", "--mixed", "--"].concat(paths), callback);
         }
-        
+
         function fetch(options, callback){
             var args = ["fetch"];
             if (options.prune) args.push("--prune");
             if (options.branch) args.push(options.branch);
             git(args, callback);
         }
-        
+
         function pull(options, callback){
             var args = ["pull"];
             if (options.prune) args.push("--prune");
             if (options.branch) args.push(options.branch);
             git(args, callback);
         }
-        
+
         function push(options, callback){
             var args = ["push"];
             if (options.force) args.push("--force");
             if (options.branch) args.push(options.branch);
             git(args, callback);
         }
-        
+
         function git(args, cb) {
             if (typeof args == "string")
                 args = args.split(/\s+/);
-                
+
             proc.spawn("git", {
                 args: args,
                 cwd: workspaceDir
             }, function(e, p) {
                 // if (e) console.error(e);
-                
+
                 buffer(p, function(stdout, stderr){
                     // console.log(e, stdout);
-                    
+
                     cb && cb(e, stdout, stderr);
                 });
             });
         }
-        
+
         function buffer(process, callback){
             var stdout = "", stderr = "";
             process.stdout.on("data", function(c){
@@ -97,14 +101,14 @@ define(function(require, exports, module) {
                 callback(stdout, stderr);
             });
         }
-        
+
         function getStatus(options, cb) {
             var t = Date.now();
             var args = [];
             var hash = options.hash;
             var base = options.base;
             if ((hash || base) && !options.twoWay) {
-                args.push("diff", "--name-status", "-b", "-z", 
+                args.push("diff", "--name-status", "-b", "-z",
                     "--no-textconv", "--no-ext-diff", "--no-color",
                     "--find-renames"
                 );
@@ -127,12 +131,12 @@ define(function(require, exports, module) {
                 if (options.ignored)
                     args.push("--ignored");
             }
-            
+
             args.push("--");
-            
+
             if (options.path)
                 args.push(options.path);
-            
+
             proc.execFile("git", {
                 args: args,
                 cwd: workspaceDir
@@ -152,16 +156,16 @@ define(function(require, exports, module) {
                 cb(err, stdout);
             });
         }
-        
+
         function getLog(options, cb) {
             var t = Date.now();
-            
+
             git(["rev-list", "HEAD", "--count"], function(err, stdout, stderr) {
                 if (err) return cb(err);
-                
+
                 console.log(err, stdout);
                 console.log(t-Date.now(), stdout.length);
-                
+
                 var args = ["log", "--topo-order", "--date=raw"];
                 if (options.boundary !== false) args.push("--boundary");
                 if (options.logOptions) args.push.apply(args, options.logOptions);
@@ -172,14 +176,14 @@ define(function(require, exports, module) {
                 args.push("-n", options.count || 1000);
                 if (options.from)
                     args.push("--skip=" + options.from);
-                    
+
                 args.push("--");
                 if (options.path)
                     args.push(options.path);
-                
+
                 git(args, function(err, stdout, stderr) {
                     if (err) return cb(err);
-                    
+
                     var data = stdout.trim().split("\x00\n");
                     // handle empty git history
                     if (data.length == 1 && !data[0]) {
@@ -216,13 +220,13 @@ define(function(require, exports, module) {
                         hash: 0,
                         parents: head
                     });
-                    
+
                     cb(null, root);
                 });
-                
+
             });
         }
-        
+
         function getFileAtHash(hash, path, cb) {
             var id = hash;
             if (path) {
@@ -245,7 +249,7 @@ define(function(require, exports, module) {
                 cb(err, stdout, stderr);
             });
         }
-        
+
         function loadDiff(options, callback) {
             var req = {};
             var args = ["diff",  "-U20000", options.oldPath, options.newPath];
@@ -271,14 +275,14 @@ define(function(require, exports, module) {
             });
             return req;
         }
-        
+
         function addLinesToStaging(patch, cb) {
             proc.spawn("git", {
                 args: ["apply", "--cached", "--unidiff-zero", "--whitespace=nowarn", "-"], // "--recount",
                 cwd: workspaceDir
             }, function(err, p) {
                 if (err) return cb(err);
-                
+
                 process = p.process;
                 var stderr = "";
                 var stdout = "";
@@ -295,23 +299,23 @@ define(function(require, exports, module) {
                 process.stdin.end();
             });
         }
-        
+
         // TODO reload
         function updateCommitStatus(ammend, callback) {
             var args = ["commit", "--dry-run", "--porcelain", "--branch", "-z"];
             if (ammend)
                 args.push("--amend");
-                
+
             git(args, callback);
         }
-        
+
         function commit(options, callback) {
             if (!options.message) return;
             var args = ["commit", options.ammend && "--amend", "-m", options.message].filter(Boolean);
-            
+
             git(args, callback);
         }
-        
+
         function listAllRefs(cb) {
             var args = ["for-each-ref", "--count=3000", "--sort=*objecttype", "--sort=-committerdate"];
             args.push(
@@ -319,7 +323,7 @@ define(function(require, exports, module) {
             );
             git(args, function(err, stdout) {
                 if (err) return cb(err);
-                
+
                 var data = stdout.trim().split("\n").map(function(x) {
                     var parts = x.split("\x00");
                     return {
@@ -336,11 +340,11 @@ define(function(require, exports, module) {
                 cb && cb(null, data);
             });
         }
-        
+
         function getBlame(path, callback){
             proc.spawn("git", {
                 args: ["blame", "-wp", "--", basename(path)],
-                cwd: c9.workspaceDir + "/" + dirname(path)
+                cwd: workspaceDir + "/" + dirname(path)
             }, function(err, process) {
                 if (err) return callback(err);
                 buffer(process, function(stdout, stderr) {
@@ -348,9 +352,9 @@ define(function(require, exports, module) {
                 });
             });
         }
-        
+
         /***** Lifecycle *****/
-        
+
         plugin.on("load", function() {
             if (scm.register)
                 scm.register("git", plugin);
@@ -359,109 +363,109 @@ define(function(require, exports, module) {
             if (scm.register)
                 scm.unregister("git", plugin);
         });
-        
+
         /***** Register and define API *****/
-        
+
         /**
          */
         plugin.freezePublicAPI({
             /**
-             * 
+             *
              */
             detect: detect,
-            
+
             /**
-             * 
+             *
              */
             addAll: addAll,
-            
+
             /**
-             * 
+             *
              */
             addFileToStaging: addFileToStaging,
-            
+
             /**
-             * 
+             *
              */
             unstageAll: unstageAll,
-            
+
             /**
-             * 
+             *
              */
             unstage: unstage,
-            
+
             /**
-             * 
+             *
              */
             fetch: fetch,
-            
+
             /**
-             * 
+             *
              */
             pull: pull,
-            
+
             /**
-             * 
+             *
              */
             git: git,
-            
+
             /**
-             * 
+             *
              */
             push: push,
-            
+
             /**
-             * 
+             *
              */
             buffer: buffer,
-            
+
             /**
-             * 
+             *
              */
             getStatus: getStatus,
-            
+
             /**
-             * 
+             *
              */
             getLog: getLog,
-            
+
             /**
-             * 
+             *
              */
             getFileAtHash: getFileAtHash,
-            
+
             /**
-             * 
+             *
              */
             loadDiff: loadDiff,
-            
+
             /**
-             * 
+             *
              */
             addLinesToStaging: addLinesToStaging,
-            
+
             /**
-             * 
+             *
              */
             updateCommitStatus: updateCommitStatus,
-            
+
             /**
-             * 
+             *
              */
             commit: commit,
-            
+
             /**
-             * 
+             *
              */
             listAllRefs: listAllRefs,
-            
+
             /**
-             * 
+             *
              */
             getBlame: getBlame,
-            
+
         });
-        
+
         register(null, {
             "scm.git": plugin
         });
