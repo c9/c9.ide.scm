@@ -1,6 +1,6 @@
 define(function(require, exports, module) {
     main.consumes = [
-        "editors", "Editor", "ui", "scm", "layout", "settings",
+        "editors", "Editor", "ui", "scm", "layout", "settings", "List",
         "threewaymerge", "menus", "Menu", "MenuItem", "Divider", "ace"
     ];
     main.provides = ["diff.unified"];
@@ -10,6 +10,7 @@ define(function(require, exports, module) {
         var settings = imports.settings;
         var editors = imports.editors;
         var Editor = imports.Editor;
+        var List = imports.List;
         var scmProvider = imports.scm;
         var layout = imports.layout;
         var MenuItem = imports.MenuItem;
@@ -22,6 +23,7 @@ define(function(require, exports, module) {
         var dirname = require("path").dirname;
         var basename = require("path").basename;
         var DiffView = require("./diff/unified").DiffView;
+        var escapeHTML = require("ace/lib/lang").escapeHTML;
         
         /***** Initialization *****/
         
@@ -77,11 +79,10 @@ define(function(require, exports, module) {
             var plugin = new Editor(true, []);
             var emit = plugin.getEmitter();
             
-            var currentSession;
             var diffview;
             var lastAce;
             var lblLeft, lblRight, btnNext, btnPrev, btnFold, container;
-            var toolbar, activeDocument;
+            var toolbar, activeSession, activeDocument, hostedtoolbar;
             
             plugin.on("draw", function(e) {
                 var tab = e.tab;
@@ -139,10 +140,12 @@ define(function(require, exports, module) {
                         //         lblRight
                         //     ]
                         // }),
-                        toolbar = new ui.bar({ height: 36 }),
+                        toolbar = new ui.hbox({ height: 36 }),
                         container
                     ]
                 }));
+                
+                createToolbar();
                 
                 diffview = new DiffView(container.$ext, {});
                 diffview.editor.setOption("fontSize", 11);
@@ -201,14 +204,60 @@ define(function(require, exports, module) {
             
             /***** Method *****/
             
-            // TODO Basis for showing files of a commit
-            // TODO possible add as a plugin to diff
-            function drawDetail(parentHtml) {
-                tree = new Tree({
-                    container: parentHtml,
+            function createToolbar() {
+                var fileMenu = createMenu("file");
+                var commitMenu = createMenu("commit");
+                
+                var btnFile = ui.insertByIndex(toolbar, new ui.button({
+                    caption: "Files",
+                    submenu: fileMenu.aml
+                }), 100, plugin);
+                var btnCommit = ui.insertByIndex(toolbar, new ui.button({
+                    caption: "Commits",
+                    submenu: commitMenu.aml
+                }), 200, plugin);
+                
+                plugin.on("toolbar", function(e){
+                    if (e.session.branch) {
+                        btnFile.show();
+                        btnCommit.show();
+                    }
+                    else {
+                        btnFile.hide();
+                        btnCommit.hide();
+                    }
+                });
+                
+                // Other elements
+                hostedtoolbar = ui.insertByIndex(toolbar, new ui.hbox({ 
+                    style: "flex:1" 
+                }), 10000, plugin);
+                
+                ui.insertByIndex(toolbar, new ui.radiobutton({
+                    label: "Unified"
+                }), 10010, plugin);
+                ui.insertByIndex(toolbar, new ui.radiobutton({
+                    label: "Split"
+                }), 10020, plugin);
+                
+                fileMenu.on("show", function(){
+                    var list = fileMenu.meta.$list;
+                    list.setRoot.session.files;
+                });
+                commitMenu.on("show", function(){
+                    var list = commitMenu.meta.$list;
+                    list.setRoot.session.commits;
+                });
+            }
+            
+            function createMenu(mode){
+                var menu = new Menu({}, plugin);
+                var htmlNode = menu.aml.$ext;
+                
+                var list = menu.meta.$list = new List({
+                    container: htmlNode,
                     scrollMargin: [10, 0],
-                    theme: "filetree",
-                    enableDragdrop: true,
+                    // theme: "filetree",
                 
                     getIconHTML: function(node) {
                         var icon = node.isFolder ? "folder" : "status-icon-" + node.type;
@@ -229,157 +278,50 @@ define(function(require, exports, module) {
                                 + dirname(path) + "</span>";
                         }
                         return escapeHTML(node.label || node.name);
-                    },
-                    
-                    getRowIndent: function(node) {
-                        return 0; //node.$depth ? node.$depth - 2 : 0;
-                    },
-                    
-                    isLoading: function() {},
-        
-                    getEmptyMessage: function(){
-                        if (!this.keyword)
-                            return this.isLoading()
-                                ? "Loading file list. One moment please..."
-                                : "No files found.";
-                        else
-                            return "No files found that match '" + this.keyword + "'";
                     }
                 }, plugin);
                 
-                tree.container.style.position = "absolute";
-                tree.container.style.left = "0";
-                tree.container.style.top = "0";
-                tree.container.style.right = "0";
-                tree.container.style.bottom = "0";
-                tree.container.style.height = "";
-                tree.renderer.scrollBarV.$minWidth = 10;
+                list.container.style.position = "absolute";
+                list.container.style.left = "0";
+                list.container.style.top = "0";
+                list.container.style.right = "0";
+                list.container.style.bottom = "0";
+                list.container.style.height = "";
+                list.renderer.scrollBarV.$minWidth = 10;
                 
-                tree.commands.bindKey("Space", function(e) {
-                    if (tabManager.previewTab)
-                        tabManager.preview({ cancel: true });
-                    else
-                        showCompareView(tree.selectedNode, true);
-                });
+                if (mode == "commit") {
+                    list.commands.bindKey("Enter", function(e) {
+                        // TODO: Open diff view for commit
+                    });
+                    
+                    list.on("afterChoose", function(e) {
+                        // TODO: Open diff view for commit
+                    });
+                }
                 
-                tree.commands.bindKey("Enter", function(e) {
-                    showCompareView(tree.selectedNode);
-                });
+                if (mode == "file") {
+                    list.on("userSelect", function(e) {
+                        // TODO: scroll to file in file mode
+                    });
+                    
+                    list.commands.bindKey("Enter", function(e) {
+                        // TODO: Open file
+                    });
+                    
+                    list.on("afterChoose", function(e) {
+                        // TODO: Open file
+                    });
+                }
                 
-                // tree.commands.bindKey("Shift-Enter", function(e) {
-                //     openSelectedFiles();
-                // });
-                
-                tree.commands.bindKey("Left", function(e) {
-                    datagrid.focus();
-                });
-                tree.commands.bindKey("Tab", function(e) {
-                    datagrid.focus();
-                });
-                
-                layout.on("eachTheme", function(e){
-                    var height = parseInt(ui.getStyleRule(".filetree .tree-row", "height"), 10) || 22;
-                    tree.rowHeightInner = height;
-                    tree.rowHeight = height + 1;
-                    if (e.changed)
-                        tree.resize();
-                }, plugin);
-                
-                tree.on("afterChoose", function(e) {
-                    openSelection();
-                });
-                
-                tree.on("userSelect", function(e) {
-                    if (tabManager.previewTab)
-                        openSelection({ preview: true });
-                });
-                
-                tree.on("drop", function(e) {
-                    if (e.target && e.selectedNodes) {
-                        var nodes = e.selectedNodes;
-                        if (e.target == staged) {
-                            scm.addFileToStaging(nodes);
-                        } else if (e.target == changed) {
-                            scm.unstage(nodes);
-                        }
-                    }   
-                });
-                
-                tree.on("click", function(e) {
-                    if (e.domEvent.target.classList.contains("status-icon")) {
-                        var node = e.getNode();
-                        if (node.parent == staged) {
-                            scm.unstage(node);
-                        } else if (node.parent == changed || node.parent == ignored) {
-                            scm.addFileToStaging(node);
-                        } else if (node.parent == conflicts) {
-                            scm.addFileToStaging(node);
-                        }
-                    }
-                });
-                
-                tree.setRoot(arrayCache);
-                
-                // tree.on("focus", function(){
-                //     test.focussedPanel = plugin;
-                // });
-                
-                // settings.on("read", function(){
-                //     test.settingsMenu.append(new MenuItem({ 
-                //         caption: "Collapse Passed and Skipped Groups", 
-                //         checked: "user/test/@collapsegroups",
-                //         type: "check",
-                //         position: 300
-                //     }));
+                // layout.on("eachTheme", function(e){
+                //     var height = parseInt(ui.getStyleRule(".filetree .tree-row", "height"), 10) || 22;
+                //     tree.rowHeightInner = height;
+                //     tree.rowHeight = height + 1;
+                //     if (e.changed)
+                //         tree.resize();
                 // }, plugin);
                 
-                // settings.on("user/test/@collapsegroups", function(value){
-                //     if (plugin.visible) {
-                //         skipNode.isOpen = !value;
-                //         passNode.isOpen = !value;
-                //         tree.refresh();
-                //     }
-                // }, plugin);
-                
-                plugin.on("select", function(options){
-                    if (options && detail.visible) 
-                        reloadDetail(options, function(){});
-                }, plugin);
-                
-                // Context Menu
-                // menuContext = new Menu({ items: [
-                //     new MenuItem({ match: "file", class: "strong", caption: "Open Diff", onclick: openSelection }, plugin),
-                //     new MenuItem({ match: "file", caption: "Open", onclick: openSelectedFiles }, plugin),
-                //     new MenuItem({ match: "file", caption: "Reveal in File Tree", onclick: reveal }, plugin),
-                // ]});
-                // opts.aml.setAttribute("contextmenu", menuContext.aml);
-            }
-            
-            // TODO a way to get files from a branch
-            function reloadDetail(options, cb) {
-                if (!options) options = { hash: 0 };
-                if (!tree.meta.options) tree.meta.options = {};
-                if (!options.force)
-                if (tree.meta.options.hash == options.hash 
-                  && tree.meta.options.base == options.base)
-                    return;
-                
-                scm.getStatus(options, function(e, status) {
-                    if (options.commit) {
-                        label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span> "
-                            + "<span>" + escapeHTML(options.commit.authorname) + "</span>"
-                            + "<div>" + escapeHTML(options.commit.label) + "</div>";
-                    } else {
-                        label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span>"
-                            + " ... "
-                            + "<span class='hash'>" + escapeHTML(options.base) + "</span> ";
-                    }
-                    label.style.display = "block";
-                    
-                    tree.setRoot(status.history);
-                    tree.select(null);
-                    tree.meta.options = options;
-                });
+                return menu;
             }
             
             // function getLabelValue(path){
@@ -436,6 +378,94 @@ define(function(require, exports, module) {
             
             function loadSession(session) {
                 diffview.setValueFromPatch(session.diff.patch);
+                
+                var nodes = hostedtoolbar.childNodes;
+                for (var i = nodes.length -1; i >= 0; i--) {
+                    nodes[i].removeChild(nodes[i]);
+                }
+                
+                // Show the hash toolbar
+                if (session.hash) {
+                    createHashToolbar(session);
+                }
+                
+                // Show the branch toolbar
+                else if (session.branch) {
+                    createBranchToolbar();
+                }
+                
+                // Show the path toolbar
+                else if (session.path) {
+                    createPathToolbar();
+                }
+                
+                emit("toolbar", {
+                    session: session,
+                    toolbar: toolbar,
+                    hostedtoolbar: hostedtoolbar
+                });
+            }
+            
+            var hashLabel;
+            function createHashToolbar(session){
+                if (hashLabel) {
+                    updateHashToolbar();
+                    return;
+                }
+                
+                hashLabel = new ui.label();
+                hostedtoolbar.appendChild(hashLabel);
+                
+                plugin.on("session.update", function(e){
+                    if (e.session != activeSession || !hashLabel.parentNode) 
+                        return;
+                        
+                    updateHashToolbar();
+                });
+                
+                function updateHashToolbar(){
+                    var session = activeSession;
+                    hashLabel.setValue(session.hash + ":" + session.label + ":" 
+                        + session.authorname + ":" + session.date);
+                        
+                    hostedtoolbar.appendChild(hashLabel);
+                }
+                
+                updateHashToolbar();
+            }
+            
+            var branchButton, branchLabel, branchCompareButton;
+            function createBranchToolbar(){
+                if (branchButton) {
+                    hostedtoolbar.appendChild(hashLabel);
+                    updateBranchToolbar();
+                    return;
+                }
+                
+                branchButton = new ui.button({
+                    caption: "<span>base: </span>Current Branch"
+                });
+                branchLabel = new ui.label({ caption: "..." });
+                branchCompareButton = new ui.button({
+                    caption: "<span>compare: </span>Master"
+                });
+                
+                function updateBranchToolbar(){
+                    var session = activeSession;
+                    branchButton.setCaption("<span>base: </span>" + session.branch);
+                    branchCompareButton.setCaption("<span>base: </span>" 
+                        + (session.compareBranch || "origin/master"));
+                    
+                    hostedtoolbar.appendChild(branchButton);
+                    hostedtoolbar.appendChild(branchLabel);
+                    hostedtoolbar.appendChild(branchCompareButton);
+                }
+                
+                updateBranchToolbar();
+            }
+            
+            function createPathToolbar(){
+                // Nothing for now
             }
             
             /***** Lifecycle *****/
@@ -503,7 +533,7 @@ define(function(require, exports, module) {
                 
             });
             plugin.on("documentActivate", function(e) {
-                var session = currentSession = e.doc.getSession();
+                var session = e.doc.getSession();
                 
                 if (session.diff)
                     return loadSession(session);
@@ -538,8 +568,9 @@ define(function(require, exports, module) {
                 }
                 
                 activeDocument = e.doc;
+                activeSession = session;
                 
-                handle.once("ready", function(){
+                handle.once("ready", function() {
                     if (activeDocument != e.doc) return;
                     
                     session.request = scm.loadDiff(config, function(err, diff) {
@@ -555,6 +586,20 @@ define(function(require, exports, module) {
                             loadSession(session);
                         }
                     });
+                    
+                    if (session.hash) {
+                        scm.getStatus({ hash: session.hash }, function(e, status) {
+                            session.authorname = "";
+                            session.authoremail = "";
+                            session.date = "";
+                            session.label = "";
+                            
+                            emit("session.update", { session: session });
+                        });
+                    }
+                    else if (session.branch) {
+                        // TODO fetch commits
+                    }
                 });
             });
             plugin.on("documentUnload", function(e) {
