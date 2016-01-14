@@ -121,6 +121,7 @@ define(function(require, exports, module) {
         var plugin = new Panel("Ajax.org", main.consumes, {
             index: options.index || 350,
             caption: "Changes",
+            buttonCSSClass: "changes",
             minWidth: 130,
             autohide: true,
             where: options.where || "left"
