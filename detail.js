@@ -1,6 +1,6 @@
 define(function(require, exports, module) {
     main.consumes = [
-        "SCMPanel", "preferences", "settings", "panels", "Tree", "scm", "Menu", 
+        "SCMPanel", "preferences", "settings", "panels", "Tree", "scm", "Menu",
         "MenuItem", "tabManager", "c9", "util", "tabbehavior", "ui", "layout",
         "scm.log"
     ];
@@ -23,7 +23,7 @@ define(function(require, exports, module) {
         var tabbehavior = imports.tabbehavior;
         var util = imports.util;
         var scmlog = imports["scm.log"];
-        
+
         // var async = require("async");
         var basename = require("path").basename;
         var dirname = require("path").dirname;
@@ -38,21 +38,27 @@ define(function(require, exports, module) {
             splitter: true
         });
         // var emit = plugin.getEmitter();
-        
+
+        var workspaceDir = c9.workspaceDir;
+
+        scm.on("workspaceDir", function(options){
+            workspaceDir = options.workspaceDir || c9.workspaceDir;
+        }, plugin);
+
         var tree, menuContext, label;
         var arrayCache = [];
-        
+
         function load() {
             if (!scm.on) return;
             panels.on("afterAnimate", function(){
                 if (panels.isActive("changes"))
                     tree && tree.resize();
             });
-            
+
             // settings.on("read", function(){
             //     settings.setDefaults("user/test", [["collapsegroups", false]]);
             // }, plugin);
-            
+
             // prefs.add({
             //     "Test" : {
             //         position: 1000,
@@ -67,23 +73,23 @@ define(function(require, exports, module) {
             //     }
             // }, plugin);
         }
-        
+
         var drawn = false;
         function draw(opts) {
             if (drawn) return;
             drawn = true;
-            
+
             opts.html.innerHTML = "<div class='detail-label'></div><div class='detail-tree'></div>"
             opts.html.className = "detail-root top-test-panel";
             label = opts.html.firstChild;
             label.host = {textselect: true};
-            
+
             tree = new Tree({
                 container: opts.html.lastChild,
                 scrollMargin: [10, 0],
                 theme: "filetree",
                 enableDragdrop: true,
-            
+
                 getIconHTML: function(node) {
                     var icon = node.isFolder ? "folder" : "status-icon-" + node.type;
                     if (node.parent == conflicts)
@@ -94,23 +100,23 @@ define(function(require, exports, module) {
                     return "<span class='status-icon " + icon + "'>"
                         + (node.type || "") + "</span>";
                 },
-                
+
                 getCaptionHTML: function(node) {
                     if (node.path) {
                         var path = node.labelPath || node.path;
-                        return basename(path) 
-                            + "<span class='extrainfo'> - " 
+                        return basename(path)
+                            + "<span class='extrainfo'> - "
                             + dirname(path) + "</span>";
                     }
                     return escapeHTML(node.label || node.name);
                 },
-                
+
                 getRowIndent: function(node) {
                     return 0; //node.$depth ? node.$depth - 2 : 0;
                 },
-                
+
                 isLoading: function() {},
-    
+
                 getEmptyMessage: function(){
                     if (!this.keyword)
                         return this.isLoading()
@@ -120,7 +126,7 @@ define(function(require, exports, module) {
                         return "No files found that match '" + this.keyword + "'";
                 }
             }, plugin);
-            
+
             tree.container.style.position = "absolute";
             tree.container.style.left = "0";
             tree.container.style.top = "0";
@@ -128,22 +134,22 @@ define(function(require, exports, module) {
             tree.container.style.bottom = "0";
             tree.container.style.height = "";
             tree.renderer.scrollBarV.$minWidth = 10;
-            
+
             tree.commands.bindKey("Space", function(e) {
                 if (tabManager.previewTab)
                     tabManager.preview({ cancel: true });
                 else
                     openSelection({ preview: true });
             });
-            
+
             tree.commands.bindKey("Enter", function(e) {
                 openSelection();
             });
-            
+
             tree.commands.bindKey("Shift-Enter", function(e) {
                 openSelectedFiles();
             });
-            
+
             layout.on("eachTheme", function(e){
                 var height = parseInt(ui.getStyleRule(".filetree .tree-row", "height"), 10) || 22;
                 tree.rowHeightInner = height;
@@ -151,16 +157,16 @@ define(function(require, exports, module) {
                 if (e.changed)
                     tree.resize();
             }, plugin);
-            
+
             tree.on("afterChoose", function(e) {
                 openSelection();
             });
-            
+
             tree.on("userSelect", function(e) {
                 if (tabManager.previewTab)
                     openSelection({ preview: true });
             });
-            
+
             tree.on("drop", function(e) {
                 if (e.target && e.selectedNodes) {
                     var nodes = e.selectedNodes;
@@ -169,9 +175,9 @@ define(function(require, exports, module) {
                     } else if (e.target == changed) {
                         scm.unstage(nodes);
                     }
-                }   
+                }
             });
-            
+
             tree.on("click", function(e) {
                 if (e.domEvent.target.classList.contains("status-icon")) {
                     var node = e.getNode();
@@ -184,22 +190,22 @@ define(function(require, exports, module) {
                     }
                 }
             });
-            
+
             tree.setRoot(arrayCache);
-            
+
             // tree.on("focus", function(){
             //     test.focussedPanel = plugin;
             // });
-            
+
             // settings.on("read", function(){
-            //     test.settingsMenu.append(new MenuItem({ 
-            //         caption: "Collapse Passed and Skipped Groups", 
+            //     test.settingsMenu.append(new MenuItem({
+            //         caption: "Collapse Passed and Skipped Groups",
             //         checked: "user/test/@collapsegroups",
             //         type: "check",
             //         position: 300
             //     }));
             // }, plugin);
-            
+
             // settings.on("user/test/@collapsegroups", function(value){
             //     if (plugin.visible) {
             //         skipNode.isOpen = !value;
@@ -207,21 +213,21 @@ define(function(require, exports, module) {
             //         tree.refresh();
             //     }
             // }, plugin);
-            
+
             scm.on("reload", function(options){
                 reload(options || { hash: 0, force: true }, function(e, status) {
-                    
+
                 });
             }, plugin);
-            
+
             scm.on("resize", function(){
                 tree && tree.resize();
             });
-            
+
             scmlog.on("select", function(options){
                 if (options) reload(options, function(){});
             }, plugin);
-            
+
             // Context Menu
             menuContext = new Menu({ items: [
                 new MenuItem({ match: "file", class: "strong", caption: "Open Diff", onclick: openSelection }, plugin),
@@ -229,12 +235,12 @@ define(function(require, exports, module) {
                 new MenuItem({ match: "file", caption: "Reveal in File Tree", onclick: reveal }, plugin),
             ]});
             opts.aml.setAttribute("contextmenu", menuContext.aml);
-            
+
             reload({ hash: 0, force: true }, function(){});
         }
-        
+
         /***** Methods *****/
-        
+
         var changed = {
             label: "modified files",
             className: "heading",
@@ -288,12 +294,12 @@ define(function(require, exports, module) {
             if (!options.force)
             if (tree.meta.options.hash == options.hash && tree.meta.options.base == options.base)
                 return;
-            
+
             scm.getStatus(options, function(e, status) {
                 var root = [];
                 var i, name, x;
                 var twoWay = options.twoWay;
-                
+
                 status = (status || "").split("\x00");
                 console.log(status);
                 if (twoWay) {
@@ -312,7 +318,7 @@ define(function(require, exports, module) {
                         x = status[i];
                         name = x.substr(twoWay ? 3 : 2);
                         if (!name) continue;
-                        
+
                         if (x[0] == "U" || x[1] == "U") {
                             conflicts.items.push({
                                 label: name,
@@ -371,7 +377,7 @@ define(function(require, exports, module) {
                         x = status[i];
                         name = status[i + 1];
                         if (!name) continue;
-                        
+
                         if (x[0] == "R") {
                             i++;
                             root.push({
@@ -388,7 +394,7 @@ define(function(require, exports, module) {
                             });
                         }
                     }
-                    
+
                     if (options.commit) {
                         label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span> "
                             + "<span>" + escapeHTML(options.commit.authorname) + "</span>"
@@ -405,46 +411,46 @@ define(function(require, exports, module) {
                 tree.model.twoWay = twoWay;
             });
         }
-        
+
         function reveal() {
             var node = tree.selection.getCursor();
             var path = node.path;
             if (path) {
                 if (path[0] != "/") path = "/" + path;
-                path = c9.workspaceDir + path;
+                path = workspaceDir + path;
                 path = util.normalizePath(path);
                 tabbehavior.revealtab({path: path});
             }
         }
-        
+
         function openSelection(opts) {
             if (!c9.has(c9.STORAGE))
                 return;
-            
+
             var node = tree.selectedNode;
             if (!node || node.isFolder)
                 return;
-            
+
             if (node.parent == conflicts)
                 return openConflictView(node);
-            
+
             var options = tree.meta.options;
             var oldPath = node.path;
             var newPath = node.originalPath || node.path;
-            
+
             var hash = options.hash
                 ? options.hash + ":"
                 : (node.parent == staged ? "STAGED:" : "MODIFIED:");
-            
+
             var base = options.base
                 ? options.base + ":"
                 : (node.parent == staged ? "HEAD:" : "PREVIOUS:");
-            
+
             var diffview = {
                 oldPath: base + oldPath,
                 newPath: hash + newPath
             };
-            
+
             var tab = findOpenDiffview(diffview);
             if (tab && !(opts && opts.preview)) {
                 if (tab.document.meta.preview)
@@ -456,7 +462,7 @@ define(function(require, exports, module) {
                 }
                 return;
             }
-            
+
             tabManager[opts && opts.preview ? "preview" : "open"]({
                 editorType: "diffview",
                 focus: true,
@@ -465,45 +471,45 @@ define(function(require, exports, module) {
                 }
             }, function(){});
         }
-        
+
         function findOpenDiffview(options){
             var pages = tabManager.getTabs();
             for (var i = 0, tab = pages[i]; tab; tab = pages[i++]) {
                 if (tab.editorType == "diffview") {
                     var session = tab.document.getSession();
-                    if (session && session.oldPath == options.oldPath 
+                    if (session && session.oldPath == options.oldPath
                       && session.newPath == options.newPath)
                         return tab;
                 }
             }
         }
-        
+
         function openConflictView(node) {
             var addConflictMarker = require("./diff/conflictmarker");
-            var path = c9.workspaceDir + "/" + node.path;
+            var path = workspaceDir + "/" + node.path;
             tabManager.open({path: path, focus: true}, function(e, tab) {
                 addConflictMarker(tab.editor.ace);
             });
         }
-        
+
         function openSelectedFiles(opts) {
             if (!c9.has(c9.STORAGE))
                 return;
-            
+
             var focus = opts && opts.focusNewTab || true;
             var sel = tree.selection.getSelectedNodes();
             var main = tree.selection.getCursor();
-            
+
             sel.forEach(function(node) {
                 if (!node || node.isFolder)
                     return;
-    
+
                 var pane = tabManager.focussedTab && tabManager.focussedTab.pane;
                 if (tabManager.getPanes(tabManager.container).indexOf(pane) == -1)
                     pane = null;
-    
+
                 tabManager.open({
-                    path: c9.workspaceDir + "/" + node.path,
+                    path: workspaceDir + "/" + node.path,
                     pane: pane,
                     noanim: sel.length > 1,
                     active: node === main,
@@ -511,9 +517,9 @@ define(function(require, exports, module) {
                 }, function(){});
             });
         }
-        
+
         /***** Lifecycle *****/
-        
+
         plugin.on("load", function() {
             load();
         });
@@ -531,13 +537,13 @@ define(function(require, exports, module) {
         plugin.on("unload", function(){
             drawn = false;
         });
-        
+
         /***** Register and define API *****/
-        
+
         /**
          * This is an example of an implementation of a plugin. Check out [the source](source/template.html)
          * for more information.
-         * 
+         *
          * @class Template
          * @extends Plugin
          * @singleton
@@ -549,19 +555,19 @@ define(function(require, exports, module) {
              */
             get tree() { return tree; },
             /**
-             * 
+             *
              */
             get changed() { return changed },
             /**
-             * 
+             *
              */
             get ignored() { return ignored },
             /**
-             * 
+             *
              */
             get staged() { return staged }
         });
-        
+
         register(null, {
             "scm.detail": plugin
         });
