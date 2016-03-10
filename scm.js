@@ -138,6 +138,8 @@ define(function(require, exports, module) {
         var btnSettings, container, btnPush, barPush, pushBtn;
         var barPull, btnPull, activeDialog;
         
+        var locationBar, locationBox, locationRefreshButton;
+        
         var workspaceDir = c9.workspaceDir; // + "/plugins/c9.ide.scm/mock/git";
         
         var loaded = false;
@@ -248,6 +250,43 @@ define(function(require, exports, module) {
             var vbox = opts.aml.appendChild(new ui.vbox({ 
                 anchors: "0 0 0 0" 
             }));
+            
+            // LocationBar
+            locationBar = vbox.appendChild(new ui.bar({
+                skin: "toolbar-top",
+                class: "fakehbox aligncenter debugger_buttons basic changes",
+                style: "white-space:nowrap !important;",
+                height: 30
+            }));
+            plugin.addElement();
+
+            ui.insertByIndex(locationBar, new ui.hsplitbox({
+                height: 30,
+                childNodes: [
+                    locationBox = new ui.textbox({
+                        skinset: "default",
+                        skin: "codebox",
+                        class: "tb_textbox",
+                        value: "/",
+                        onkeyup: function(event) {
+                            if (event.keyCode === 13) {
+                                refreshWorkspace();
+                            }
+                        }
+                    }),
+                    locationRefreshButton = new ui.button({
+                        caption: "Refresh",
+                        skinset: "default",
+                        skin: "c9-menu-btn",
+                        class: "single-button",
+                        style: "text-align: center",
+                        width: 60,
+                        onclick: function() {
+                            refreshWorkspace();
+                        }
+                    })
+                ]
+            }), 1, plugin);
             
             // Toolbar
             toolbar = vbox.appendChild(new ui.bar({
@@ -661,6 +700,22 @@ define(function(require, exports, module) {
             emit("unregister", { plugin: scmPlugin });
         }
         
+        function refreshWorkspace() {
+            var location = locationBox.getValue().trim();
+
+            if (location[0] === "/") {
+                location = location.slice(1);
+            }
+
+            workspaceDir = c9.workspaceDir + "/" + location;
+
+            emit("workspaceDir", {
+                workspaceDir: workspaceDir
+            })
+
+            refresh();
+        }
+
         function refresh(){
             getLog();
             emit("reload");
