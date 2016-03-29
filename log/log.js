@@ -279,7 +279,7 @@ function GitGraph(editor) {
                     p.style.marginLeft = graphW + "px";
                 var s = document.createElement("span");
                 s.className = "tree-column";
-                s.textContent = d.row + " " + d.label;
+                s.textContent = /*d.row + " " +*/ d.label;
                     
                 if (d.branches) {
                     var b = document.createElement("span");
