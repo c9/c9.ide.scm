@@ -276,8 +276,8 @@ function DiffView(element, options) {
                 });
             }
         });
-        diffView.edit.session._emit("changeFold", { data: { start: { row: 0 } } });
-        diffView.orig.session._emit("changeFold", { data: { start: { row: 0 } } });
+        diffView.edit.session._emit("changeFold", { data: { start: { row: 0 }}});
+        diffView.orig.session._emit("changeFold", { data: { start: { row: 0 }}});
     };
 
     this.onScroll = function(e, session) {
@@ -648,11 +648,11 @@ function DiffView(element, options) {
         };
         if (orig) {
             if (chunk.origEnd <= pos.row) {
-                result.row = pos.row - chunk.origEnd + chunk.editEnd
+                result.row = pos.row - chunk.origEnd + chunk.editEnd;
             } 
             else {
-                console.log("======================================")
-                var d = pos.row - chunk.origStart
+                console.log("======================================");
+                var d = pos.row - chunk.origStart;
                 var c = pos.column;
                 var r1 = 0, c1 = 0, r2 = 0, c2 = 0;
                 var inlineChanges = chunk.inlineChanges;
@@ -660,33 +660,33 @@ function DiffView(element, options) {
                     var diff = inlineChanges[i];
                     if (diff[1]) {
                         if (diff[0] == 0) {
-                            r1 += diff[1]
-                            r2 += diff[1]
+                            r1 += diff[1];
+                            r2 += diff[1];
                             if (r1 == d)
-                                c2 = c1 = diff[2]
+                                c2 = c1 = diff[2];
                         } else if (diff[0] == 1) {
-                            r2 += diff[1]
+                            r2 += diff[1];
                             if (r1 == d)
-                                c2 = diff[2]
+                                c2 = diff[2];
                         } else if (diff[0] == -1) {
-                            r1 += diff[1]
+                            r1 += diff[1];
                             if (r1 == d)
-                                c1 = diff[2]
+                                c1 = diff[2];
                         }
                     }
                     else if (r1 == d) {
                         if (diff[0] == 0) {
-                            c1 += diff[2]
-                            c2 += diff[2]
+                            c1 += diff[2];
+                            c2 += diff[2];
                         } else if (diff[0] == 1) {
-                            c2 += diff[2]
+                            c2 += diff[2];
                         } else if (diff[0] == -1) {
-                            c1 += diff[2]
+                            c1 += diff[2];
                         }
                     }
-                    console.log(diff+"", r1, c1, r2, c2, d, c)
+                    console.log(diff + "", r1, c1, r2, c2, d, c);
                     if (r1 > d || r1 == d && c1 >= c) {
-                        break
+                        break;
                     }
                 }
 
@@ -763,8 +763,8 @@ function DiffView(element, options) {
         }
         
         function header(s1, c1, s2, c2) {
-            return "@@ -" + (c1 ? s1 + 1 : s1) +  "," + c1
-                + " +" + (c2 ? s2 + 1 : s2)  + "," + c2 + " @@";
+            return "@@ -" + (c1 ? s1 + 1 : s1) + "," + c1
+                + " +" + (c2 ? s2 + 1 : s2) + "," + c2 + " @@";
         }
         
         var context = options.context || 0;
@@ -841,7 +841,7 @@ function DiffView(element, options) {
         }
         
         if (!editEOF && !origEOF && end1 == origLines.length) {
-            patch +=  "\n\\ No newline at end of file";
+            patch += "\n\\ No newline at end of file";
         }
         
         return patch;

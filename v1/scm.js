@@ -110,7 +110,7 @@ define(function(require, exports, module) {
         
         /***** Initialization *****/
         
-        var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Changes Panel")
+        var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Changes Panel");
         
         if (!ENABLED) {
             return register(null, {
@@ -143,7 +143,7 @@ define(function(require, exports, module) {
         var workspaceDir = c9.workspaceDir; // + "/plugins/c9.ide.scm/mock/git";
         
         var loaded = false;
-        function load(){
+        function load() {
             if (loaded) return false;
             loaded = true;
             
@@ -174,7 +174,7 @@ define(function(require, exports, module) {
                     });
                     
                     var path = tab.path;
-                    scm.getBlame(path, function(err, blameInfo){
+                    scm.getBlame(path, function(err, blameInfo) {
                         if (err) return console.error(err);
                         data = blameInfo;
                         done();
@@ -187,7 +187,7 @@ define(function(require, exports, module) {
                         blameAnnotation.setData(data);
                     }
                 },
-                isAvailable: function(){
+                isAvailable: function() {
                     var tab = tabs.focussedTab || tabs.getPanes()[0].activeTab;
                     if (!tab || !tab.path || tab.editorType != "ace")
                         return false;
@@ -198,37 +198,37 @@ define(function(require, exports, module) {
             commands.addCommand({
                 name: "addall",
                 group: "scm",
-                exec: function(){ addAll(); }
+                exec: function() { addAll(); }
             }, plugin);
             
             commands.addCommand({
                 name: "unstageall",
                 group: "scm",
-                exec: function(){ unstageAll(); }
+                exec: function() { unstageAll(); }
             }, plugin);
             
             commands.addCommand({
                 name: "fetch",
                 group: "scm",
-                exec: function(){ fetch(); }
+                exec: function() { fetch(); }
             }, plugin);
             
             commands.addCommand({
                 name: "push",
                 group: "scm",
-                exec: function(){ push({}); }
+                exec: function() { push({}); }
             }, plugin);
             
             commands.addCommand({
                 name: "pull",
                 group: "scm",
-                exec: function(){ pull({}); }
+                exec: function() { pull({}); }
             }, plugin);
             
             commands.addCommand({
                 name: "commit",
                 group: "scm",
-                exec: function(editor, args){ 
+                exec: function(editor, args) { 
                     if (args.message) commit(args.message, args.amend);
                     else {
                         panels.activate("changes");
@@ -317,7 +317,7 @@ define(function(require, exports, module) {
                                 margin: "5 0 0 0",
                                 onclick: function() {
                                     commitBtn.disable();
-                                    commit(commitBox.ace.getValue(), ammendCb.checked, function(err){
+                                    commit(commitBox.ace.getValue(), ammendCb.checked, function(err) {
                                         commitBtn.enable();
                                         if (err) return console.error(err);
                                         
@@ -332,7 +332,7 @@ define(function(require, exports, module) {
                 ]
             }));
             
-            commitBox.on("DOMNodeInsertedIntoDocument", function(){
+            commitBox.on("DOMNodeInsertedIntoDocument", function() {
                 commitBox.ace.setOption("minLines", 2);
                 commitBox.ace.commands.addCommand({
                     bindKey: "Esc",
@@ -399,7 +399,7 @@ define(function(require, exports, module) {
                                     push({
                                         branch: branchBox.ace.getValue(), 
                                         force: forceCb.checked
-                                    }, function(err){
+                                    }, function(err) {
                                         pushBtn.enable();
                                         if (err) return console.error(err);
                                         
@@ -456,7 +456,7 @@ define(function(require, exports, module) {
                                     fetch({
                                         branch: branchBoxPull.ace.getValue(), 
                                         prune: pruneCb.checked
-                                    }, function(err){
+                                    }, function(err) {
                                         pullBtn.enable();
                                         fetchBtn.enable();
                                         if (err) return console.error(err);
@@ -477,7 +477,7 @@ define(function(require, exports, module) {
                                     pull({
                                         branch: branchBoxPull.ace.getValue(), 
                                         prune: pruneCb.checked
-                                    }, function(err){
+                                    }, function(err) {
                                         pullBtn.enable();
                                         fetchBtn.enable();
                                         if (err) return console.error(err);
@@ -504,7 +504,7 @@ define(function(require, exports, module) {
             function link(btn, bar, main) {
                 btn.bar = bar;
                 bar.button = btn;
-                btn.onclick = function(){
+                btn.onclick = function() {
                     if (bar.visible) {
                         bar.hide();
                     }
@@ -515,7 +515,7 @@ define(function(require, exports, module) {
                 };
                 bar.on("prop.visible", updateActiveDialog);
             }
-            function updateActiveDialog(e){
+            function updateActiveDialog(e) {
                 if (e.value) {
                     if (activeDialog && activeDialog != this)
                         activeDialog.hide();
@@ -527,7 +527,7 @@ define(function(require, exports, module) {
             }
             
             mnuBranches = new ui.menu({ width: 500, style: "padding:0" });
-            mnuBranches.on("prop.visible", function(e){
+            mnuBranches.on("prop.visible", function(e) {
                 if (e.value) {
                     if (!branchesTree) {
                         branchesTree = new Datagrid({
@@ -536,7 +536,7 @@ define(function(require, exports, module) {
                             theme: "blackdg",
                             isLoading: function() {},
     
-                            getEmptyMessage: function(){
+                            getEmptyMessage: function() {
                                 if (!this.keyword)
                                     return this.isLoading()
                                         ? "Loading file list. One moment please..."
@@ -594,7 +594,7 @@ define(function(require, exports, module) {
                     }
                     branchesTree.minLines = 3;
                     branchesTree.maxLines = Math.floor((window.innerHeight - 100) / branchesTree.rowHeight);
-                    branchesTree.emptyMessage = "loading..."
+                    branchesTree.emptyMessage = "loading...";
                     scm.listAllRefs(function(err, data) {
                         if (err) {
                             branchesTree.emptyMessage = "Error while loading\n" + escapeHTML(err.message);
@@ -687,14 +687,14 @@ define(function(require, exports, module) {
         
         /***** Methods *****/
         
-        function registerSCM(name, scmPlugin){
+        function registerSCM(name, scmPlugin) {
             scms[name] = scmPlugin;
             if (!scm) scm = scmPlugin;
             
             emit("register", { plugin: scmPlugin });
         }
         
-        function unregisterSCM(name, scmPlugin){
+        function unregisterSCM(name, scmPlugin) {
             delete scms[name];
             
             emit("unregister", { plugin: scmPlugin });
@@ -711,21 +711,21 @@ define(function(require, exports, module) {
 
             emit("workspaceDir", {
                 workspaceDir: workspaceDir
-            })
+            });
 
             refresh();
         }
 
-        function refresh(){
+        function refresh() {
             getLog();
             emit("reload");
         }
         
-        function resize(){
+        function resize() {
             emit("resize");
         }
         
-        function getLog(){
+        function getLog() {
             scm.getLog({}, function(err, root) {
                 if (err) return console.error(err);
                 
@@ -733,11 +733,11 @@ define(function(require, exports, module) {
             });
         }
         
-        function commit(message, amend, callback){
+        function commit(message, amend, callback) {
             scm.commit({ 
                 message: message,
                 amend: amend
-            }, function(err){
+            }, function(err) {
                 if (err) return console.error(err);
                 
                 emit("reload");
@@ -755,7 +755,7 @@ define(function(require, exports, module) {
                 return node.path;
             }).filter(Boolean);
             
-            scm.unstage(paths, function(err){
+            scm.unstage(paths, function(err) {
                 if (err) return console.error(err);
                 emit("reload");
             });
@@ -769,68 +769,68 @@ define(function(require, exports, module) {
                 return node.path;
             }).filter(Boolean);
             
-            scm.addFileToStaging(paths, function(err){
+            scm.addFileToStaging(paths, function(err) {
                 if (err) return console.error(err);
                 emit("reload");
             });
         }
         
-        function addAll(){
-            scm.addAll(function(err){
+        function addAll() {
+            scm.addAll(function(err) {
                 if (err) return console.error(err);
                 emit("reload");
             });
         }
-        function unstageAll(){
-            scm.unstageAll(function(err){
+        function unstageAll() {
+            scm.unstageAll(function(err) {
                 if (err) return console.error(err);
                 emit("reload");
             });
         }
-        function fetch(options, callback){
-            scm.fetch(options, function(err){
-                if (err) return console.error(err);
-                emit("reload");
-                callback && callback();
-            });
-        }
-        function pull(options, callback){
-            scm.pull(options, function(err){
+        function fetch(options, callback) {
+            scm.fetch(options, function(err) {
                 if (err) return console.error(err);
                 emit("reload");
                 callback && callback();
             });
         }
-        function push(options, callback){
-            scm.push(options, function(err){
+        function pull(options, callback) {
+            scm.pull(options, function(err) {
+                if (err) return console.error(err);
+                emit("reload");
+                callback && callback();
+            });
+        }
+        function push(options, callback) {
+            scm.push(options, function(err) {
                 if (err) return callback(err);
                 emit("reload");
                 callback && callback();
             });
         }
-        function loadDiff(options, callback){
-            return scm.loadDiff(options, function(err, result){
+        function loadDiff(options, callback) {
+            return scm.loadDiff(options, function(err, result) {
                 // if (err) return console.error(err);
                 // emit("reload");
-                callback(err, result)
+                callback(err, result);
             });
         }
-        function getStatus(options, callback){
+        function getStatus(options, callback) {
             scm.getStatus(options, callback);
         }
         
         /***** Lifecycle *****/
         
-        plugin.on("load", function(){
+        plugin.on("load", function() {
             load();
         });
         plugin.on("draw", function(e) {
             draw(e);
         });
-        plugin.on("enable", function(){
+        plugin.on("enable", function() {
             
         });
-        plugin.on("disable", function(){
+        plugin.on("disable", function() {
             
         });
         plugin.on("show", function onShow(e) {
@@ -842,7 +842,7 @@ define(function(require, exports, module) {
         plugin.on("hide", function(e) {
             
         });
-        plugin.on("unload", function(){
+        plugin.on("unload", function() {
             loaded = false;
             drawn = false;
         });

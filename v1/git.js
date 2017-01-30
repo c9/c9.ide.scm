@@ -21,7 +21,7 @@ define(function(require, exports, module) {
         
         var workspaceDir = c9.workspaceDir;
         
-        scm.on && scm.on("workspaceDir", function(options){
+        scm.on && scm.on("workspaceDir", function(options) {
             workspaceDir = options.workspaceDir || c9.workspaceDir;
         }, plugin);
 
@@ -30,41 +30,41 @@ define(function(require, exports, module) {
         /**
          * Detect whether the path has a git repository 
          */
-        function detect(path, callback){
+        function detect(path, callback) {
             
         }
         
-        function addAll(callback){
+        function addAll(callback) {
             git("add -u", callback);
         }
         
-        function addFileToStaging(paths, callback){
+        function addFileToStaging(paths, callback) {
             git(["add", "-f", "--ignore-errors", "--"].concat(paths), callback);
         }
         
-        function unstageAll(callback){
+        function unstageAll(callback) {
             git("reset --mixed", callback);
         }
         
-        function unstage(paths, callback){
+        function unstage(paths, callback) {
             git(["reset", "--mixed", "--"].concat(paths), callback);
         }
         
-        function fetch(options, callback){
+        function fetch(options, callback) {
             var args = ["fetch"];
             if (options.prune) args.push("--prune");
             if (options.branch) args.push(options.branch);
             git(args, callback);
         }
         
-        function pull(options, callback){
+        function pull(options, callback) {
             var args = ["pull"];
             if (options.prune) args.push("--prune");
             if (options.branch) args.push(options.branch);
             git(args, callback);
         }
         
-        function push(options, callback){
+        function push(options, callback) {
             var args = ["push"];
             if (options.force) args.push("--force");
             if (options.branch) args.push(options.branch);
@@ -81,7 +81,7 @@ define(function(require, exports, module) {
             }, function(e, p) {
                 // if (e) console.error(e);
                 
-                buffer(p, function(stdout, stderr){
+                buffer(p, function(stdout, stderr) {
                     // console.log(e, stdout);
                     
                     cb && cb(e, stdout, stderr);
@@ -89,15 +89,15 @@ define(function(require, exports, module) {
             });
         }
         
-        function buffer(process, callback){
+        function buffer(process, callback) {
             var stdout = "", stderr = "";
-            process.stdout.on("data", function(c){
+            process.stdout.on("data", function(c) {
                 stdout += c;
             });
-            process.stderr.on("data", function(c){
+            process.stderr.on("data", function(c) {
                 stderr += c;
             });
-            process.on("exit", function(c){
+            process.on("exit", function(c) {
                 callback(stdout, stderr);
             });
         }
@@ -141,7 +141,7 @@ define(function(require, exports, module) {
                 args: args,
                 cwd: workspaceDir
             }, function(err, stdout, stderr) {
-                if (err)  {
+                if (err) {
                     if (/fatal: bad revision/.test(err.message)) {
                         var EMPTY = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
                         if (options.base != EMPTY) {
@@ -164,7 +164,7 @@ define(function(require, exports, module) {
                 if (err) return cb(err);
                 
                 console.log(err, stdout);
-                console.log(t-Date.now(), stdout.length);
+                console.log(t - Date.now(), stdout.length);
                 
                 var args = ["log", "--topo-order", "--date=raw"];
                 if (options.boundary !== false) args.push("--boundary");
@@ -214,7 +214,7 @@ define(function(require, exports, module) {
                         });
                     }
                     // console.log(err, x);
-                    console.log(t-Date.now(), stdout.length);
+                    console.log(t - Date.now(), stdout.length);
                     root.unshift({
                         label: "// WIP",
                         hash: 0,
@@ -252,7 +252,7 @@ define(function(require, exports, module) {
         
         function loadDiff(options, callback) {
             var req = {};
-            var args = ["diff",  "-U20000", options.oldPath, options.newPath];
+            var args = ["diff", "-U20000", options.oldPath, options.newPath];
             proc.execFile("git", {
                 args: args,
                 cwd: workspaceDir
@@ -265,7 +265,7 @@ define(function(require, exports, module) {
                                 orig: orig || "",
                                 edit: edit || ""
                             });
-                        })
+                        });
                     });
                 }
                 callback(null, {
@@ -341,7 +341,7 @@ define(function(require, exports, module) {
             });
         }
         
-        function getBlame(path, callback){
+        function getBlame(path, callback) {
             proc.spawn("git", {
                 args: ["blame", "-wp", "--", basename(path)],
                 cwd: workspaceDir + "/" + dirname(path)

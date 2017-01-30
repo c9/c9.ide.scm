@@ -34,15 +34,15 @@ define(function(require, exports, module) {
         
         /***** Initialization *****/
         
-        var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Source Control Management")
+        var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Source Control Management");
         if (!ENABLED)
-            return register(null, { "scm.log": {} });
+            return register(null, { "scm.log": {}});
         
         var extensions = [];
         
         var handle = editors.register("scmlog", "SCM Log Viewer", LogView, extensions);
         
-        handle.on("load", function(){
+        handle.on("load", function() {
             // commands.addCommand({
             //     name: "opencoverageview",
             //     // hint: "runs the selected test(s) in the test panel",
@@ -70,7 +70,7 @@ define(function(require, exports, module) {
             // }, handle);
         });
                           
-        function LogView(){
+        function LogView() {
             var plugin = new Editor("Ajax.org", main.consumes, extensions);
             var emit = plugin.getEmitter();
             
@@ -89,18 +89,18 @@ define(function(require, exports, module) {
             plugin.on("draw", function(e) {
                 e.htmlNode.style.paddingTop = 0;
                 
-                var container = e.tab.appendChild(new ui.bar({ anchors: "0 0 0 0"}));
+                var container = e.tab.appendChild(new ui.bar({ anchors: "0 0 0 0" }));
                 drawLog(container.$int);
                 
-                scmProvider.on("scm", function(implementation){
+                scmProvider.on("scm", function(implementation) {
                     scm = implementation;
                     
                     if (scm) {                    
-                        scm.on("log", function(node){
+                        scm.on("log", function(node) {
                             datagrid.model.loadData(node);
                         }, plugin);
                         
-                        scm.on("log.dirty", function(node){
+                        scm.on("log.dirty", function(node) {
                             reloadLog();
                         }, plugin);
                     }
@@ -115,13 +115,13 @@ define(function(require, exports, module) {
                     scrollMargin: [0, 0],
                     theme: "blackdg versionlog",
                     
-                    columns : [
+                    columns: [
                         {
                             caption: "Date",
                             width: "110",
-                            getText: function(node){
+                            getText: function(node) {
                                 if (!node.$uiDate && node.date)
-                                    node.$uiDate = new Date(parseInt(node.date)*1000).toString("yyyy-MM-dd hh:mm");
+                                    node.$uiDate = new Date(parseInt(node.date) * 1000).toString("yyyy-MM-dd hh:mm");
                                 return node.$uiDate || "";
                             }
                         }, 
@@ -140,7 +140,7 @@ define(function(require, exports, module) {
                 
                     isLoading: function() {},
         
-                    getEmptyMessage: function(){
+                    getEmptyMessage: function() {
                         return "Loading log...";
                     }
                 }, plugin);
@@ -158,7 +158,7 @@ define(function(require, exports, module) {
                 // datagrid.tooltip = new Tooltip(tree);
                 // logdatagrid.tooltip = new Tooltip(logTree);
                 
-                layout.on("eachTheme", function(e){
+                layout.on("eachTheme", function(e) {
                     var height = parseInt(ui.getStyleRule(".filetree .tree-row", "height"), 10) || 20;
                     datagrid.rowHeightInner = height;
                     datagrid.rowHeight = height;
@@ -177,7 +177,7 @@ define(function(require, exports, module) {
                         showCompareView(datagrid.selectedNode, true);
                 });
                 
-                datagrid.on("afterChoose", function(e){
+                datagrid.on("afterChoose", function(e) {
                     showCompareView(datagrid.selectedNode);
                 });
                 
@@ -279,7 +279,7 @@ define(function(require, exports, module) {
             
             function showBranch(hash) {
                 var node;
-                if (datagrid.model.visibleItems.some(function(b){
+                if (datagrid.model.visibleItems.some(function(b) {
                     if (b.hash == hash) {
                         node = b;
                         return true;
@@ -318,7 +318,7 @@ define(function(require, exports, module) {
                 });
             }
             
-            function showCompareView(node, preview){
+            function showCompareView(node, preview) {
                 if (node.label == "// WIP") {
                     return scmProvider.openDiff({
                         preview: preview
@@ -375,11 +375,11 @@ define(function(require, exports, module) {
                 /**
                  * 
                  */
-                get ready(){ return ready; },
+                get ready() { return ready; },
                 /**
                  * 
                  */
-                get tree(){ return tree; },
+                get tree() { return tree; },
                 
                 /**
                  * 

@@ -49,9 +49,9 @@ define(function(require, exports, module) {
         
         /***** Initialization *****/
         
-        var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Source Control Management")
+        var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Source Control Management");
         if (!ENABLED)
-            return register(null, { "scm.branches": {} });
+            return register(null, { "scm.branches": {}});
         
         var plugin = new Panel("Ajax.org", main.consumes, {
             index: options.index || 350,
@@ -79,7 +79,7 @@ define(function(require, exports, module) {
         var ready, scm;
         
         var loaded = false;
-        function load(){
+        function load() {
             if (loaded) return false;
             loaded = true;
             
@@ -92,7 +92,7 @@ define(function(require, exports, module) {
                 }
             });
             
-            settings.on("read", function(){
+            settings.on("read", function() {
                 settings.setDefaults("project/scm", [["primary", '["origin/master"]']]);
                 settings.setDefaults("user/scm", [["showauthor", [false]]]); // TODO this doesn't actually work
                 settings.setDefaults("state/scm", [["branches-display-mode", "branches"]]);
@@ -100,8 +100,8 @@ define(function(require, exports, module) {
                 displayMode = settings.get("state/scm/@branches-display-mode");
             });
             
-            settings.on("user/scm/@showauthor", function(){
-                plugin.on("draw", function(){
+            settings.on("user/scm/@showauthor", function() {
+                plugin.on("draw", function() {
                     var showAuthor = settings.getBool("user/scm/@showauthor");
                     
                     branchesTree.container.className = 
@@ -112,14 +112,14 @@ define(function(require, exports, module) {
                 });
             });
             
-            scmProvider.on("scm", function(implementation){
+            scmProvider.on("scm", function(implementation) {
                 scm = implementation;
                 
                 if (plugin.active) 
                     refresh();
             }, plugin);
             
-            plugin.once("show", function(){
+            plugin.once("show", function() {
                 if (!ready) refresh();
             });
         }
@@ -133,7 +133,7 @@ define(function(require, exports, module) {
                 new MenuItem({ type: "radio", caption: "Branches", value: "branches", selected: displayMode == "branches" }),
                 new MenuItem({ type: "radio", caption: "Committer", value: "committer", selected: displayMode == "committer" })
             ]}, plugin);
-            mnuFilter.on("itemclick", function(e){
+            mnuFilter.on("itemclick", function(e) {
                 settings.set("state/scm/@branches-display-mode", e.value);
                 
                 button.$caption.innerHTML = (e.value == "branches"
@@ -182,55 +182,55 @@ define(function(require, exports, module) {
                 : ICON_PERSON) + displayMode.uCaseFirst() + "<span> </span>";
             
             var mnuContext = new Menu({ items: [
-                new MenuItem({ caption: "Checkout...", onclick: function(){
+                new MenuItem({ caption: "Checkout...", onclick: function() {
                     checkout(branchesTree.selectedNode);
-                }, isAvailable: function(){
+                }, isAvailable: function() {
                     return branchesTree.selectedNodes.length == 1
                         && branchesTree.selectedNode.hash;
-                }}),
-                new MenuItem({ caption: "Delete", onclick: function(){
+                } }),
+                new MenuItem({ caption: "Delete", onclick: function() {
                     var nodes = branchesTree.selectedNodes;
                     removeBranches(nodes);
-                }, isAvailable: function(){
+                }, isAvailable: function() {
                     var node = branchesTree.selectedNode;
                     return node 
                         && (node.hash && node.path !== CURBRANCH
                         || node.parent.isRemote ? true : false);
-                }}),
-                new MenuItem({ caption: "Rename", onclick: function(){
+                } }),
+                new MenuItem({ caption: "Rename", onclick: function() {
                     branchesTree.startRename(branchesTree.selectedNode);
-                }, isAvailable: function(){
+                }, isAvailable: function() {
                     var node = branchesTree.selectedNode;
                     return branchesTree.selectedNodes.length == 1
                       && node.path && node.path.match(/^refs\/heads/);
-                }}),
+                } }),
                 new Divider(),
-                new MenuItem({ caption: "Create Branch", onclick: function(){
+                new MenuItem({ caption: "Create Branch", onclick: function() {
                     newBranch(branchesTree.selectedNode);
-                }, isAvailable: function(){
+                }, isAvailable: function() {
                     return branchesTree.selectedNodes.length == 1
                         && branchesTree.selectedNode.hash;
-                }}),
+                } }),
                 // new MenuItem({ caption: "Create Pull Request" }),
-                new MenuItem({ caption: "Create Workspace", onclick: function(){
+                new MenuItem({ caption: "Create Workspace", onclick: function() {
                     
-                }, isAvailable: function(){
+                }, isAvailable: function() {
                     return branchesTree.selectedNodes.length == 1
                         && branchesTree.selectedNode.hash;
-                }}),
+                } }),
                 new Divider(),
-                new MenuItem({ caption: "Show In Version Log", onclick: function(){
-                    showBranchInLog(branchesTree.selectedNode)
-                }, isAvailable: function(){
+                new MenuItem({ caption: "Show In Version Log", onclick: function() {
+                    showBranchInLog(branchesTree.selectedNode);
+                }, isAvailable: function() {
                     return branchesTree.selectedNodes.length == 1
                         && branchesTree.selectedNode.hash;
-                }}),
-                new MenuItem({ caption: "Compare", onclick: function(){
+                } }),
+                new MenuItem({ caption: "Compare", onclick: function() {
                     showCompareView(branchesTree.selectedNode.path);
-                }, isAvailable: function(){
+                }, isAvailable: function() {
                     return branchesTree.selectedNodes.length == 1
                         && branchesTree.selectedNode.hash;
-                }})
+                } })
                 // new Divider(),
                 // new MenuItem({ caption: "Merge Into Current Branch" })
             ]}, plugin);
@@ -300,7 +300,7 @@ define(function(require, exports, module) {
                     return escapeHTML(name);
                 },
                 
-                getTooltipText: function(node){
+                getTooltipText: function(node) {
                     return node.authorname
                         ? "[" + node.hash + "] " + node.authorname + " - " + node.subject
                         : "";
@@ -312,13 +312,13 @@ define(function(require, exports, module) {
                         : node.$depth ? node.$depth - 1 : 0;
                 },
                 
-                getItemHeight: function(node, index){
+                getItemHeight: function(node, index) {
                     if (node.className == "heading first") return 27;
                     if (node.className == "heading") return 35;
                     return this.rowHeight;
                 },
                 
-                getEmptyMessage: function(){
+                getEmptyMessage: function() {
                     return branchesTree.filterKeyword
                         ? "No branches found for '" + branchesTree.filterKeyword + "'"
                         : (branchesTree.emptyMessage || "Loading...");
@@ -337,7 +337,7 @@ define(function(require, exports, module) {
                     var compare = branchesTree.model.alphanumCompare;
                     
                     if (children[0].type == "user")
-                        return children.sort(function(a, b){
+                        return children.sort(function(a, b) {
                             if (a.label == "[None]") return 1;
                             if (b.label == "[None]") return -1;
                             return compare(a.label + "", b.label + "");
@@ -361,7 +361,7 @@ define(function(require, exports, module) {
             
             branchesTree.renderer.scrollBarV.$minWidth = 10;
             
-            branchesTree.on("afterChoose", function(e){
+            branchesTree.on("afterChoose", function(e) {
                 var node = branchesTree.selectedNode;
                 if (!node) return;
                 
@@ -389,7 +389,7 @@ define(function(require, exports, module) {
                 var base = e.node.path.match(/^refs\/(?:remotes\/[^\/]+|heads)/)[0];
                 var newPath = base + "/" + e.value;
                 
-                scm.renameBranch(e.node.path, newPath, function(err){
+                scm.renameBranch(e.node.path, newPath, function(err) {
                     if (err) return;
                     
                     e.node.name =
@@ -411,7 +411,7 @@ define(function(require, exports, module) {
                         padding: 10,
                         childNodes: [
                             remoteName = new ui.textbox({ width: "100", "initial-message": "Name" }),
-                            remoteURI = new ui.textbox({ "initial-message": "URL"})
+                            remoteURI = new ui.textbox({ "initial-message": "URL" })
                         ]
                     }),
                     new ui.button({
@@ -420,7 +420,7 @@ define(function(require, exports, module) {
                         class: "btn-green",
                         right: 10,
                         bottom: 10,
-                        onclick: function(){
+                        onclick: function() {
                             if (!remoteName.getValue() || !remoteURI.getValue() || REMOTES[name])
                                 return;
                             
@@ -429,7 +429,7 @@ define(function(require, exports, module) {
                             var name = remoteName.getValue();
                             var url = remoteURI.getValue();
                             
-                            scm.addRemote(name, url, function(err){
+                            scm.addRemote(name, url, function(err) {
                                 remoteMenu.enable();
                                 
                                 if (err) {
@@ -458,7 +458,7 @@ define(function(require, exports, module) {
                 ]
             });
             
-            container.$int.addEventListener("click", function(e){
+            container.$int.addEventListener("click", function(e) {
                 if (e.target.className == "remote-button") {
                     var b = e.target.getBoundingClientRect();
                     remoteMenu.display(b.left, b.top + b.height);
@@ -468,7 +468,7 @@ define(function(require, exports, module) {
             function forwardToTree() {
                 branchesTree.execCommand(this.name);
             }
-            codebox.ace.on("input", function(){
+            codebox.ace.on("input", function() {
                  branchesTree.filterKeyword = codebox.ace.getValue();
             });
             codebox.ace.commands.addCommands([
@@ -501,8 +501,8 @@ define(function(require, exports, module) {
             mnuSettings = new Menu({ items: [
                 new MenuItem({ caption: "Refresh", onclick: refresh }, plugin),
                 new Divider(),
-                new MenuItem({ caption: "Remove Local Merged Branches", onclick: function(){
-                    scm.removeAllLocalMerged(function(){
+                new MenuItem({ caption: "Remove Local Merged Branches", onclick: function() {
+                    scm.removeAllLocalMerged(function() {
                         refresh();
                     });
                 } }, plugin),
@@ -614,12 +614,12 @@ define(function(require, exports, module) {
         };
         
         var nodeRemote;
-        function loadBranches(data){
+        function loadBranches(data) {
             if (!data || data.length == 1 && !data[0].hash) 
                 return purgeTree();
             
             var root = branchesRoot;
-            root.children.forEach(function(n){
+            root.children.forEach(function(n) {
                 if (n.isPR) {
                     n.children[0].children.length = 0;
                     n.children[1].children.length = 0;
@@ -641,7 +641,7 @@ define(function(require, exports, module) {
             
             // Check for empty remotes
             if (!nodeRemote) {
-                nodeRemote = { label: "remotes", isOpen: true, map: {}, children: [] };
+                nodeRemote = { label: "remotes", isOpen: true, map: {}, children: []};
                 all.children.push(nodeRemote);
                 all.map["remotes"] = nodeRemote;
             }   
@@ -657,7 +657,7 @@ define(function(require, exports, module) {
             }
             
             // Sort by date
-            data.sort(function(a, b){ return b.date - a.date; });
+            data.sort(function(a, b) { return b.date - a.date; });
             
             var local = [], remote = [], threshold = Date.now() - RECENT_THRESHOLD;
             for (var i = 0, l = data.length; i < l; i++) {
@@ -674,27 +674,27 @@ define(function(require, exports, module) {
             
             recentLocal.limit = ITEM_THRESHOLD_LOCAL;
             recentLocal.cache = local;
-            local.sort(function(a, b){ return b.date - a.date; });
+            local.sort(function(a, b) { return b.date - a.date; });
             
             recentActive.limit = ITEM_THRESHOLD_REMOTE;
             recentActive.cache = remote;
-            remote.sort(function(a, b){ return b.date - a.date; });
+            remote.sort(function(a, b) { return b.date - a.date; });
             
             updateTreeState();
         }
         
-        function isPrimary(path){
+        function isPrimary(path) {
             var primary = ["origin/master"]; //TODO settings.getJson("project/scm/@primary");
             return ~primary.indexOf(path.replace(/^refs\/remotes\//, ""));
         }
         
-        function copyNode(x){
+        function copyNode(x) {
             var y = util.extend({ className: "root-branch" }, x);
             y.name = x.path.replace(/^refs\/(?:(?:remotes|tags|heads)\/)?/, "");
             return y;
         }
         
-        function parseRawBranch(x){
+        function parseRawBranch(x) {
             x.date = parseInt(x.committerdate) * 1000;
             x.path = x.name;
             
@@ -734,7 +734,7 @@ define(function(require, exports, module) {
             items.push(x);
         }
         
-        function updateTreeState(){
+        function updateTreeState() {
             var n, cur, isOpen, isOverflow, local, remote;
             
             local = recentLocal.cache;
@@ -780,20 +780,20 @@ define(function(require, exports, module) {
             committersRoot.children.length = 0;
         }
         
-        function purgeTree(){
-            branchesRoot.children = branchesRoot.children.filter(function(n){
+        function purgeTree() {
+            branchesRoot.children = branchesRoot.children.filter(function(n) {
                 if (n == all) return true;
                 if (n.isPR) return n.children[0].length + n.children[1].length;
                 return n.children.length;
             });
         }
         
-        function showBranches(){
+        function showBranches() {
             branchesTree.filterProperty = "path";
             branchesTree.filterRoot = lastData;
             branchesTree.setRoot(branchesRoot.children);
         }
-        function showCommitters(){
+        function showCommitters() {
             if (!ready) return plugin.once("ready", showCommitters);
             
             if (!committersRoot.children.length) {
@@ -811,8 +811,8 @@ define(function(require, exports, module) {
                         email: emails[user],
                         type: "user",
                         children: users[user],
-                        clone: function(){ 
-                            var x = function(){};
+                        clone: function() { 
+                            var x = function() {};
                             x.prototype = this;
                             var y = new x();
                             y.keepChildren = true;
@@ -828,7 +828,7 @@ define(function(require, exports, module) {
             branchesTree.setRoot(committersRoot.children);
         }
         
-        function refresh(){
+        function refresh() {
             if (!scm) {
                 branchesTree.setRoot(null);
                 branchesTree.emptyMessage = "No repository detected";
@@ -843,18 +843,18 @@ define(function(require, exports, module) {
                     });
                 },
                 function (next) {
-                    scm.getRemotes(function(err, remotes){
+                    scm.getRemotes(function(err, remotes) {
                         if (!err) REMOTES = remotes;
                         next();
                     });
                 },
                 function (next) {
-                    scm.getCurrentBranch(function(err, branch){
+                    scm.getCurrentBranch(function(err, branch) {
                         if (!err) CURBRANCH = "refs/heads/" + branch;
                         next();
                     });
                 }
-            ], function(err){
+            ], function(err) {
                 // if (!REMOTES["test"]) debugger;
                 
                 if (err) {
@@ -878,8 +878,8 @@ define(function(require, exports, module) {
         function resolveLocalChanges(callback, onCancel) {
             showLocalChanges(null, 
                 // Stash
-                function(){
-                    scm.stash(function(err){
+                function() {
+                    scm.stash(function(err) {
                         if (err) {
                             onCancel();
                             return alert("Could Not Stash Branch",
@@ -891,8 +891,8 @@ define(function(require, exports, module) {
                     });
                 }, 
                 // Discard
-                function(){
-                    scm.resetHard(function(err){
+                function() {
+                    scm.resetHard(function(err) {
                         if (err) {
                             onCancel();
                             return alert("Could Not Discard Changes",
@@ -904,20 +904,20 @@ define(function(require, exports, module) {
                     });
                 }, 
                 // Cancel
-                function(){
+                function() {
                     // Do Nothing
                     onCancel();
                 });
         }
         
-        function checkout(node){
+        function checkout(node) {
             setLoading(node);
             
-            scm.checkout(node.path, function cb(err){
+            scm.checkout(node.path, function cb(err) {
                 if (err && err.code == scm.errors.LOCALCHANGES) {
-                    resolveLocalChanges(function(){
+                    resolveLocalChanges(function() {
                         scm.checkout(node.path, cb);
-                    }, function(){
+                    }, function() {
                         clearLoading(node);
                     });
                     return;
@@ -937,8 +937,8 @@ define(function(require, exports, module) {
             });
         }
         
-        function removeBranches(nodes){
-            nodes.forEach(function(node){
+        function removeBranches(nodes) {
+            nodes.forEach(function(node) {
                 if (node.path == CURBRANCH) return;
                 
                 if (node.parent.isRemote)
@@ -947,9 +947,9 @@ define(function(require, exports, module) {
                 confirm("Delete Branch",
                     "Are you sure you want to delete '" + node.name + "'",
                     "Click OK to delete this branch or click Cancel to cancel this action.",
-                    function(){
+                    function() {
                         setLoading(node);
-                        scm.removeBranch(node.path, function(err){
+                        scm.removeBranch(node.path, function(err) {
                             clearLoading(node);
                             
                             if (err) {
@@ -969,22 +969,22 @@ define(function(require, exports, module) {
                             branchesTree.refresh();
                         });
                     }, 
-                    function(){});
+                    function() {});
             });
         }
         
-        function findNewName(c){
+        function findNewName(c) {
             var name = "refs/heads/newbranche" + (c || "");
-            if (all.map.heads.children.some(function(n){ return n.path == name; }))
+            if (all.map.heads.children.some(function(n) { return n.path == name; }))
                 return findNewName(2);
             return name;
         }
         
-        function newBranch(node){
+        function newBranch(node) {
             var name = findNewName();
             
             setLoading(node);
-            scm.addBranch(name, node.path, function(err){
+            scm.addBranch(name, node.path, function(err) {
                 if (err) {
                     clearLoading(node);
                     return alert("Could Not Add Branch",
@@ -992,7 +992,7 @@ define(function(require, exports, module) {
                         err.message || err);
                 }
                 
-                updateBranch(name, null, function(err, newNode){
+                updateBranch(name, null, function(err, newNode) {
                     clearLoading(node);
                     
                     if (err) console.error(err); // TODO
@@ -1010,7 +1010,7 @@ define(function(require, exports, module) {
         }
         
         function updateBranch(name, node, callback) {
-            scm.listRef(name, function(err, data){
+            scm.listRef(name, function(err, data) {
                 if (err) return callback(err);
                 
                 var parts = parseRawBranch(data);
@@ -1029,11 +1029,11 @@ define(function(require, exports, module) {
                     if (data.date > Date.now() - RECENT_THRESHOLD) {
                         if (data.path.indexOf("refs/remotes") === 0 && !isPrimary(data.path)) {
                             recentActive.cache.push(node = copyNode(data));
-                            recentActive.cache.sort(function(a, b){ return b.date - a.date; });
+                            recentActive.cache.sort(function(a, b) { return b.date - a.date; });
                         }
                         else if (data.path.indexOf("refs/heads") === 0) {
                             recentLocal.cache.push(node = copyNode(data));
-                            recentLocal.cache.sort(function(a, b){ return b.date - a.date; });
+                            recentLocal.cache.sort(function(a, b) { return b.date - a.date; });
                         }
                     }
                     
@@ -1046,13 +1046,13 @@ define(function(require, exports, module) {
             });
         }
         
-        function removeRemote(node){
+        function removeRemote(node) {
             confirm("Delete Remote",
                 "Are you sure you want to delete '" + node.label + "'",
                 "Click OK to delete this remote or click Cancel to cancel this action.",
-                function(){
+                function() {
                     setLoading(node);
-                    scm.removeRemote(node.label, function(err){
+                    scm.removeRemote(node.label, function(err) {
                         clearLoading(node);
                         
                         if (err) {
@@ -1069,10 +1069,10 @@ define(function(require, exports, module) {
                         branchesTree.refresh();
                     });
                 }, 
-                function(){});
+                function() {});
         }
         
-        function expand(node){
+        function expand(node) {
             var more = node.children[node.children.length - 1];
             if (!more || !more.hasOwnProperty("showall")) return;
             node.children = node.cache.slice();
@@ -1082,7 +1082,7 @@ define(function(require, exports, module) {
             branchesTree.refresh();
         }
         
-        function collapse(node){
+        function collapse(node) {
             var more = node.children[node.children.length - 1];
             if (!more || !more.hasOwnProperty("showall")) return;
             node.children = node.cache.slice(0, node.limit);
@@ -1092,10 +1092,10 @@ define(function(require, exports, module) {
             branchesTree.refresh();
         }
         
-        function openLog(callback){
+        function openLog(callback) {
             var tabs = tabManager.getTabs();
             var tab;
-            if (tabs.some(function(t){ return (tab = t).editorType == "scmlog"; }))
+            if (tabs.some(function(t) { return (tab = t).editorType == "scmlog"; }))
                 return callback(null, tabManager.focusTab(tab));
             
             cnsl.show();
@@ -1103,7 +1103,7 @@ define(function(require, exports, module) {
                 editorType: "scmlog", 
                 focus: true,
                 pane: cnsl.getPanes()[0]
-            }, function(err, tab){
+            }, function(err, tab) {
                 callback(err, tab);
             });
         }
@@ -1111,11 +1111,11 @@ define(function(require, exports, module) {
         function showBranchInLog(node) {
             setLoading(node);
             
-            openLog(function(err, tab){
+            openLog(function(err, tab) {
                 if (err) return clearLoading(node);
                 
                 var editor = tab.editor;
-                editor.on("ready", function(){
+                editor.on("ready", function() {
                     clearLoading(node);
                     editor.showBranch(node.hash);
                 });
@@ -1171,34 +1171,34 @@ define(function(require, exports, module) {
         //     }, function(){});
         // }
         
-        function showCompareView(path){
+        function showCompareView(path) {
             scmProvider.openDiff({
                 branch: path,
                 compareBranch: "refs/remotes/origin/master"
             });
         }
         
-        function setLoading(node){
+        function setLoading(node) {
             node.status = "loading";
             branchesTree.refresh();
         }
-        function clearLoading(node){
+        function clearLoading(node) {
             node.status = "loaded";
             branchesTree.refresh();
         }
         
         /***** Lifecycle *****/
         
-        plugin.on("load", function(){
+        plugin.on("load", function() {
             load();
         });
         plugin.on("draw", function(e) {
             draw(e);
         });
-        plugin.on("enable", function(){
+        plugin.on("enable", function() {
             
         });
-        plugin.on("disable", function(){
+        plugin.on("disable", function() {
             
         });
         plugin.on("resize", function() {
@@ -1210,7 +1210,7 @@ define(function(require, exports, module) {
         plugin.on("hide", function(e) {
             
         });
-        plugin.on("unload", function(){
+        plugin.on("unload", function() {
             loaded = false;
             drawn = false;
             ready = false;
@@ -1226,7 +1226,7 @@ define(function(require, exports, module) {
         /***** Register and define API *****/
         
         plugin.freezePublicAPI({
-            get tree(){ return branchesTree; }
+            get tree() { return branchesTree; }
         });
         
         register(null, {

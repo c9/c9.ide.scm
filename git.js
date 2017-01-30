@@ -28,8 +28,8 @@ define(function(require, exports, module) {
         /**
          * Detect whether the path has a git repository 
          */
-        function detect(path, callback){
-            fs.exists(join(path, ".git"), function(exists){
+        function detect(path, callback) {
+            fs.exists(join(path, ".git"), function(exists) {
                 return callback(null, exists);
             });
         }
@@ -54,7 +54,7 @@ define(function(require, exports, module) {
             }, function(e, p) {
                 // if (e) console.error(e);
                 
-                buffer(p, function(stdout, stderr){
+                buffer(p, function(stdout, stderr) {
                     // console.log(e, stdout);
                     
                     var action = ACTIONS[args[0]];
@@ -65,36 +65,36 @@ define(function(require, exports, module) {
             });
         }
         
-        function buffer(process, callback){
+        function buffer(process, callback) {
             var stdout = "", stderr = "";
-            process.stdout.on("data", function(c){
+            process.stdout.on("data", function(c) {
                 stdout += c;
             });
-            process.stderr.on("data", function(c){
+            process.stderr.on("data", function(c) {
                 stderr += c;
             });
-            process.on("exit", function(c){
+            process.on("exit", function(c) {
                 callback(stdout, stderr);
             });
         }
         
-        function addAll(callback){
+        function addAll(callback) {
             git("add -u", callback);
         }
         
-        function addFileToStaging(paths, callback){
+        function addFileToStaging(paths, callback) {
             git(["add", "-f", "--ignore-errors", "--"].concat(paths), callback);
         }
         
-        function unstageAll(callback){
+        function unstageAll(callback) {
             git("reset --mixed", callback);
         }
         
-        function unstage(paths, callback){
+        function unstage(paths, callback) {
             git(["reset", "--mixed", "--"].concat(paths), callback);
         }
         
-        function fetch(options, callback){
+        function fetch(options, callback) {
             if (typeof options == "function")
                 callback = options, options = {};
             
@@ -102,7 +102,7 @@ define(function(require, exports, module) {
             if (options.prune) args.push("--prune");
             if (options.branch) args.push(options.branch);
             
-            git(args, function(err, stdout, stderr){
+            git(args, function(err, stdout, stderr) {
                 if (stderr) {
                     var error = errors.detect(stderr);
                     if (error)
@@ -114,7 +114,7 @@ define(function(require, exports, module) {
             });
         }
         
-        function pull(options, callback){
+        function pull(options, callback) {
             if (typeof options == "function")
                 callback = options, options = {};
             
@@ -122,7 +122,7 @@ define(function(require, exports, module) {
             if (options.prune) args.push("--prune");
             if (options.branch) args.push(options.branch);
             
-            git(args, function(err, stdout, stderr){
+            git(args, function(err, stdout, stderr) {
                 if (stderr) {
                     var error = errors.detect(stderr);
                     if (error)
@@ -134,7 +134,7 @@ define(function(require, exports, module) {
             });
         }
         
-        function push(options, callback){
+        function push(options, callback) {
             if (typeof options == "function")
                 callback = options, options = {};
             
@@ -142,7 +142,7 @@ define(function(require, exports, module) {
             if (options.force) args.push("--force");
             if (options.branch) args.push(options.branch);
             
-            git(args, function(err, stdout, stderr){
+            git(args, function(err, stdout, stderr) {
                 if (stderr) {
                     var error = errors.detect(stderr);
                     if (error)
@@ -154,12 +154,12 @@ define(function(require, exports, module) {
             });
         }
         
-        function getRemotes(callback){
+        function getRemotes(callback) {
             git(["remote", "-v"], function(err, stdout, stderr) {
                 if (err || stderr) return callback(err || stderr);
                 
                 var remotes = {};
-                stdout.split("\n").forEach(function(line){
+                stdout.split("\n").forEach(function(line) {
                     var parts = line.split(/\s+/);
                     if (remotes[parts[0]] || !parts[0]) return;
                     remotes[parts[0]] = parts[1];
@@ -220,10 +220,10 @@ define(function(require, exports, module) {
             if (fromName.indexOf("refs/heads") !== 0)
                 return callback(new Error("Unable to rename remote branches"));
             
-            addBranch(toName, fromName, function(err){
+            addBranch(toName, fromName, function(err) {
                 if (err) return callback(err);
                 
-                removeBranch(fromName, function(err){
+                removeBranch(fromName, function(err) {
                     callback(err);
                 });
             });
@@ -239,7 +239,7 @@ define(function(require, exports, module) {
         }
         
         var errors = {
-            detect: function(output){
+            detect: function(output) {
                 for (var prop in errors) {
                     var err;
                     if (prop.substr(0, 2) == "is") {
@@ -271,13 +271,13 @@ define(function(require, exports, module) {
             name: "NotARepo", 
             code: 104,
             detect: /fatal: Not a git repository/
-        }].forEach(function(def){
-            errors[def.name] = function(msg){ this.message = msg };
+        }].forEach(function(def) {
+            errors[def.name] = function(msg) { this.message = msg; };
             errors[def.name].prototype = new Error();
             errors[def.name].prototype.code = def.code;
             
             def.error = errors[def.name];
-            errors["is" + def.name] = function(output){
+            errors["is" + def.name] = function(output) {
                 if (def.detect.test(output))
                     return new errors[def.name](output);
             };
@@ -299,7 +299,7 @@ define(function(require, exports, module) {
             });
         }
         
-        function revert(path, callback){
+        function revert(path, callback) {
             git(["checkout", path], function(err, stdout, stderr) {
                 if (err || stderr) return callback(err || stderr);
                 return callback();
@@ -334,7 +334,7 @@ define(function(require, exports, module) {
             });
         }
         
-        function removeAllLocalMerged(callback){
+        function removeAllLocalMerged(callback) {
             var script = 
                 'git checkout master || { echo "Failed to switch to master. Aborting"; exit 1; }\n'
                 + 'git branch --merged | grep -v "\*" | xargs -n 1 git branch -d';
@@ -345,7 +345,7 @@ define(function(require, exports, module) {
             }, function(e, p) {
                 if (e) return callback(e);
                 
-                buffer(p, function(stdout, stderr){
+                buffer(p, function(stdout, stderr) {
                     if (stderr) return callback(stderr);
                     callback();
                 });
@@ -390,7 +390,7 @@ define(function(require, exports, module) {
                 args: args,
                 cwd: workspaceDir
             }, function(err, stdout, stderr) {
-                if (err)  {
+                if (err) {
                     if (/fatal: bad revision/.test(err.message)) {
                         var EMPTY = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
                         if (options.base != EMPTY) {
@@ -525,7 +525,7 @@ define(function(require, exports, module) {
                 if (err) return cb(err);
                 
                 console.log(err, stdout);
-                console.log(t-Date.now(), stdout.length);
+                console.log(t - Date.now(), stdout.length);
                 
                 var args = ["log", "--topo-order", "--date=raw"];
                 if (options.boundary !== false) args.push("--boundary");
@@ -575,7 +575,7 @@ define(function(require, exports, module) {
                         });
                     }
                     // console.log(err, x);
-                    console.log(t-Date.now(), stdout.length);
+                    console.log(t - Date.now(), stdout.length);
                     root.unshift({
                         label: "// WIP",
                         hash: 0,
@@ -589,7 +589,7 @@ define(function(require, exports, module) {
             });
         }
         
-        function getLastLogMessage(callback){
+        function getLastLogMessage(callback) {
             git(["log", "-n", "1", "--pretty=format:%s"], function(err, stdout, stderr) {
                 if (err || stderr) return callback(err || stderr);
                 return callback(null, stdout);
@@ -624,7 +624,7 @@ define(function(require, exports, module) {
             var args = ["diff"];
             
             if (options.context !== false)
-                args.push("-U" + (options.context || 20000))
+                args.push("-U" + (options.context || 20000));
             
             var oldPath = options.oldPath || "";
             var newPath = options.newPath || "";
@@ -648,7 +648,7 @@ define(function(require, exports, module) {
                                 orig: orig || "",
                                 edit: edit || ""
                             });
-                        })
+                        });
                     });
                 }
                 callback(null, {
@@ -725,14 +725,14 @@ define(function(require, exports, module) {
             });
         }
         
-        function listRef(name, cb){
-            listAllRefs(function(err, data){
+        function listRef(name, cb) {
+            listAllRefs(function(err, data) {
                 if (err) return cb(err);
                 cb(null, data[0]);
             }, name);
         }
         
-        function getBlame(path, callback){
+        function getBlame(path, callback) {
             proc.spawn("git", {
                 args: ["blame", "-wp", "--", basename(path)],
                 cwd: c9.workspaceDir + "/" + dirname(path)
@@ -763,7 +763,7 @@ define(function(require, exports, module) {
             /**
              * 
              */
-            get errors(){ return errors; },
+            get errors() { return errors; },
             
             /**
              * 

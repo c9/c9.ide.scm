@@ -14,7 +14,7 @@ function BlameParser(str) {
     if (str) this.parse(str);
 }
 
-(function(){
+(function() {
     /**
      * The entry point for parsing the output from git blame -p
      * 
@@ -148,11 +148,11 @@ function BlameParser(str) {
                 lastHash = lineData[i].hash;
                 var time = new Date(parseInt(commitData[lineData[i].hash].authorTime, 10) * 1000);
                 var commit = commitData[lineData[i].hash];
-                textHash[i-1] = {
-                    text : commit.author +
+                textHash[i - 1] = {
+                    text: commit.author +
                         " \xBB "/* +
                         lineData[i].hash.substr(0, 8),*/,
-                    title : commitData[lineData[i].hash].summary,
+                    title: commitData[lineData[i].hash].summary,
                     data: lineData[i],
                     commit: commit,
                     time: time
@@ -233,7 +233,7 @@ var BlameGutter = function(editor, blameStr) {
     this.detachFromEditor = function() {
         if (!this.editor) return;
         
-        var editor  = this.editor;
+        var editor = this.editor;
         var gutter = editor.renderer.$gutterLayer;
         gutter.$cells.length = 0;
         gutter.element.innerHTML = "";
@@ -327,7 +327,7 @@ var BlameGutter = function(editor, blameStr) {
                 break;
 
             html.push("<div class='ace_gutter-cell",
-                "' style='height:", lineHeight, "px;'>", (i+1));
+                "' style='height:", lineHeight, "px;'>", (i + 1));
 
             if (foldWidgets) {
                 var c = foldWidgets[i];
@@ -356,7 +356,7 @@ var BlameGutter = function(editor, blameStr) {
             if (blameCell)
                 addBlameCell(blameCell.text, blameCell.title);
             else
-                blameHtml[$blameIndex] += this.session.getRowLength(i-1) * lineHeight;
+                blameHtml[$blameIndex] += this.session.getRowLength(i - 1) * lineHeight;
         }
 
         this.element = dom.setInnerHtml(this.element, html.join(""));
@@ -372,7 +372,7 @@ var BlameGutter = function(editor, blameStr) {
         function addBlameCell(text, title) {
             blameHtml.push(
                 "<div class='ace_blame-cell ", text == selectedText ? "selected" : "",
-                "' index='", lastBlameCellIndex - 1,"'",
+                "' index='", lastBlameCellIndex - 1, "'",
                 "style='height:", lineHeight, "px'>",
                 text, "  ", title,
                 "</div>"
@@ -404,7 +404,7 @@ var BlameGutter = function(editor, blameStr) {
                 this.editor.blameGutter.element.style.width = gutterWidth - 40 + "px";
                 this.editor.renderer.$gutterLayer._emit("changeGutterWidth", gutterWidth);
             };
-            mouseHandler.captureMouse(e,  mouseHandler.resizeBlameGutter.bind(mouseHandler));
+            mouseHandler.captureMouse(e, mouseHandler.resizeBlameGutter.bind(mouseHandler));
             return e.stop();
         }
 
@@ -417,7 +417,7 @@ var BlameGutter = function(editor, blameStr) {
                 return e.stop();
             gutter.selectedText = blameCell.text;
             var ch = target.parentNode.children;
-            for (var i = ch.length; i--; ) {
+            for (var i = ch.length; i--;) {
                 var isSelected = ch[i].innerHTML.indexOf(gutter.selectedText) == 0;
                 ch[i].className = "ace_blame-cell" + (isSelected ? " selected" : "");
             }
@@ -428,7 +428,7 @@ var BlameGutter = function(editor, blameStr) {
     this.onMousemove = function(e) {
         var target = e.target;
         var container = e.currentTarget;
-        return
+        return;
         var tooltip = this.editor.tooltip;
         if (this.$highlightedCell != target) {
             if (dom.hasCssClass(target, "ace_blame-cell")) {

@@ -24,7 +24,7 @@ define(function(require, exports, module) {
         
         /***** Methods *****/
         
-        function onNewValue(e){
+        function onNewValue(e) {
             var tab = e.tab;
             var value = tab.document.recentValue;
             if (!value || typeof value != "string") return;

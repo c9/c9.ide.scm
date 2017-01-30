@@ -47,11 +47,11 @@ define(function(require, exports, module) {
         function load() {
             if (!scm.on) return;
         
-            scm.on("workspaceDir", function(options){
+            scm.on("workspaceDir", function(options) {
                 workspaceDir = options.workspaceDir || c9.workspaceDir;
             }, plugin);
             
-            panels.on("afterAnimate", function(){
+            panels.on("afterAnimate", function() {
                 if (panels.isActive("changes"))
                     tree && tree.resize();
             });
@@ -80,10 +80,10 @@ define(function(require, exports, module) {
             if (drawn) return;
             drawn = true;
             
-            opts.html.innerHTML = "<div class='detail-label'></div><div class='detail-tree'></div>"
+            opts.html.innerHTML = "<div class='detail-label'></div><div class='detail-tree'></div>";
             opts.html.className = "detail-root top-test-panel";
             label = opts.html.firstChild;
-            label.host = {textselect: true};
+            label.host = { textselect: true };
             
             tree = new Tree({
                 container: opts.html.lastChild,
@@ -118,7 +118,7 @@ define(function(require, exports, module) {
                 
                 isLoading: function() {},
     
-                getEmptyMessage: function(){
+                getEmptyMessage: function() {
                     if (!this.keyword)
                         return this.isLoading()
                             ? "Loading file list. One moment please..."
@@ -151,7 +151,7 @@ define(function(require, exports, module) {
                 openSelectedFiles();
             });
             
-            layout.on("eachTheme", function(e){
+            layout.on("eachTheme", function(e) {
                 var height = parseInt(ui.getStyleRule(".filetree .tree-row", "height"), 10) || 22;
                 tree.rowHeightInner = height;
                 tree.rowHeight = height + 1;
@@ -215,18 +215,18 @@ define(function(require, exports, module) {
             //     }
             // }, plugin);
             
-            scm.on("reload", function(options){
+            scm.on("reload", function(options) {
                 reload(options || { hash: 0, force: true }, function(e, status) {
                     
                 });
             }, plugin);
             
-            scm.on("resize", function(){
+            scm.on("resize", function() {
                 tree && tree.resize();
             });
             
-            scmlog.on("select", function(options){
-                if (options) reload(options, function(){});
+            scmlog.on("select", function(options) {
+                if (options) reload(options, function() {});
             }, plugin);
             
             // Context Menu
@@ -237,7 +237,7 @@ define(function(require, exports, module) {
             ]});
             opts.aml.setAttribute("contextmenu", menuContext.aml);
             
-            reload({ hash: 0, force: true }, function(){});
+            reload({ hash: 0, force: true }, function() {});
         }
         
         /***** Methods *****/
@@ -290,7 +290,7 @@ define(function(require, exports, module) {
             $sorted: true
         };
         function reload(options, cb) {
-            if (!options) options = {hash: 0};
+            if (!options) options = { hash: 0 };
             if (!tree.meta.options) tree.meta.options = {};
             if (!options.force)
             if (tree.meta.options.hash == options.hash && tree.meta.options.base == options.base)
@@ -397,11 +397,11 @@ define(function(require, exports, module) {
                     }
                     
                     if (options.commit) {
-                        label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span> "
+                        label.innerHTML = "<span class='hash'>" + escapeHTML(options.hash) + "</span> "
                             + "<span>" + escapeHTML(options.commit.authorname) + "</span>"
                             + "<div>" + escapeHTML(options.commit.label) + "</div>";
                     } else {
-                        label.innerHTML =  "<span class='hash'>" + escapeHTML(options.hash) + "</span>"
+                        label.innerHTML = "<span class='hash'>" + escapeHTML(options.hash) + "</span>"
                             + " ... "
                             + "<span class='hash'>" + escapeHTML(options.base) + "</span> ";
                     }
@@ -420,7 +420,7 @@ define(function(require, exports, module) {
                 if (path[0] != "/") path = "/" + path;
                 path = workspaceDir + path;
                 path = util.normalizePath(path);
-                tabbehavior.revealtab({path: path});
+                tabbehavior.revealtab({ path: path });
             }
         }
         
@@ -470,10 +470,10 @@ define(function(require, exports, module) {
                 document: {
                     diffview: diffview
                 }
-            }, function(){});
+            }, function() {});
         }
         
-        function findOpenDiffview(options){
+        function findOpenDiffview(options) {
             var pages = tabManager.getTabs();
             for (var i = 0, tab = pages[i]; tab; tab = pages[i++]) {
                 if (tab.editorType == "diffview") {
@@ -488,7 +488,7 @@ define(function(require, exports, module) {
         function openConflictView(node) {
             var addConflictMarker = require("../diff/conflictmarker");
             var path = workspaceDir + "/" + node.path;
-            tabManager.open({path: path, focus: true}, function(e, tab) {
+            tabManager.open({ path: path, focus: true }, function(e, tab) {
                 addConflictMarker(tab.editor.ace);
             });
         }
@@ -515,7 +515,7 @@ define(function(require, exports, module) {
                     noanim: sel.length > 1,
                     active: node === main,
                     focus: node === main && focus
-                }, function(){});
+                }, function() {});
             });
         }
         
@@ -535,7 +535,7 @@ define(function(require, exports, module) {
             // Cancel Preview
             // tabs.preview({ cancel: true });
         });
-        plugin.on("unload", function(){
+        plugin.on("unload", function() {
             drawn = false;
         });
         
@@ -558,15 +558,15 @@ define(function(require, exports, module) {
             /**
              * 
              */
-            get changed() { return changed },
+            get changed() { return changed; },
             /**
              * 
              */
-            get ignored() { return ignored },
+            get ignored() { return ignored; },
             /**
              * 
              */
-            get staged() { return staged }
+            get staged() { return staged; }
         });
         
         register(null, {

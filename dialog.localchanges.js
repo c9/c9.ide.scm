@@ -29,7 +29,7 @@ define(function(require, module, exports) {
         
         function show(changes, onstash, ondiscard, oncancel, options) {
             options = options || {};
-            return plugin.queue(function(){
+            return plugin.queue(function() {
                 if (changes) {
                     plugin.body = "These files have been changes\n" 
                         + util.escapeXml(changes)
@@ -37,18 +37,18 @@ define(function(require, module, exports) {
                 }
                 
                 plugin.update([
-                    { id: "cancel", onclick: function(){
+                    { id: "cancel", onclick: function() {
                         plugin.hide(); 
                         oncancel();
-                    }},
-                    { id: "discard", onclick: function(){
+                    } },
+                    { id: "discard", onclick: function() {
                         plugin.hide(); 
                         ondiscard();
-                    }}, 
-                    { id: "stash", onclick: function(){
+                    } }, 
+                    { id: "stash", onclick: function() {
                         plugin.hide(); 
                         onstash();
-                    }}
+                    } }
                 ]);
             });
         }

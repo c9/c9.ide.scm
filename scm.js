@@ -110,9 +110,9 @@ define(function(require, exports, module) {
         
         /***** Initialization *****/
         
-        var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Source Control Management")
+        var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Source Control Management");
         if (!ENABLED)
-            return register(null, { "scm": { on: function(){} } });
+            return register(null, { "scm": { on: function() {} }});
         
         var plugin = new Plugin("Ajax.org", main.consumes);
         var emit = plugin.getEmitter();
@@ -123,7 +123,7 @@ define(function(require, exports, module) {
         var workspaceDir = c9.workspaceDir; // + "/plugins/c9.ide.scm/mock/git";
         
         var loaded = false;
-        function load(){
+        function load() {
             if (loaded) return false;
             loaded = true;
             
@@ -145,7 +145,7 @@ define(function(require, exports, module) {
                     });
                     
                     var path = tab.path;
-                    scm.getBlame(path, function(err, blameInfo){
+                    scm.getBlame(path, function(err, blameInfo) {
                         if (err) return console.error(err);
                         data = blameInfo;
                         done();
@@ -158,7 +158,7 @@ define(function(require, exports, module) {
                         blameAnnotation.setData(data);
                     }
                 },
-                isAvailable: function(){
+                isAvailable: function() {
                     var tab = tabManager.focussedTab || tabManager.getPanes()[0].activeTab;
                     if (!tab || !tab.path || tab.editorType != "ace")
                         return false;
@@ -196,7 +196,7 @@ define(function(require, exports, module) {
             //     exec: function(){ pull({}); }
             // }, plugin);
             
-            c9.on("ready", function _(){
+            c9.on("ready", function _() {
                 if (scm) return;
                 
                 if (!isDetecting)
@@ -209,21 +209,21 @@ define(function(require, exports, module) {
         /***** Methods *****/
         
         var isDetecting = 0;
-        function registerSCM(name, scmPlugin){
+        function registerSCM(name, scmPlugin) {
             scms[name] = scmPlugin;
             if (!scm) scm = scmPlugin;
             
             emit("register", { plugin: scmPlugin });
             
             isDetecting++;
-            scmPlugin.detect("/", function(err, active){
+            scmPlugin.detect("/", function(err, active) {
                 isDetecting--;
                 if (err || !active) return;
                 emit.sticky("scm", scmPlugin);
             });
         }
         
-        function unregisterSCM(name, scmPlugin){
+        function unregisterSCM(name, scmPlugin) {
             delete scms[name];
             
             emit("unregister", { plugin: scmPlugin });
@@ -231,7 +231,7 @@ define(function(require, exports, module) {
         
         function openDiff(options, callback) {
             var found;
-            if (tabManager.getTabs().some(function(tab){
+            if (tabManager.getTabs().some(function(tab) {
                 if (tab.editorType == "diff.unified") {
                     if (tab.document.getSession().isEqual(options)) {
                         found = tab;
@@ -250,17 +250,17 @@ define(function(require, exports, module) {
                     "diff.unified": options
                 }
                 // path: "/compare.diff"
-            }, function(err, tab){
+            }, function(err, tab) {
                 callback && callback(err, tab);
             });
         }
         
         /***** Lifecycle *****/
         
-        plugin.on("load", function(){
+        plugin.on("load", function() {
             load();
         });
-        plugin.on("unload", function(){
+        plugin.on("unload", function() {
             loaded = false;
         });
         

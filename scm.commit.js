@@ -65,9 +65,9 @@ define(function(require, exports, module) {
         
         /***** Initialization *****/
         
-        var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Source Control Management")
+        var ENABLED = experimental.addExperiment("git", !c9.hosted, "Panels/Source Control Management");
         if (!ENABLED)
-            return register(null, { "scm.commit": {} });
+            return register(null, { "scm.commit": {}});
         
         var plugin = new Panel("Ajax.org", main.consumes, {
             index: options.index || 400,
@@ -83,7 +83,7 @@ define(function(require, exports, module) {
             "sync": "Sync",
             "conflict": "Resolve Conflicts",
             "rebase": "????"
-        }
+        };
         
         var btnScmClassName = "splitbutton btn-scm-sync";
         var btnMode = "sync";
@@ -153,21 +153,21 @@ define(function(require, exports, module) {
             //     }
             // }, plugin);
             
-            scmProvider.on("scm", function(implementation){
+            scmProvider.on("scm", function(implementation) {
                 scm = implementation;
                 
                 if (scm) {
-                    scm.on("status", function(e){
+                    scm.on("status", function(e) {
                         updateStatus(e.status);
                     }, plugin);
                     
-                    scm.on("log.dirty", function(){
+                    scm.on("log.dirty", function() {
                         if (!plugin.active) return;
                         updateLastCommit();
                     }, plugin);
                     
                     var timer;
-                    scm.on("status.dirty", function(){
+                    scm.on("status.dirty", function() {
                         clearTimeout(timer);
                         timer = setTimeout(reload, 500);
                     });
@@ -179,12 +179,12 @@ define(function(require, exports, module) {
                 }
             });
             
-            watcher.on("change.all", function(e){
+            watcher.on("change.all", function(e) {
                 if (plugin.active && !isChanged(e.path) && Date.now() - lastReloadT > 2000)
                     reload();
             });
             
-            watcher.on("directory.all", function(e){
+            watcher.on("directory.all", function(e) {
                 if (plugin.active && !isChanged(e.path) && Date.now() - lastReloadT > 2000)
                     reload();
             });
@@ -198,7 +198,7 @@ define(function(require, exports, module) {
             
             plugin.autohide = !panels.isActive("scm.commit");
             
-            plugin.on("show", function(e){
+            plugin.on("show", function(e) {
                 plugin.autohide = !e.button;
             
                 // TODO is this needed?
@@ -238,7 +238,7 @@ define(function(require, exports, module) {
                 label: "amend",
                 skin: "checkbox_black",
                 margin: "-2px 0 0 0",
-                onafterchange: function(){
+                onafterchange: function() {
                     commitBox.ace.setValue(ammendCb.checked
                         ? lastCommitMessage || ""
                         : "");
@@ -279,7 +279,7 @@ define(function(require, exports, module) {
                 }
                 
                 // TODO add better support for overlay panels
-                setTimeout(function() { plugin.hide() }, 10);
+                setTimeout(function() { plugin.hide(); }, 10);
             }
     
             apf.addEventListener("movefocus", onAllBlur);
@@ -318,13 +318,13 @@ define(function(require, exports, module) {
                             resetHard();
                         }
                     }),
-                    new MenuItem({ caption: "Stash Changes", onclick: function(){  
-                        scm.stash(function(){});
-                    }}, plugin),
+                    new MenuItem({ caption: "Stash Changes", onclick: function() {  
+                        scm.stash(function() {});
+                    } }, plugin),
                     
-                    new MenuItem({ caption: "Apply Stashed Changes", onclick: function(){
-                        scm.stashPop(function(){});
-                    }}, plugin),
+                    new MenuItem({ caption: "Apply Stashed Changes", onclick: function() {
+                        scm.stashPop(function() {});
+                    } }, plugin),
                     
                     new Divider(),
                     
@@ -384,7 +384,7 @@ define(function(require, exports, module) {
                 skinset: "default",
                 skin: "c9-menu-btn",
                 submenu: mnuCommit.aml,
-                onclick: function(){
+                onclick: function() {
                     // if (btnMode == "commit")
                     //     dialogCommit.show();
                     // else 
@@ -443,48 +443,48 @@ define(function(require, exports, module) {
             // updateStatusTree();
             
             var mnuContext = new Menu({ items: [
-                new MenuItem({ caption: "Stage", onclick: function(){
+                new MenuItem({ caption: "Stage", onclick: function() {
                     tree.selectedNodes.forEach(stageFile);
-                }, isAvailable: function(){
+                }, isAvailable: function() {
                     var node = tree.selectedNode;
                     return node && node.parent != staged;
-                }}),
-                new MenuItem({ caption: "Unstage", onclick: function(){
+                } }),
+                new MenuItem({ caption: "Unstage", onclick: function() {
                     var nodes = tree.selectedNodes;
                     removeFromStaging(nodes);
-                }, isAvailable: function(){
+                }, isAvailable: function() {
                     var node = tree.selectedNode;
                     return node && node.parent == staged;
-                }}),
-                new MenuItem({ caption: "Revert", onclick: function(){
+                } }),
+                new MenuItem({ caption: "Revert", onclick: function() {
                     tree.selectedNodes.forEach(revertFile);
-                }, isAvailable: function(){
+                }, isAvailable: function() {
                     var node = tree.selectedNode;
                     return node && (node.parent == staged || node.parent == changed);
-                }}),
+                } }),
                 new Divider(),
-                new MenuItem({ caption: "Stage All", onclick: function(){
+                new MenuItem({ caption: "Stage All", onclick: function() {
                     scm.addAll();
-                }, isAvailable: function(){
+                }, isAvailable: function() {
                     return changed.children.length;
-                }}),
-                new MenuItem({ caption: "Unstage All", onclick: function(){
+                } }),
+                new MenuItem({ caption: "Unstage All", onclick: function() {
                     scm.unstageAll();
-                }, isAvailable: function(){
+                }, isAvailable: function() {
                     return staged.children.length;
-                }}),
+                } }),
                 new Divider(),
-                new MenuItem({ caption: "Show Changes", hotkey: "Enter", onclick: function(){
+                new MenuItem({ caption: "Show Changes", hotkey: "Enter", onclick: function() {
                     showDiff(tree.selectedNode);
-                }, isAvailable: function(){
+                }, isAvailable: function() {
                     var node = tree.selectedNode;
                     return node && (node.parent != ignored && node.parent != untracked);
-                }}),
-                new MenuItem({ caption: "Open File", hotkey: "Shift-Enter", onclick: function(){
+                } }),
+                new MenuItem({ caption: "Open File", hotkey: "Shift-Enter", onclick: function() {
                     openSelectedFiles();
-                }, isAvailable: function(){
+                }, isAvailable: function() {
                     return tree.selectedNode;
-                }})
+                } })
             ]}, plugin);
             container.setAttribute("contextmenu", mnuContext.aml);
             
@@ -555,7 +555,7 @@ define(function(require, exports, module) {
                 openSelectedFiles();
             });
             
-            layout.on("eachTheme", function(e){
+            layout.on("eachTheme", function(e) {
                 var height = parseInt(ui.getStyleRule(".filetree .tree-row", "height"), 10) || 22;
                 tree.rowHeightInner = height;
                 tree.rowHeight = height + 1;
@@ -767,10 +767,10 @@ define(function(require, exports, module) {
         };
         
         var queue;
-        function updateStatus(status){
+        function updateStatus(status) {
             if (!tree) {
                 if (!queue)
-                    plugin.once("draw", function(){ updateStatus(queue); });
+                    plugin.once("draw", function() { updateStatus(queue); });
                 queue = status;
                 return;
             }
@@ -811,7 +811,7 @@ define(function(require, exports, module) {
                     : "sync"));
         }
         
-        function updateButton(type){
+        function updateButton(type) {
             btnMode = type;
             if (!isSyncing) removeLoading();
         }
@@ -820,7 +820,7 @@ define(function(require, exports, module) {
         // - maybe big 3 dots from earlier version of salesforce sync button
         // + a small dropdown below the button stating what the new hash is
         var isSyncing;
-        function sync(){
+        function sync() {
             if (isSyncing) return;
             
             if (settings.getBool("state/scm/@auto")
@@ -832,22 +832,22 @@ define(function(require, exports, module) {
                 "Syncing will fetch and merge all remote changes of this branch "
                   + "to your working copy and push all your changes to the remote "
                   + "origin. Essentially this will execute a pull and then a push.",
-                function(){ // Yes
+                function() { // Yes
                     if (question.dontAsk)
                        settings.set("user/scm/@dontask", true);
                     
                     _sync();
-                }, function(){ // No
+                }, function() { // No
                     // Do Nothing
                 }, {
                     showDontAsk: true
                 });
             
-            function _sync(){
+            function _sync() {
                 isSyncing = true;
                 setLoading();
                 
-                function done(err){
+                function done(err) {
                     isSyncing = false;
                     removeLoading();
                     
@@ -862,23 +862,23 @@ define(function(require, exports, module) {
                     if (err) return; // TODO
                 }
                 
-                scm.pull(function(err){
+                scm.pull(function(err) {
                     if (err) return done(err);
                     
-                    scm.push(function(err){
+                    scm.push(function(err) {
                         done(err);
                     });
                 });
             }
         }
         
-        function push(){
+        function push() {
             if (isSyncing) return;
             
             isSyncing = true;
             setLoading();
             
-            scm.push(function(err){
+            scm.push(function(err) {
                 removeLoading();
                 isSyncing = false;
                 
@@ -890,13 +890,13 @@ define(function(require, exports, module) {
                 }
             });
         }
-        function pull(){
+        function pull() {
             if (isSyncing) return;
             
             isSyncing = true;
             setLoading();
             
-            scm.pull(function(err){
+            scm.pull(function(err) {
                 removeLoading();
                 isSyncing = false;
                 
@@ -908,13 +908,13 @@ define(function(require, exports, module) {
                 }
             });
         }
-        function mergeMaster(){
+        function mergeMaster() {
             if (isSyncing) return;
             
             isSyncing = true;
             setLoading();
             
-            scm.pull({ branch: "origin master" }, function(err){
+            scm.pull({ branch: "origin master" }, function(err) {
                 removeLoading();
                 isSyncing = false;
                 
@@ -926,33 +926,33 @@ define(function(require, exports, module) {
                 }
             });
         }
-        function resetHard(){
+        function resetHard() {
             setLoading();
-            scm.resetHard(function(err){
+            scm.resetHard(function(err) {
                 removeLoading();
                 if (err) return; // TODO
             });
         }
-        function markResolved(){
+        function markResolved() {
             if (isSyncing || !conflicts.children.length) return;
             
             confirm("Resolve Conflicts",
                 "Would you like to resolve all conflicts?",
                 "Click OK to resolve all conflicts",
-                function(){
+                function() {
                     isSyncing = true;
                     setLoading();
                     
-                    async.each(conflicts.children, function(n, next){
+                    async.each(conflicts.children, function(n, next) {
                         scm.addFileToStaging(n.path, next);
-                    }, function(err){
+                    }, function(err) {
                         removeLoading();
                         if (err) return; // TODO
                     });
                 });
         }
         
-        function commit(message, amend, callback, force){
+        function commit(message, amend, callback, force) {
             if (!message || typeof message == "function") {
                 callback = message;
                 message = commitBox.getValue();
@@ -961,7 +961,7 @@ define(function(require, exports, module) {
             if (typeof amend == "function")
                 callback = amend, amend = false;
             if (!callback) 
-                callback = function(){};
+                callback = function() {};
             
             if (!message) 
                 return callback(new Error("Nothing To Do"));
@@ -985,7 +985,7 @@ define(function(require, exports, module) {
             ammendCb.disable();
             commitBox.disable();
             
-            function done(err){
+            function done(err) {
                 ammendCb.enable();
                 commitBox.enable();
                 
@@ -1001,9 +1001,9 @@ define(function(require, exports, module) {
             }
             
             if (!staged.children.length && !force) {
-                scm.addFileToStaging(changed.children.map(function(n){
+                scm.addFileToStaging(changed.children.map(function(n) {
                     return n.path;
-                }), function(err){
+                }), function(err) {
                     if (err) return done(err);
                     
                     commit(message, amend, callback, true); 
@@ -1014,7 +1014,7 @@ define(function(require, exports, module) {
             scm.commit({
                 message: message,
                 amend: amend
-            }, function(err){
+            }, function(err) {
                 if (err) return done(err);
                 
                 if (settings.getBool("state/scm/@auto"))
@@ -1027,10 +1027,10 @@ define(function(require, exports, module) {
             });
         }
         
-        function openLog(callback){
+        function openLog(callback) {
             var tabs = tabManager.getTabs();
             var tab;
-            if (tabs.some(function(t){ return (tab = t).editorType == "scmlog"; }))
+            if (tabs.some(function(t) { return (tab = t).editorType == "scmlog"; }))
                 return tabManager.focusTab(tab);
             
             cnsl.show();
@@ -1038,14 +1038,14 @@ define(function(require, exports, module) {
                 editorType: "scmlog", 
                 focus: true,
                 pane: cnsl.getPanes()[0]
-            }, function(err, tab){
+            }, function(err, tab) {
                 callback && callback(err, tab);
             });
         }
         
         function stageFile(node) {
             if (node.parent === conflicts && node.type.indexOf("D") === -1) {
-                fs.readFile(node.path, function(err, data){
+                fs.readFile(node.path, function(err, data) {
                     if (err || data.indexOf("<<<<<<<") === -1) 
                         return addToStaging([node]);
                     
@@ -1054,7 +1054,7 @@ define(function(require, exports, module) {
                         "The file '" + node.path + "' still has an "
                           + "unresolved merge conflict. Click OK to mark "
                           + "the conflict as resolved.",
-                        function(){
+                        function() {
                             addToStaging([node]);
                         });
                 });
@@ -1064,14 +1064,14 @@ define(function(require, exports, module) {
             addToStaging([node]);
         }
         
-        function addToStaging(nodes){
-            scm.addFileToStaging(nodes.map(function(n){
+        function addToStaging(nodes) {
+            scm.addFileToStaging(nodes.map(function(n) {
                 return n.path;
             }).filter(Boolean));
         }
         
-        function removeFromStaging(nodes){
-            scm.unstage(nodes.map(function(n){
+        function removeFromStaging(nodes) {
+            scm.unstage(nodes.map(function(n) {
                 return n.path;
             }).filter(Boolean));
         }
@@ -1081,8 +1081,8 @@ define(function(require, exports, module) {
             confirm("Revert File",
                 "Are you sure you want to revert all changes in '" + path + "'",
                 "Click OK to revert all changes or click Cancel to cancel this action.",
-                function(){
-                    scm.revert(path, function(err){
+                function() {
+                    scm.revert(path, function(err) {
                         if (err) {
                             return alert("Could Not Revert Changes",
                                 "Received Error While Reverting Changes",
@@ -1090,10 +1090,10 @@ define(function(require, exports, module) {
                         }
                     });
                 }, 
-                function(){});
+                function() {});
         }
         
-        function reload(e){
+        function reload(e) {
             if (!scm) {
                 updateStatus(null);
                 tree.emptyMessage = "No repository detected";
@@ -1110,7 +1110,7 @@ define(function(require, exports, module) {
                 hash: 0, 
                 force: true,
                 untracked: "all"
-            }, function(err){
+            }, function(err) {
                 reloading = false;
                 lastReloadT = Date.now();
                 removeLoading();
@@ -1122,38 +1122,38 @@ define(function(require, exports, module) {
             return true;
         }
         
-        function isChanged(path){
-            if (changed.children.some(function(n){
+        function isChanged(path) {
+            if (changed.children.some(function(n) {
                 if (n.path == path) return;
             })) return true;
-            if (untracked.children.some(function(n){
+            if (untracked.children.some(function(n) {
                 if (n.path == path) return;
             })) return true;
-            if (conflicts.children.some(function(n){
+            if (conflicts.children.some(function(n) {
                 if (n.path == path) return;
             })) return true;
-            if (ignored.children.some(function(n){
+            if (ignored.children.some(function(n) {
                 if (n.path == path) return;
             })) return true;
             
             return false;
         }
         
-        function updateLastCommit(){
-            scm.getLastLogMessage(function(err, message){
+        function updateLastCommit() {
+            scm.getLastLogMessage(function(err, message) {
                 lastCommitMessage = err ? "" : message;
             });
         }
         
-        function setLoading(){
+        function setLoading() {
             setSyncStatus("syncing" + (conflicts.children.length ? " conflict" : ""));
         }
         
-        function removeLoading(){
+        function removeLoading() {
             setSyncStatus((conflicts.children.length ? "conflict" : ""));
         }
         
-        function showDiff(node, preview){
+        function showDiff(node, preview) {
             if (node.parent == ignored || node.parent == untracked)
                 return false;
             
@@ -1309,7 +1309,7 @@ define(function(require, exports, module) {
                     focus: node === main && focus
                 };
                 
-                tabManager.open(options, function(){});
+                tabManager.open(options, function() {});
             });
         }
         
@@ -1641,7 +1641,7 @@ define(function(require, exports, module) {
         //     );
         // }
        
-        function setSyncStatus(type){
+        function setSyncStatus(type) {
             if (!btnScm) return;
             
             var cls;
@@ -1692,7 +1692,7 @@ define(function(require, exports, module) {
         /**
          */
         plugin.freezePublicAPI({
-            get tree(){ return tree; },
+            get tree() { return tree; },
             
             /**
              * 

@@ -34,7 +34,7 @@ define(function(require, exports, module) {
         function load() {
             if (!scm.on) return;
             
-            panels.on("afterAnimate", function(){
+            panels.on("afterAnimate", function() {
                 if (panels.isActive("changes"))
                     tree && tree.resize();
             });
@@ -70,7 +70,7 @@ define(function(require, exports, module) {
             
                 isLoading: function() {},
     
-                getEmptyMessage: function(){
+                getEmptyMessage: function() {
                     if (!this.keyword)
                         return this.isLoading()
                             ? "Loading file list. One moment please..."
@@ -95,7 +95,7 @@ define(function(require, exports, module) {
             // tree.tooltip = new Tooltip(tree);
             // logTree.tooltip = new Tooltip(logTree);
             
-            layout.on("eachTheme", function(e){
+            layout.on("eachTheme", function(e) {
                 var height = parseInt(ui.getStyleRule(".filetree .tree-row", "height"), 10) || 20;
                 tree.rowHeightInner = height;
                 tree.rowHeight = height;
@@ -153,11 +153,11 @@ define(function(require, exports, module) {
             //     }
             // }, plugin);
             
-            scm.on("log", function(node){
+            scm.on("log", function(node) {
                 tree.model.loadData(node);
             }, plugin);
             
-            scm.on("resize", function(){
+            scm.on("resize", function() {
                 tree && tree.resize();
             });
         }
@@ -180,7 +180,7 @@ define(function(require, exports, module) {
             // Cancel Preview
             // tabs.preview({ cancel: true });
         });
-        plugin.on("unload", function(){
+        plugin.on("unload", function() {
             drawn = false;
         });
         

@@ -21,7 +21,7 @@ var EditSession = require("ace/edit_session").EditSession;
 var Mode = require("ace/mode/text").Mode;
 
 var mode = new Mode();
-var HEADER_ROWS = 3
+var HEADER_ROWS = 3;
 
 function createEditor(el) {
     if (el instanceof Editor) return el;
@@ -79,8 +79,8 @@ function DiffView(element, options) {
                 removedTotal += removed;
                 inserted = removed = 0;
                 
-                file = {type: "file"};
-                var none = {type: "none"};
+                file = { type: "file" };
+                var none = { type: "none" };
                 var path = line.split(" b/").pop();
                 result.push("", "", "", path);
                 states.push(none, none, none, file);
@@ -93,31 +93,31 @@ function DiffView(element, options) {
                     rowRemove = parseInt(m[1], 10);
                     rowInsert = parseInt(m[3], 10);
                     result.push(line);
-                    states.push({type: "header"});
+                    states.push({ type: "header" });
                 }
             }
             else if (line[0] == " ") {
                 result.push(line.substr(1));
-                states.push({type: "context", row2: rowInsert, row1: rowRemove});
+                states.push({ type: "context", row2: rowInsert, row1: rowRemove });
                 rowInsert++;
                 rowRemove++;
             }
             else if (line[0] == "+") {
                 result.push(line.substr(1));
-                states.push({type: "insert", row2: rowInsert, row1: ""});
+                states.push({ type: "insert", row2: rowInsert, row1: "" });
                 rowInsert++;
                 inserted++;
             }
             else if (line[0] == "-") {
                 result.push(line.substr(1));
-                states.push({type: "remove", row2: "", row1: rowRemove});
+                states.push({ type: "remove", row2: "", row1: rowRemove });
                 rowRemove++;
                 removed++;
             }
         }
         
         result.push("", "");
-        states.push({type: "none"}, {type: "file"});
+        states.push({ type: "none" }, { type: "file" });
         
         v = result.join("\n");
         editor.setValue(v, -1);
@@ -154,7 +154,7 @@ function DiffView(element, options) {
                 return null;
             
             var line = session.getLine(row);
-            var start = {row: row, column: line.length};
+            var start = { row: row, column: line.length };
             
             for (var l = states.length; ++row < l;) {
                 state = states[row];
@@ -182,7 +182,7 @@ function DiffView(element, options) {
         editor.diffView = this;
     };
 
-    this.updateGutter= function(config) {
+    this.updateGutter = function(config) {
         var session = this.session;
         var firstRow = config.firstRow;
         var lastRow = Math.min(config.lastRow + config.gutterOffset,  // needed to compensate for hor scollbar
@@ -215,7 +215,7 @@ function DiffView(element, options) {
 
             cell = this.$cells[++index];
             if (!cell) {
-                cell = {element: null, textNode: null, foldWidget: null};
+                cell = { element: null, textNode: null, foldWidget: null };
                 cell.element = dom.createElement("div");
                 cell.textNode = document.createTextNode('');
                 cell.element1 = dom.createElement("span");
@@ -297,7 +297,7 @@ function DiffView(element, options) {
         var w = e.currentTarget.w;
         var editor = this.editor;
         if (e.target.classList.contains("ace_fold-widget")) {
-            editor.session.onFoldWidgetClick(w.row, {domEvent: e});
+            editor.session.onFoldWidgetClick(w.row, { domEvent: e });
             e.preventDefault();
         }
     };
@@ -325,7 +325,7 @@ function DiffView(element, options) {
         var line = session.getLine(i);
         var lineHeight = editor.renderer.layerConfig.lineHeight;
         w.el.style.borderTopWidth = i > HEADER_ROWS ? "" : "0";
-        w.el.className ="unidiff_fileHeader ace_lineWidgetContainer";
+        w.el.className = "unidiff_fileHeader ace_lineWidgetContainer";
         if (!line) {
             w.el.style.height = lineHeight * 100 + "px";
             w.el.innerHTML = "";
@@ -334,11 +334,11 @@ function DiffView(element, options) {
         }
         w.el.style.height = lineHeight * HEADER_ROWS + "px";
         w.el.innerHTML = '<div class="unidiff_fileHeaderInner">'
-            + '<span class="ace_fold-widget ace_start' + (w.foldClosed ? 'ace_closed': '') +'"\
+            + '<span class="ace_fold-widget ace_start' + (w.foldClosed ? 'ace_closed' : '') + '"\
                 style="height:1.5em;left: -20px;\
                 position: relative;display: inline-block;"></span>'
-            + " " +  lang.escapeHTML(line) + " "
-            +'<div>';
+            + " " + lang.escapeHTML(line) + " "
+            + '<div>';
         w.foldArrow = w.el.firstChild.firstChild;
         w.el.firstChild.style.height = lineHeight * HEADER_ROWS + "px";
         w.el.firstChild.style.marginTop = lineHeight + "px";
@@ -439,8 +439,8 @@ function DiffView(element, options) {
         }
         
         function header(s1, c1, s2, c2) {
-            return "@@ -" + (c1 ? s1 + 1 : s1) +  "," + c1
-                + " +" + (c2 ? s2 + 1 : s2)  + "," + c2 + " @@";
+            return "@@ -" + (c1 ? s1 + 1 : s1) + "," + c1
+                + " +" + (c2 ? s2 + 1 : s2) + "," + c2 + " @@";
         }
         
         var context = options.context || 0;
@@ -517,7 +517,7 @@ function DiffView(element, options) {
         }
         
         if (!editEOF && !origEOF && end1 == origLines.length) {
-            patch +=  "\n\\ No newline at end of file";
+            patch += "\n\\ No newline at end of file";
         }
         
         return patch;
@@ -753,7 +753,7 @@ var DiffHighlight = function(diffView, type) {
                 }
                 if (type == "insert" || type == "remove" || type == "header") {
                     range.start.row = row;
-                    lastType = type
+                    lastType = type;
                 } else {
                     lastType = "";
                 }

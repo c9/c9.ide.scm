@@ -46,7 +46,7 @@ define(function(require, exports, module) {
             menuAce = new Menu({ 
                 id: "menu",
                 items: [
-                    new MenuItem({ position: 10, command: "cut", caption: "Cut"}, handle),
+                    new MenuItem({ position: 10, command: "cut", caption: "Cut" }, handle),
                     new MenuItem({ position: 20, command: "copy", caption: "Copy" }, handle),
                     new MenuItem({ position: 30, command: "paste", caption: "Paste" }, handle),
                     new Divider({ position: 40 }, handle),
@@ -62,7 +62,7 @@ define(function(require, exports, module) {
             }, handle);
         }
         
-        function DiffViewer(){
+        function DiffViewer() {
             // TODO it is too difficult to hook into initialization flow of ace plugin
             // so we have to copy paste bunch of code here :(
             // var Baseclass = editors.findEditor("ace");
@@ -79,8 +79,8 @@ define(function(require, exports, module) {
             plugin.on("draw", function(e) {
                 var tab = e.tab;
                 
-                lblLeft = new ui.label({ flex:1 });
-                lblRight = new ui.label({ flex:1, class:"right" });
+                lblLeft = new ui.label({ flex: 1 });
+                lblRight = new ui.label({ flex: 1, class: "right" });
                 btnNext = new ui.button({ 
                     caption: ">", 
                     height: 24,
@@ -103,7 +103,7 @@ define(function(require, exports, module) {
                     skin: "c9-toolbarbutton-glossy",
                     onclick: function() {
                         if (diffview.orig.session.$foldData.length)
-                            diffview.orig.session.unfold() 
+                            diffview.orig.session.unfold(); 
                         else
                             diffview.foldUnchanged();
                     }
@@ -191,7 +191,7 @@ define(function(require, exports, module) {
             
             /***** Method *****/
             
-            function getLabelValue(path){
+            function getLabelValue(path) {
                 var hash;
                 
                 if (path.indexOf(":") > -1) {
@@ -205,7 +205,7 @@ define(function(require, exports, module) {
                     + "<span class='dirname'> - " + dirname(dirpath) + "</span>";
             }
             
-            function loadSession(session){
+            function loadSession(session) {
                 if (session.diffSession) {
                     diffview.setSession(session.diffSession);
                     return;
@@ -245,7 +245,7 @@ define(function(require, exports, module) {
             
             /***** Lifecycle *****/
             
-            plugin.on("load", function(){
+            plugin.on("load", function() {
             });
             
             plugin.on("documentLoad", function(e) {
@@ -329,15 +329,15 @@ define(function(require, exports, module) {
                 session.oldPath = e.state.oldPath;
                 session.newPath = e.state.newPath;
             });
-            plugin.on("clear", function(){
+            plugin.on("clear", function() {
             });
-            plugin.on("focus", function(){
+            plugin.on("focus", function() {
             });
-            plugin.on("enable", function(){
+            plugin.on("enable", function() {
             });
-            plugin.on("disable", function(){
+            plugin.on("disable", function() {
             });
-            plugin.on("unload", function(){
+            plugin.on("unload", function() {
             });
             plugin.on("resize", function(e) {
                 diffview && diffview.resize(e);
@@ -349,8 +349,8 @@ define(function(require, exports, module) {
              * Read Only Image Editor
              **/
             plugin.freezePublicAPI({
-                get diffview() { return diffview },
-                get ace () { return lastAce }
+                get diffview() { return diffview; },
+                get ace () { return lastAce; }
             });
             
             plugin.load(null, "ace.repl");

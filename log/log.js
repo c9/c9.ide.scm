@@ -22,7 +22,7 @@ function GitGraph(editor) {
         [
             "#1f77b4", "#aec7e8", "#ff7f0e", "#ffbb78", "#2ca02c", "#98df8a", "#d62728", "#ff9896",
             "#9467bd", "#c5b0d5", "#8c564b", "#c49c94", "#e377c2", "#f7b6d2", "#7f7f7f", "#c7c7c7",
-            "#bcbd22", "#dbdb8d","#17becf", "#9edae5"
+            "#bcbd22", "#dbdb8d", "#17becf", "#9edae5"
         ],
         [
             "#393b79", "#5254a3", "#6b6ecf", "#9c9ede", "#637939", "#8ca252", "#b5cf6b", "#cedb9c",
@@ -79,7 +79,7 @@ function GitGraph(editor) {
             var emptyLine = lines.length;
             for (var j = 0; j < lines.length; j++) {
                 var path = lines[j];
-                if (!path && emptyLine > j|| path && path.last == d) {
+                if (!path && emptyLine > j || path && path.last == d) {
                     emptyLine = j;
                 }
                 if (path && path.last.parent == d) {
@@ -89,7 +89,7 @@ function GitGraph(editor) {
                         path.last = d;
                         found = true;
                         d.column = j;
-                        d.color = colors[j%colors.length];
+                        d.color = colors[j % colors.length];
                     }
                 }
                 if (path && path.last.row == i - 1) {
@@ -109,7 +109,7 @@ function GitGraph(editor) {
                     last: d
                 });
                 d.column = emptyLine;
-                d.color = colors[emptyLine%colors.length];
+                d.color = colors[emptyLine % colors.length];
             }
             if (d.parent2) {
                 var p = d.parent2;
@@ -137,7 +137,7 @@ function GitGraph(editor) {
             }
             d.w = lines.length;
             while (lines[lines.length - 1] === null)
-                lines.length = lines.length -1;
+                lines.length = lines.length - 1;
         }
     };
     
@@ -178,8 +178,8 @@ function GitGraph(editor) {
             if (i == start && !lines[0] && d.column != 0) {
                 lines[0] = path = {};
                 path.el = createSvg("path");
-                path.last = {row: 0, column: 0};
-                path.last.parent = {row: end + MAX_GAP, column: 0};
+                path.last = { row: 0, column: 0 };
+                path.last.parent = { row: end + MAX_GAP, column: 0 };
             }
 
             var col = d.column;
@@ -237,14 +237,14 @@ function GitGraph(editor) {
             
             if (d.gap) {
                 var el = createSvg("polygon");
-                el.setAttribute("points", x +"," + (y +lineHeight / 2 + 8) + " " + (x-5) +"," + (y+lineHeight / 2) + " " + (x+5) +"," + (y+lineHeight / 2));
+                el.setAttribute("points", x + "," + (y + lineHeight / 2 + 8) + " " + (x - 5) + "," + (y + lineHeight / 2) + " " + (x + 5) + "," + (y + lineHeight / 2));
                 el.setAttribute("style", "fill:lime;stroke:purple;stroke-width:1");
                 circleGroup.appendChild(el);
             }
             
             if (d.cogap) {
                 var el = createSvg("polygon");
-                el.setAttribute("points", x +"," + (y  - lineHeight / 2 - 8) + " " + (x-5) +"," + (y - lineHeight / 2) + " " + (x+5) +"," + (y-lineHeight / 2));
+                el.setAttribute("points", x + "," + (y - lineHeight / 2 - 8) + " " + (x - 5) + "," + (y - lineHeight / 2) + " " + (x + 5) + "," + (y - lineHeight / 2));
                 el.setAttribute("style", "fill:lime;stroke:purple;stroke-width:1");
                 circleGroup.appendChild(el);
             }
@@ -257,7 +257,7 @@ function GitGraph(editor) {
                 circle.setAttribute("height", 2 * w);
                 circle.setAttribute("x", x - w);
                 circle.setAttribute("y", y - w);
-                circle.style.opacity = 0.6
+                circle.style.opacity = 0.6;
             } else {
                 var circle = circleGroup.appendChild(createSvg("circle"));
                 circle.setAttribute("r", config.circleRadius);
@@ -272,7 +272,7 @@ function GitGraph(editor) {
                 // p.textContent = d.hash + " " ;
                 p.className = this.getRowClass(d, d.row);
                 p.style.height = this.vsize + "px";
-                var graphW = (1+d.w) * columnWidth;
+                var graphW = (1 + d.w) * columnWidth;
                 if (columns)
                     p.style.paddingRight = columns.fixedWidth + graphW + "px";
                 else

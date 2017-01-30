@@ -50,7 +50,7 @@ define(function(require, exports, module) {
             menuAce = new Menu({ 
                 id: "menu",
                 items: [
-                    new MenuItem({ position: 10, command: "cut", caption: "Cut"}, handle),
+                    new MenuItem({ position: 10, command: "cut", caption: "Cut" }, handle),
                     new MenuItem({ position: 20, command: "copy", caption: "Copy" }, handle),
                     new MenuItem({ position: 30, command: "paste", caption: "Paste" }, handle),
                     new Divider({ position: 40 }, handle),
@@ -66,12 +66,12 @@ define(function(require, exports, module) {
             }, handle);
         }
         
-        scmProvider.on("scm", function(implementation){
+        scmProvider.on("scm", function(implementation) {
             scm = implementation;
             handleEmit.sticky("ready");
         }, handle);
         
-        function DiffViewer(){
+        function DiffViewer() {
             // TODO it is too difficult to hook into initialization flow of ace plugin
             // so we have to copy paste bunch of code here :(
             // var Baseclass = editors.findEditor("ace");
@@ -217,7 +217,7 @@ define(function(require, exports, module) {
                     submenu: commitMenu.aml
                 }), 200, plugin);
                 
-                plugin.on("toolbar", function(e){
+                plugin.on("toolbar", function(e) {
                     if (e.session.branch) {
                         btnFile.show();
                         btnCommit.show();
@@ -240,17 +240,17 @@ define(function(require, exports, module) {
                     label: "Split"
                 }), 10020, plugin);
                 
-                fileMenu.on("show", function(){
+                fileMenu.on("show", function() {
                     var list = fileMenu.meta.$list;
                     list.setRoot.session.files;
                 });
-                commitMenu.on("show", function(){
+                commitMenu.on("show", function() {
                     var list = commitMenu.meta.$list;
                     list.setRoot.session.commits;
                 });
             }
             
-            function createMenu(mode){
+            function createMenu(mode) {
                 var menu = new Menu({}, plugin);
                 var htmlNode = menu.aml.$ext;
                 
@@ -380,7 +380,7 @@ define(function(require, exports, module) {
                 diffview.setValueFromPatch(session.diff.patch);
                 
                 var nodes = hostedtoolbar.childNodes;
-                for (var i = nodes.length -1; i >= 0; i--) {
+                for (var i = nodes.length - 1; i >= 0; i--) {
                     nodes[i].removeChild(nodes[i]);
                 }
                 
@@ -407,7 +407,7 @@ define(function(require, exports, module) {
             }
             
             var hashLabel;
-            function createHashToolbar(session){
+            function createHashToolbar(session) {
                 if (hashLabel) {
                     updateHashToolbar();
                     return;
@@ -416,14 +416,14 @@ define(function(require, exports, module) {
                 hashLabel = new ui.label();
                 hostedtoolbar.appendChild(hashLabel);
                 
-                plugin.on("session.update", function(e){
+                plugin.on("session.update", function(e) {
                     if (e.session != activeSession || !hashLabel.parentNode) 
                         return;
                         
                     updateHashToolbar();
                 });
                 
-                function updateHashToolbar(){
+                function updateHashToolbar() {
                     var session = activeSession;
                     hashLabel.setValue(session.hash + ":" + session.label + ":" 
                         + session.authorname + ":" + session.date);
@@ -435,7 +435,7 @@ define(function(require, exports, module) {
             }
             
             var branchButton, branchLabel, branchCompareButton;
-            function createBranchToolbar(){
+            function createBranchToolbar() {
                 if (branchButton) {
                     hostedtoolbar.appendChild(hashLabel);
                     updateBranchToolbar();
@@ -450,7 +450,7 @@ define(function(require, exports, module) {
                     caption: "<span>compare: </span>Master"
                 });
                 
-                function updateBranchToolbar(){
+                function updateBranchToolbar() {
                     var session = activeSession;
                     branchButton.setCaption("<span>base: </span>" + session.branch);
                     branchCompareButton.setCaption("<span>base: </span>" 
@@ -464,20 +464,20 @@ define(function(require, exports, module) {
                 updateBranchToolbar();
             }
             
-            function createPathToolbar(){
+            function createPathToolbar() {
                 // Nothing for now
             }
             
             /***** Lifecycle *****/
             
-            plugin.on("load", function(){
+            plugin.on("load", function() {
             });
             
             plugin.on("documentLoad", function(e) {
                 var doc = e.doc;
                 var session = e.doc.getSession();
                 
-                session.isEqual = function(options){
+                session.isEqual = function(options) {
                     return (
                         session.path == options.path &&
                         session.hash == options.hash &&
@@ -621,15 +621,15 @@ define(function(require, exports, module) {
                 session.compareBranch = e.state.compareBranch;
                 session.context = e.state.context;
             });
-            plugin.on("clear", function(){
+            plugin.on("clear", function() {
             });
-            plugin.on("focus", function(){
+            plugin.on("focus", function() {
             });
-            plugin.on("enable", function(){
+            plugin.on("enable", function() {
             });
-            plugin.on("disable", function(){
+            plugin.on("disable", function() {
             });
-            plugin.on("unload", function(){
+            plugin.on("unload", function() {
             });
             plugin.on("resize", function(e) {
                 diffview && diffview.editor.resize(e);
@@ -641,8 +641,8 @@ define(function(require, exports, module) {
              * Read Only Image Editor
              **/
             plugin.freezePublicAPI({
-                get diffview() { return diffview },
-                get ace () { return lastAce }
+                get diffview() { return diffview; },
+                get ace () { return lastAce; }
             });
             
             plugin.load(null, "ace.repl");

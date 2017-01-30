@@ -125,14 +125,14 @@ function ConflictMarker(editor) {
                     last.branch1 = line.substr(8);
                 } else if (!last) {
                     continue;
-                } if (ch ==  "|") {
+                } if (ch == "|") {
                     last.v1End = i; // shown if merge.conflictstyle="diff3"
-                } else if (ch ==  "=") {
+                } else if (ch == "=") {
                     if (!last.v1End)
                         last.v1End = i;
                     if (!last.v2Start)
                         last.v2Start = i;
-                } else if (ch ==  ">") {                 
+                } else if (ch == ">") {                 
                     last.endRow = i;
                     var v1Range = new Range(last.startRow + 1, 0, last.v1End - 1, Number.MAX_VALUE);
                     var v2Range = new Range(last.v2Start + 1, 0, last.endRow - 1, Number.MAX_VALUE);
@@ -204,24 +204,24 @@ function ConflictMarker(editor) {
         chunk.footer.el.chunk =
         chunk.splitter.el.chunk = chunk;
 
-        chunk.header.el.className ="conflict-widget-1";
+        chunk.header.el.className = "conflict-widget-1";
         chunk.footer.el.className = "conflict-widget-2";
         chunk.splitter.el.className = "conflict-widget-split";
         
         chunk.header.el.innerHTML = chunk.branch1 + "<span class='ace_comment'> // our changes</span>"
-            +"<span class='conflict-button-bottom'>"
-            +"<span class='ace_button' actionId='use-1'>Use Me</span>"
-            +"<span class='ace_button' actionId='use-1-2'>Use Both</span>"
-            +"</span>";
+            + "<span class='conflict-button-bottom'>"
+            + "<span class='ace_button' actionId='use-1'>Use Me</span>"
+            + "<span class='ace_button' actionId='use-1-2'>Use Both</span>"
+            + "</span>";
         chunk.footer.el.innerHTML = chunk.branch2 + "<span class='ace_comment'> // their changes</span>"
-            +"<span class='conflict-button-top'>"
-            +"<span class='ace_button' actionId='use-2'>Use Me</span>"
-            +"<span class='ace_button' actionId='use-2-1'>Use Both</span>"
-            +"</span>";
+            + "<span class='conflict-button-top'>"
+            + "<span class='ace_button' actionId='use-2'>Use Me</span>"
+            + "<span class='ace_button' actionId='use-2-1'>Use Both</span>"
+            + "</span>";
         chunk.splitter.el.innerHTML = "&nbsp;<span class='conflict-button-top'>"
-            +"<span class='ace_button" + (pos ? "" : " disabled") + "' actionId='prev'>&lt;</span>"
-            +"<span class='ace_button" + (pos < count-1 ? "" : " disabled") + "' actionId='next'>&gt;</span>"
-            +"</span>";
+            + "<span class='ace_button" + (pos ? "" : " disabled") + "' actionId='prev'>&lt;</span>"
+            + "<span class='ace_button" + (pos < count - 1 ? "" : " disabled") + "' actionId='next'>&gt;</span>"
+            + "</span>";
         chunk.header.el.onclick = 
         chunk.footer.el.onclick = 
         chunk.splitter.el.onclick = this.onClick;
